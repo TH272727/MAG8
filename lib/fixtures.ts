@@ -26,6 +26,7 @@ import {
   weightedBase,
   type VerifyContext,
 } from "./ranking";
+import { isoWeekKey } from "./db";
 
 /* ============================================================================
  * Deterministic fixture run: 8 candidates, 24 ok lens cells, rankings, events.
@@ -36,6 +37,15 @@ import {
 export const FIXTURE_RUN_ID = "fixture-demo-run";
 
 const round1 = (x: number) => Math.round(x * 10) / 10;
+
+/**
+ * Cache week for fixture/mock lens rows. The "-demo" suffix keeps seeded demo
+ * data out of the REAL pipeline's cache lookups (which use plain isoWeekKey()),
+ * while letting mock runs demonstrate genuine cache hits against fixture rows.
+ */
+export function demoWeekKey(d?: Date): string {
+  return `${isoWeekKey(d)}-demo`;
+}
 
 interface LensSeed {
   verdict: Verdict;

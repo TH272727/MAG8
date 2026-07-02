@@ -1,0 +1,134 @@
+import { buildRubricText } from "../ranking";
+import {
+  DISCOVERY_SKILL,
+  LENS_SKILLS,
+  type DiscoveryCandidate,
+  type LensSkill,
+} from "../schemas";
+
+/* ============================================================================
+ * Thin call-time wrapper prompts. SKILL.md files are never edited; each prompt
+ * names exactly one skill (belt-and-braces with the SDK `skills` filter) and
+ * pins the keyMetrics contract the structured output must carry.
+ * ========================================================================== */
+
+export function discoveryPrompt(count: number): string {
+  return `You are Stage 1 of Mag8, a three-stage equity research pipeline. Your job: discover exactly ${count} candidate stocks with a credible path to trillion-dollar scale — the NEXT generation of mega-caps, found before they are obvious.
+
+Use the "${DISCOVERY_SKILL}" skill. It is the only skill available to you.
+
+Operative constraints (from the skill's own mandate):
+- US-listed and buyable on mainstream retail brokerages like Robinhood: NYSE/Nasdaq common stock or ADR. No OTC, no foreign-only listings, no private companies, no funds.
+- Bias toward small/mid-caps early in their curve. Exclude today's mega-caps (roughly >$500B market cap) — the point is what comes NEXT.
+- Match each candidate to the traits today's mega-caps shared BEFORE they were big (e.g. founder-led, platform economics, expanding TAM, compounding moat, network effects, category creation) and to where durable secular waves are heading.
+- Search the web aggressively for current prices, financials, and world-state data. Never rely on memorized figures.
+
+Resilience note: if the skill instructs you to read files under its references/ directory and any such file is missing, do not stall — proceed with the method described in the skill text itself plus the constraints above.
+
+Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.`;
+}
+
+const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate) =>
+  `You are one of three INDEPENDENT Stage-2 lenses in the Mag8 research pipeline, analyzing ${c.ticker} (${c.companyName}, ${c.sector}). Use the "${skill}" skill — it is the only skill available to you. Do not reference or assume the other lenses' outputs; independence is the point.
+
+Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
+
+`;
+
+const LENS_OUTRO = `
+Your fullAnalysisMarkdown field must contain your complete write-up in the skill's own output format. The summary field is 4–8 plain-language sentences a non-expert can read. riskFlags carries the key risks / falsification conditions. Set verdict to your overall lean for the ticker through THIS lens only: bullish, neutral, or bearish.`;
+
+export function lensPrompt(skill: LensSkill, c: DiscoveryCandidate): string {
+  switch (skill) {
+    case "stock-scanner":
+      return `${LENS_INTRO(skill, c)}Run the skill's FULL Ticker Analysis framework on ${c.ticker}: hard gates (Piotroski F-Score, Altman Z-Score, quality, confirmation), deep research, reverse-DCF plus scenario valuation, the eight-dimension composite with the Financial-Strength veto, and the final verdict.
+
+Populate keyMetrics exactly with:
+- piotroskiF (0–9, null only if genuinely not computable)
+- altmanZ (number, null if not meaningful) and altmanZone ("safe" | "grey" | "distress" | "not-meaningful")
+- reverseDcfVerdict (plain-language: implied bar too low / about right / too high)
+- rewardRisk (e.g. "2.8 : 1")
+- composite (your composite score)
+- scannerVerdict ("Buy" | "Watchlist" | "Pass" — your post-veto verdict)
+- valueTrap (boolean)
+
+Map scannerVerdict to the top-level verdict: Buy → bullish, Watchlist → neutral, Pass → bearish (deviate only with strong reason, explained in summary).${LENS_OUTRO}`;
+
+    case "gt-predictor":
+      return `${LENS_INTRO(skill, c)}Run a GT analysis of the macro / game-theoretic situation AROUND ${c.ticker}: which structural theses and laws (if any) bear on its sector, the outside-view base rate, the steelmanned opposing case, and the asset implication for ${c.ticker} specifically — with an Asymmetry Score and falsification conditions per the skill. Ground everything in live web data; a mostly-idiosyncratic read ("low structural setup, no macro edge") is a perfectly valid output.
+
+Populate keyMetrics exactly with:
+- asymmetryScore (1–10; 10 = maximum mispricing)
+- entryWindow (the entry-window read)
+- baseRate (the outside-view base rate you anchored on)
+- adjustedProbability (base rate → adjusted, e.g. "35% → 60% on carrier coordination")
+- gapVsMarket (where your read differs from current market pricing)
+
+Map the VERDICT direction to the top-level verdict: Bullish → bullish, Neutral → neutral, Bearish → bearish.${LENS_OUTRO}`;
+
+    case "institutional-forecast":
+      return `${LENS_INTRO(skill, c)}Run the skill in DEEP mode for ${c.ticker} equity. Live-verify every target and stance per the skill's sourcing rules; omit anything you cannot verify this session and say so. Build the Consensus Dashboard, base/bull/bear cases, and the institution-by-institution table.
+
+Populate keyMetrics exactly with:
+- currentPrice (spot, USD, null if unverifiable)
+- consensusTarget (descriptive average of verified targets, null if <2 verified)
+- consensusTargetLow / consensusTargetHigh (verified range, null if unavailable)
+- impliedUpsidePct (consensusTarget vs spot, percent, null if either missing)
+- stance ("Strongly Bullish" | "Bullish" | "Mixed" | "Bearish" | "Strongly Bearish")
+- bankCount (how many of the 8 primary institutions you verified)
+- spread ("Tight" | "Moderate" | "Wide")
+- freshness (e.g. "4 fresh · 2 aging · 1 stale")
+
+Map stance to the top-level verdict: Strongly Bullish/Bullish → bullish, Mixed → neutral, Bearish/Strongly Bearish → bearish. Thin coverage (< ~4 desks) → confidence low.${LENS_OUTRO}`;
+  }
+}
+
+export interface CompilerInput {
+  marketContext: string;
+  candidates: DiscoveryCandidate[];
+  /** Per ticker → per skill → wire payload JSON (without fullAnalysisMarkdown), or "MISSING (<error>)". */
+  lensData: Record<string, Record<string, unknown>>;
+  gaps: string[];
+}
+
+export function compilerPrompt(input: CompilerInput): string {
+  return `You are Stage 3 of Mag8: the compiler. Three independent lenses have analyzed each candidate; your job is to apply the scoring rubric EXACTLY and produce the ranked leaderboard. You have no tools — work only from the data below.
+
+${buildRubricText()}
+
+## Scoring discipline
+
+- Assign each of the four sub-scores (0–100) from the evidence; be willing to use the full range.
+- Derive the gate strictly from the scanner's own labels per the rubric. If the scanner cell is MISSING, use gate "caution" and say so in gateReason.
+- confluence is true ONLY when all three lenses' verdicts are bullish. A MISSING lens can never count as bullish.
+- A lens marked MISSING scores neutral (50) for its sub-score, and the gap goes in gapsNoted AND in that stock's groundingNotes.
+- groundingNotes MUST narrate the arithmetic explicitly, e.g. "Base 72.4 = 0.35×80 + 0.25×70 + 0.20×65 + 0.20×72. Gate caution ×0.75 → 54.3 (Watchlist: deployment-pace flag). No confluence bonus. Final 54.3." — then 1–3 sentences of evidence citing the lens data.
+- Include EVERY candidate exactly once. Order rankings best-first (the platform re-verifies the arithmetic and re-sorts deterministically, so honesty beats optimism).
+- verdictLine is one sharp, plain-language sentence for the leaderboard row.
+- riskFlags: the 2–4 risks that most matter, drawn from the lenses.
+
+## Stage-1 market context
+
+${input.marketContext}
+
+## Candidates and lens data
+
+${JSON.stringify(
+    input.candidates.map((c) => ({
+      ticker: c.ticker,
+      companyName: c.companyName,
+      sector: c.sector,
+      discoveryThesis: c.thesis,
+      matchedTraits: c.matchedTraits,
+      lenses: input.lensData[c.ticker] ?? {},
+    })),
+    null,
+    2,
+  )}
+
+${input.gaps.length ? `## Known gaps\n\n${input.gaps.map((g) => `- ${g}`).join("\n")}\n` : ""}
+Also produce: marketOverview (2–4 sentences synthesizing the run), methodologyNote (2–3 sentences on how confluence shaped THIS ranking), and gapsNoted (every data gap that affected scoring; empty array if none).`;
+}
+
+/** Names all four skills; used by the smoke test to assert the filter hides the rest. */
+export const ALL_SKILLS = [DISCOVERY_SKILL, ...LENS_SKILLS] as const;

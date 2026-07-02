@@ -11,7 +11,6 @@ import {
   insertCandidates,
   insertLensResult,
   insertRankings,
-  isoWeekKey,
   setRunStage,
 } from "../lib/db";
 import {
@@ -19,6 +18,7 @@ import {
   FIXTURE_SEEDS,
   buildFixtureEventLog,
   buildFixtureReport,
+  demoWeekKey,
   fixtureCandidates,
   fixtureCellCost,
   fixtureLensAnalysis,
@@ -39,7 +39,8 @@ function main() {
 
   insertCandidates(FIXTURE_RUN_ID, fixtureCandidates(COUNT));
 
-  const week = isoWeekKey(now);
+  // "-demo" week: fixture rows can never satisfy a REAL run's cache lookup.
+  const week = demoWeekKey(now);
   let cellIndex = 0;
   for (const seed of FIXTURE_SEEDS.slice(0, COUNT)) {
     for (const skill of LENS_SKILLS) {
