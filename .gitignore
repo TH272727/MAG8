@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# runtime data
+db/
+
+# env
+.env*
+!.env.example
+
+# original packaged skills stay in place, untracked (unpacked copies are committed under .claude/skills/)
+*.skill
+
+# misc
+.DS_Store
+npm-debug.log*

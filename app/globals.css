@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Placeholder theme — replaced with the full §8 token set in the design phase. */
+@theme {
+  --color-void: #0a0d12;
+  --color-panel: #12161f;
+  --color-hairline: #232938;
+  --color-ink: #e7eaee;
+  --color-muted: #8891a1;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-ink);
+}
