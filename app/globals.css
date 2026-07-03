@@ -1,15 +1,328 @@
 @import "tailwindcss";
 
-/* Placeholder theme — replaced with the full §8 token set in the design phase. */
+/* ============================================================================
+ * Mag8 design tokens (spec §8) — instrument-rack aesthetic.
+ * Gold (--color-confluence) is RESERVED for the final verdict: score chips,
+ * the braid, confluence badges. It must not appear anywhere else.
+ * ========================================================================== */
+
 @theme {
   --color-void: #0a0d12;
   --color-panel: #12161f;
+  --color-panel2: #171c28;
   --color-hairline: #232938;
+  --color-hairline2: #303950;
   --color-ink: #e7eaee;
   --color-muted: #8891a1;
+  --color-dim: #5a6274;
+
+  --color-discovery: #8b7cff;
+  --color-macro: #e8a34a;
+  --color-consensus: #3fd1c9;
+  --color-fundamentals: #5fbf7a;
+  --color-confluence: #f2c75c;
+  --color-danger: #e5534b;
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "Cascadia Mono", monospace;
 }
 
-body {
-  background: var(--color-void);
-  color: var(--color-ink);
+@layer base {
+  * {
+    border-color: var(--color-hairline);
+  }
+  html {
+    color-scheme: dark;
+    scrollbar-gutter: stable;
+  }
+  body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--color-discovery) 35%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-discovery);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-hairline);
+    border-radius: 5px;
+    border: 2px solid var(--color-void);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-hairline2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Silkscreen label — the mono eyebrow stamped on every instrument panel. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .panel {
+    background: var(--color-panel);
+    border: 1px solid var(--color-hairline);
+    border-radius: 6px;
+  }
+  .panel-raised {
+    background: var(--color-panel2);
+    border: 1px solid var(--color-hairline);
+    border-radius: 6px;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Data chip — mono pill for statuses, tickers, small readouts. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--color-hairline);
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  .gate-pass {
+    color: var(--color-fundamentals);
+    border-color: color-mix(in oklab, var(--color-fundamentals) 45%, transparent);
+    background: color-mix(in oklab, var(--color-fundamentals) 10%, transparent);
+  }
+  .gate-caution {
+    color: var(--color-macro);
+    border-color: color-mix(in oklab, var(--color-macro) 45%, transparent);
+    background: color-mix(in oklab, var(--color-macro) 10%, transparent);
+  }
+  .gate-fail {
+    color: var(--color-danger);
+    border-color: color-mix(in oklab, var(--color-danger) 45%, transparent);
+    background: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  }
+
+  /* Buttons — master-switch primary, quiet outline secondary. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--color-hairline2);
+    color: var(--color-ink);
+    background: transparent;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  }
+  .btn:hover {
+    border-color: var(--color-muted);
+    background: var(--color-panel2);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-void);
+  }
+  .btn-primary:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: var(--color-void);
+  }
+
+  /* Telemetry feed — the scrolling mono activity log. */
+  .feed {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--color-muted);
+  }
+  .feed-line {
+    display: flex;
+    gap: 0.75em;
+    align-items: baseline;
+    animation: feed-in 240ms ease both;
+  }
+  @keyframes feed-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--color-fundamentals);
+    animation: live-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes live-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-fundamentals) 55%, transparent);
+    }
+    50% {
+      opacity: 0.65;
+      box-shadow: 0 0 0 5px transparent;
+    }
+  }
+
+  /* Faint engineering grid — hero / mission-control headers only. */
+  .grid-bg {
+    background-image: linear-gradient(color-mix(in oklab, var(--color-hairline) 45%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--color-hairline) 45%, transparent) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* Rendered markdown (lens write-ups, methodology). */
+  .md-body {
+    font-size: 14px;
+    color: var(--color-ink);
+  }
+  .md-body h1,
+  .md-body h2,
+  .md-body h3,
+  .md-body h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.4em 0 0.5em;
+  }
+  .md-body h1 {
+    font-size: 1.25rem;
+  }
+  .md-body h2 {
+    font-size: 1.1rem;
+  }
+  .md-body h3,
+  .md-body h4 {
+    font-size: 1rem;
+  }
+  .md-body p,
+  .md-body ul,
+  .md-body ol {
+    margin: 0.6em 0;
+    color: color-mix(in oklab, var(--color-ink) 88%, var(--color-muted));
+  }
+  .md-body ul {
+    list-style: disc;
+    padding-left: 1.4em;
+  }
+  .md-body ol {
+    list-style: decimal;
+    padding-left: 1.4em;
+  }
+  .md-body a {
+    color: var(--color-consensus);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .md-body code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-panel2);
+    border: 1px solid var(--color-hairline);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+  .md-body pre {
+    overflow-x: auto;
+    background: var(--color-panel2);
+    border: 1px solid var(--color-hairline);
+    border-radius: 6px;
+    padding: 0.9em 1em;
+    margin: 0.8em 0;
+  }
+  .md-body pre code {
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .md-body blockquote {
+    border-left: 2px solid var(--color-hairline2);
+    padding-left: 1em;
+    margin: 0.8em 0;
+    color: var(--color-muted);
+  }
+  .md-body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 0.9em 0;
+    display: block;
+    overflow-x: auto;
+  }
+  .md-body th,
+  .md-body td {
+    border: 1px solid var(--color-hairline);
+    padding: 0.45em 0.7em;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .md-body th {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    background: var(--color-panel2);
+  }
+  .md-body hr {
+    border: 0;
+    border-top: 1px solid var(--color-hairline);
+    margin: 1.2em 0;
+  }
 }
