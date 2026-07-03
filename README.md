@@ -100,3 +100,4 @@ This app needs a **single long-lived Node process**: runs execute in-process for
 ## Disclaimer
 
 Mag8 is a research experiment demonstrating multi-agent orchestration. **It is not investment advice.** Outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.
+# MAG8
