@@ -45,12 +45,12 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (!params.mock && !CONFIG.hasApiKey()) {
+  if (!params.mock && CONFIG.authMode() === "none") {
     return NextResponse.json(
       {
-        code: "no_api_key",
+        code: "no_auth",
         error:
-          "ANTHROPIC_API_KEY is not set. Real pipeline runs require it — add it to .env.local and restart the server. Mock runs remain available in development.",
+          "No Claude credentials detected. Real runs need ANTHROPIC_API_KEY in .env.local, or Claude subscription auth (a logged-in Claude Code CLI on this machine, or CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`). Restart the server after configuring. Mock runs remain available in development.",
       },
       { status: 503 },
     );

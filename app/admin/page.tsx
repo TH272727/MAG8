@@ -62,7 +62,7 @@ export default async function AdminPage() {
 
       <div className="mt-8">
         <AdminPanel
-          hasKey={CONFIG.hasApiKey()}
+          authMode={CONFIG.authMode()}
           isDev={CONFIG.isDev}
           allowMock={CONFIG.allowMock()}
           defaultCount={CONFIG.candidates.default}

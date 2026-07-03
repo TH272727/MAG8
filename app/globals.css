@@ -17,7 +17,8 @@
   --color-dim: #5a6274;
 
   --color-discovery: #8b7cff;
-  --color-macro: #e8a34a;
+  /* Copper, not amber — keeps the macro lens clearly apart from verdict gold. */
+  --color-macro: #e0854a;
   --color-consensus: #3fd1c9;
   --color-fundamentals: #5fbf7a;
   --color-confluence: #f2c75c;
@@ -225,6 +226,36 @@
     background-image: linear-gradient(color-mix(in oklab, var(--color-hairline) 45%, transparent) 1px, transparent 1px),
       linear-gradient(90deg, color-mix(in oklab, var(--color-hairline) 45%, transparent) 1px, transparent 1px);
     background-size: 64px 64px;
+  }
+
+  /* Homepage hero field — ink-navy depth instead of flat void, the grid
+   * de-emphasized and masked away from the light field, film grain on top.
+   * Layer order relies on the pseudos + canvas all being positioned: ::before
+   * (grid) paints under the canvas glow, ::after (grain) over everything. */
+  .hero-field {
+    background:
+      radial-gradient(115% 130% at 58% 72%, rgba(18, 27, 44, 0.9) 0%, rgba(13, 18, 28, 0.45) 42%, transparent 70%),
+      var(--color-void);
+  }
+  .hero-field::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(color-mix(in oklab, var(--color-hairline) 26%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--color-hairline) 26%, transparent) 1px, transparent 1px);
+    background-size: 72px 72px;
+    -webkit-mask-image: radial-gradient(120% 110% at 58% 72%, transparent 30%, #000 78%);
+    mask-image: radial-gradient(120% 110% at 58% 72%, transparent 30%, #000 78%);
+  }
+  .hero-field::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
   }
 
   /* Rendered markdown (lens write-ups, methodology). */

@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 function int(v: string | undefined, fallback: number): number {
@@ -8,6 +10,35 @@ function int(v: string | undefined, fallback: number): number {
 function num(v: string | undefined, fallback: number): number {
   const n = v ? Number(v) : NaN;
   return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** How real agent calls will authenticate (the SDK's spawned CLI resolves credentials itself). */
+export type AuthMode = "api-key" | "subscription" | "none";
+
+/**
+ * The Agent SDK spawns the bundled Claude Code CLI, which can authenticate with
+ * an API key (per-token billing) OR with a Claude subscription — either a
+ * CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`) or the stored credentials of a
+ * logged-in CLI on this machine. Subscription runs draw on the plan's usage
+ * limits instead of billing an API account.
+ *
+ * MAG8_AUTH_MODE=subscription asserts subscription auth when detection cannot
+ * see it (e.g. macOS stores CLI credentials in the Keychain, not on disk);
+ * MAG8_AUTH_MODE=disabled hard-disables real runs regardless of credentials.
+ */
+function resolveAuthMode(): AuthMode {
+  const override = process.env.MAG8_AUTH_MODE?.trim().toLowerCase();
+  if (override === "disabled") return "none";
+  if (process.env.ANTHROPIC_API_KEY?.trim()) return "api-key";
+  if (override === "subscription") return "subscription";
+  if (process.env.CLAUDE_CODE_OAUTH_TOKEN?.trim()) return "subscription";
+  try {
+    const configDir = process.env.CLAUDE_CONFIG_DIR?.trim() || path.join(os.homedir(), ".claude");
+    if (fs.existsSync(path.join(configDir, ".credentials.json"))) return "subscription";
+  } catch {
+    /* fs unreadable — treat as no credentials */
+  }
+  return "none";
 }
 
 export const CONFIG = {
@@ -59,7 +90,7 @@ export const CONFIG = {
   isDev: process.env.NODE_ENV !== "production",
   /** Mock runs are dev-only unless explicitly enabled (staging demos of Mission Control). */
   allowMock: () => process.env.NODE_ENV !== "production" || process.env.MAG8_ALLOW_MOCK === "1",
-  hasApiKey: () => Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+  authMode: resolveAuthMode,
 } as const;
 
 /** Pre-run estimate for N candidates, shown on /admin before confirming. */

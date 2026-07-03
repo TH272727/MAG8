@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { AuthMode } from "@/lib/config";
 
 export interface RunEstimate {
   calls: number;
@@ -19,13 +20,13 @@ interface Message {
 }
 
 export default function AdminPanel({
-  hasKey,
+  authMode,
   isDev,
   allowMock,
   defaultCount,
   estimates,
 }: {
-  hasKey: boolean;
+  authMode: AuthMode;
   isDev: boolean;
   allowMock: boolean;
   defaultCount: number;
@@ -66,15 +67,25 @@ export default function AdminPanel({
 
   return (
     <div className="panel p-5 sm:p-6">
-      {/* API key status */}
-      {hasKey ? (
+      {/* Auth status */}
+      {authMode === "api-key" ? (
         <span className="chip gate-pass">ANTHROPIC_API_KEY SET</span>
+      ) : authMode === "subscription" ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="chip gate-pass">CLAUDE SUBSCRIPTION AUTH</span>
+          <span className="text-[12px] text-dim">
+            Real runs use your logged-in Claude credentials — no API billing; usage draws on your plan limits.
+          </span>
+        </div>
       ) : (
         <div className="rounded-md border border-macro/40 bg-macro/5 p-4">
-          <p className="eyebrow text-macro">API key missing</p>
+          <p className="eyebrow text-macro">No Claude credentials</p>
           <p className="mt-1 text-sm text-muted">
-            ANTHROPIC_API_KEY is not set, so real pipeline runs are disabled. Add it to{" "}
-            <code className="font-mono text-[12px] text-ink">.env.local</code> and restart the server.
+            Real pipeline runs are disabled: no ANTHROPIC_API_KEY and no Claude subscription auth detected. Add
+            the key to <code className="font-mono text-[12px] text-ink">.env.local</code>, or log in with the
+            Claude Code CLI on this machine (or set{" "}
+            <code className="font-mono text-[12px] text-ink">CLAUDE_CODE_OAUTH_TOKEN</code> from{" "}
+            <code className="font-mono text-[12px] text-ink">claude setup-token</code>), then restart the server.
             {isDev ? " Mock runs still work — full Mission Control, zero spend." : ""}
           </p>
         </div>
@@ -121,14 +132,23 @@ export default function AdminPanel({
             <br />
             <span className="text-ink">{est.calls} agent calls</span>
             <br />
-            ~${est.usdLow}–${est.usdHigh} · ~{est.minutesLow}–{est.minutesHigh} min
+            {authMode === "subscription" ? (
+              <>plan usage, $0 API · ~{est.minutesLow}–{est.minutesHigh} min</>
+            ) : (
+              <>~${est.usdLow}–${est.usdHigh} · ~{est.minutesLow}–{est.minutesHigh} min</>
+            )}
           </p>
         </div>
       </div>
 
       {/* Actions */}
       <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
-        <button type="button" className="btn btn-primary" disabled={!hasKey || busy !== null} onClick={() => trigger(false)}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={authMode === "none" || busy !== null}
+          onClick={() => trigger(false)}
+        >
           {busy === "real" ? "Starting…" : "Run the pipeline"}
         </button>
         {allowMock && (

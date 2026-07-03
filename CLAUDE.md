@@ -38,7 +38,8 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
 ## Architecture map (where things live)
 
 - `lib/schemas.ts` — every zod contract + `ProgressEvent` union + `LENS_META` labels + `lensHeadline()`
-- `lib/config.ts` — models, concurrency, timeouts, maxTurns, `estimateRun()`, env knobs
+- `lib/config.ts` — models, concurrency, timeouts, maxTurns, `estimateRun()`, `authMode()`
+  (api-key | subscription | none — see invariant 10), env knobs
 - `lib/db.ts` — **ALL SQL lives here**; no raw handle escapes (node:sqlite swap = this one file);
   globalThis-cached handle; boot reconciliation (stale pending/running → interrupted + synthetic
   run_error event) runs on first init
@@ -55,7 +56,11 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
 - `lib/run-manager.ts` — single-active-run lock (globalThis + DB belt-and-braces), detached execute
 - `lib/hooks/useRunStream.ts` — event-sourced reducer; `snapshotToStreamState()` for terminal runs
 - `app/api/runs/*` — POST (202/400/401/409/503 with `code` field), snapshot GET, SSE stream
-- `components/confluence/` — the signature ConfluenceLine (ambient/live/static + compact) + paths.ts
+- `components/confluence/` — the signature ConfluenceLine (ambient/live/static + compact) + paths.ts;
+  `HeroConfluence.tsx` (2026-07-03) — homepage-only WebGL shader hero (simplex flow lines, analytic
+  bloom, irregular packet timing; hero-graded palette; `.hero-field` CSS in globals). Falls back to
+  ConfluenceLine when WebGL is unavailable; `?heroT=<s>` freezes one frame (screenshots/tuning).
+  `--color-macro` shifted amber→copper `#e0854a` so gold stays unique to verdicts.
 - `components/run/` — RunView (client orchestrator) + StageRail/DiscoveryFeed/CandidateCard/
   MatrixGrid/MatrixCell/ActivityFeed/CompilerPanel
 - `scripts/` — `setup-skills.ps1`, `seed-fixture.ts`, `run-pipeline.ts` (`--smoke | --full [--count N] [--force] [--mock]`)
@@ -83,8 +88,13 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
 9. Every responsive grid needs an explicit base column (`grid-cols-1` = `minmax(0,1fr)`); implicit
    auto columns refuse to shrink below min-content and break the 375px no-horizontal-scroll contract.
 10. Mock runs: dev always; production only with `MAG8_ALLOW_MOCK=1`. Real runs require
-    `ANTHROPIC_API_KEY` (503 `no_api_key` otherwise). Admin: no `ADMIN_TOKEN` → open in dev, locked
-    in prod; constant-time compare in `lib/auth.ts`.
+    `CONFIG.authMode() !== "none"` (503 `no_auth` otherwise): `api-key` (`ANTHROPIC_API_KEY`) or
+    `subscription` (`CLAUDE_CODE_OAUTH_TOKEN`, or auto-detected `~/.claude/.credentials.json` /
+    `$CLAUDE_CONFIG_DIR/.credentials.json` from a logged-in CLI; `MAG8_AUTH_MODE=subscription`
+    asserts it e.g. for macOS Keychain, `=disabled` hard-blocks). Subscription runs bill NOTHING to
+    an API account — they draw on the plan's usage limits; `total_cost_usd` from the SDK is then
+    notional. Admin: no `ADMIN_TOKEN` → open in dev, locked in prod; constant-time compare in
+    `lib/auth.ts`.
 
 ## Environment quirks discovered (this Windows machine)
 
@@ -98,6 +108,11 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
   mid-flight screenshot use `MAG8_MOCK_SPEED=3` (slower) and `--timeout=8000` instead.
 - Git prints LF/CRLF warnings on every commit — noise, ignore. Commit with
   `git -c core.safecrlf=false commit` to reduce it.
+- **Headless-Edge WebGL stills need**: `--enable-unsafe-swiftshader --virtual-time-budget=12000
+  --run-all-compositor-stages-before-draw` plus the app's `?heroT=<s>` frozen-frame hook — without
+  the virtual-time + compositor flags the canvas often never composites (frozen rAF), and whether a
+  plain `--screenshot` shows it is a race. Also: `next build` while `next dev` shares `.next` →
+  dev serves 404 CSS; delete `.next` and restart dev.
 - `Expand-Archive` refuses non-.zip extensions; `setup-skills.ps1` uses .NET `ZipFile` instead.
 - tsx doesn't auto-load env files → `run-pipeline.ts` calls `process.loadEnvFile()` for `.env.local`/`.env`.
 - Killing port 3000: `powershell Get-NetTCPConnection -LocalPort 3000 … Stop-Process`.
@@ -127,10 +142,13 @@ skill's references/ files — see below); `MAG8_ALLOW_MOCK` staging escape hatch
 
 ## Open items (the actual next work)
 
-1. **First real run** — user must set `ANTHROPIC_API_KEY` in `.env.local`; then `--smoke`, then
-   N=4 from `/admin` (~14 calls, est shown pre-confirm). Watch for: native structured output ×
-   skills interplay at scale, lens keyMetrics schema fit on real data (nullable fields), discovery
-   returning exactly N.
+1. **First full real run** — subscription auth (2026-07-03) means NO API key is needed: the user's
+   logged-in CLI is auto-detected and `/admin` shows `CLAUDE SUBSCRIPTION AUTH` (user explicitly
+   prefers this — zero API spend pre-marketing). Start with N=4 from `/admin` (~14 calls). Watch
+   for: native structured output × skills interplay at scale, lens keyMetrics schema fit on real
+   data (nullable fields), discovery returning exactly N, and plan rate limits mid-run (rate-limited
+   cells degrade to error cells, neutral 50 + gap note; if that bites, lower
+   `MAG8_MAX_CONCURRENT_STOCKS` or run in a fresh 5-hour window).
 2. **`new-gen-stock` references — RESOLVED 2026-07-03.** The real `references/playbook.md` +
    `references/megacap-dna.md` (user-supplied; the package's SKILL.md was byte-identical to the
    installed one) are committed under `.claude/skills/new-gen-stock/references/`; every references/

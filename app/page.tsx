@@ -1,18 +1,10 @@
 import Link from "next/link";
-import ConfluenceLine from "@/components/confluence/ConfluenceLine";
+import HeroConfluence from "@/components/confluence/HeroConfluence";
 import EmailCapture from "@/components/landing/EmailCapture";
 import { getActiveRun, latestCompleteRun } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
-import { DISCOVERY_META, LENS_META } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
-
-const LENS_CHIPS = [
-  { label: DISCOVERY_META.label, cls: "border-discovery/40 text-discovery" },
-  { label: LENS_META["stock-scanner"].label, cls: "border-fundamentals/40 text-fundamentals" },
-  { label: LENS_META["gt-predictor"].label, cls: "border-macro/40 text-macro" },
-  { label: LENS_META["institutional-forecast"].label, cls: "border-consensus/40 text-consensus" },
-];
 
 const HOW = [
   {
@@ -40,7 +32,7 @@ export default function HomePage() {
   return (
     <main>
       {/* ---- Hero ---- */}
-      <section className="grid-bg relative overflow-hidden border-b border-hairline">
+      <section className="hero-field relative overflow-hidden border-b border-hairline">
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-16 sm:px-6 sm:pt-20">
           <p className="eyebrow">Multi-agent research desk</p>
           <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
@@ -75,16 +67,8 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="mt-12" aria-hidden="true">
-            <ConfluenceLine mode="ambient" className="mx-auto w-full max-w-4xl" />
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            {LENS_CHIPS.map((c) => (
-              <span key={c.label} className={`chip ${c.cls}`}>
-                {c.label}
-              </span>
-            ))}
+          <div className="mt-14" aria-hidden="true">
+            <HeroConfluence className="mx-auto w-full max-w-4xl" />
           </div>
         </div>
       </section>

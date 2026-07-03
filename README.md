@@ -28,25 +28,30 @@ Browse `/runs/fixture-demo-run`, `/rankings`, `/stocks/ASTS` to see the seeded d
 
 ### Before your first real run
 
-```bash
-# 1. set the key
-echo ANTHROPIC_API_KEY=sk-ant-... >> .env.local
+Real runs authenticate one of two ways — the Agent SDK's spawned Claude Code CLI resolves whichever is present:
 
-# 2. cheap wiring probe (~$0.20): auth, skills filter, structured output, bypassPermissions
+- **Claude subscription (Pro/Max), no API key.** If this machine has a logged-in Claude Code CLI, it just works: leave `ANTHROPIC_API_KEY` unset and the admin desk shows `CLAUDE SUBSCRIPTION AUTH`. Runs consume your plan's usage limits (the 5-hour window) instead of billing an API account — $0 marginal cost. Good for personal/dev use; a busy full run can eat a real chunk of a 5-hour window, so start with `--count 4` and expect any rate-limited lens cells to degrade gracefully into error cells (scored neutral, gap noted). For a server you own, mint a token with `claude setup-token` and set `CLAUDE_CODE_OAUTH_TOKEN`. Don't put subscription credentials behind a public site where third parties trigger usage — that's what API keys are for.
+- **Claude API key.** `echo ANTHROPIC_API_KEY=sk-ant-... >> .env.local` — per-token billing, the right choice once the site serves real traffic.
+
+```bash
+# 1. cheap wiring probe: auth, skills filter, structured output, bypassPermissions
+#    (~$0.20 on an API key; a sliver of plan usage on subscription auth)
 npm run pipeline -- --smoke
 
-# 3. either run headless…
+# 2. either run headless…
 npm run pipeline -- --full --count 4
 # …or restart `npm run dev` and click "Run the pipeline" on /admin
 ```
 
-A real run makes `1 + 3N + 1` agent calls (N=8 → 26 calls, roughly $5–$22 and 15–30 minutes; the admin desk shows the estimate before you confirm). One run at a time, by design.
+A real run makes `1 + 3N + 1` agent calls (N=8 → 26 calls, roughly $5–$22 on an API key and 15–30 minutes; on subscription auth the $ figure is notional plan usage. The admin desk shows the estimate before you confirm). One run at a time, by design.
 
 ## Environment variables
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | for real runs | Claude API key used by the Agent SDK. Locally a logged-in Claude Code CLI may also resolve credentials, but the key is the supported configuration; without it the app allows mock runs only. |
+| `ANTHROPIC_API_KEY` | for real runs* | Claude API key used by the Agent SDK (per-token billing). *Alternatively, Claude **subscription auth** unlocks real runs with no key: a logged-in Claude Code CLI on the machine is auto-detected, or set `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`). With neither, mock runs only. |
+| `CLAUDE_CODE_OAUTH_TOKEN` | no | Long-lived Claude subscription token (`claude setup-token`) for machines without a logged-in CLI. Plan usage, no API billing. |
+| `MAG8_AUTH_MODE` | no | `subscription` asserts subscription auth when detection can't see it (e.g. macOS Keychain); `disabled` blocks real runs even if credentials exist. |
 | `ADMIN_TOKEN` | production | Gates `/admin` and `POST /api/runs` (constant-time compare; httpOnly cookie or `x-admin-token` header). Unset in development = desk open; unset in production = desk locked. |
 | `MAG8_DISCOVERY_MODEL` / `MAG8_LENS_MODEL` / `MAG8_COMPILER_MODEL` | no | Model overrides (defaults: `claude-opus-4-8` / `claude-sonnet-5` / `claude-opus-4-8`). |
 | `MAG8_MAX_CONCURRENT_STOCKS` | no | Candidates in flight at once (default 3 → ≤9 concurrent agent sessions). |
@@ -95,7 +100,7 @@ This app needs a **single long-lived Node process**: runs execute in-process for
 - **Vercel/serverless:** not as-is — verify long-running compute support before relying on it; the detached orchestrator and the in-process event bus assume one persistent instance.
 - **Scale-out:** the SQLite layer is one file (`lib/db.ts` holds every SQL statement; no raw handle escapes it), so a Postgres port is contained. The in-process `EventEmitter` bus would need a shared channel (e.g. LISTEN/NOTIFY) for multi-instance SSE.
 - **better-sqlite3 fallback:** if the native module won't build on your platform, `lib/db.ts` is the only file to swap to `node:sqlite`'s `DatabaseSync` (Node ≥ 22.5).
-- **Docker + `bypassPermissions`:** agents run unattended with permissions bypassed. Don't run the container as root without a sandbox; give it a non-root user and no credentials beyond `ANTHROPIC_API_KEY`.
+- **Docker + `bypassPermissions`:** agents run unattended with permissions bypassed. Don't run the container as root without a sandbox; give it a non-root user and no credentials beyond `ANTHROPIC_API_KEY` (or `CLAUDE_CODE_OAUTH_TOKEN`).
 
 ## Disclaimer
 

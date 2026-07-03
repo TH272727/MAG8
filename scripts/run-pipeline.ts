@@ -3,7 +3,7 @@
  *
  *   npm run pipeline -- --smoke            cheap wiring probe (auth, skills filter,
  *                                          structured output, bypassPermissions)
- *   npm run pipeline -- --full --count 4   whole pipeline, real API spend
+ *   npm run pipeline -- --full --count 4   whole pipeline: API-key billing, or plan usage on subscription auth
  *   npm run pipeline -- --full --mock      whole pipeline through the mock path (zero spend)
  *   flags: --count N (4..12), --force (skip lens cache)
  */
@@ -58,9 +58,13 @@ async function smoke(): Promise<number> {
     `${present.length}/${ALL_SKILLS.length} (run: npm run setup:skills)`,
   );
 
-  const hasKey = CONFIG.hasApiKey();
+  const auth = CONFIG.authMode();
   console.log(
-    ` INFO  ANTHROPIC_API_KEY ${hasKey ? "is set" : "NOT set — relying on a logged-in Claude Code CLI, which may or may not be available"}`,
+    auth === "api-key"
+      ? " INFO  auth: ANTHROPIC_API_KEY (per-token API billing)"
+      : auth === "subscription"
+        ? " INFO  auth: Claude subscription (logged-in CLI / OAuth token) — plan usage, no API billing; $ figures below are notional"
+        : " INFO  auth: NONE detected — the probe will fail; set ANTHROPIC_API_KEY or log in with the Claude Code CLI",
   );
 
   const SmokeSchema = z.object({
@@ -173,8 +177,11 @@ async function full(): Promise<number> {
     console.log(
       ` INFO  ${est.calls} agent calls (1 discovery + ${count}×${LENS_SKILLS.length} lenses + 1 compile), est. $${est.usdLow}–$${est.usdHigh}, ~${est.minutesLow}–${est.minutesHigh} min`,
     );
-    if (!CONFIG.hasApiKey()) {
-      console.log(" WARN  ANTHROPIC_API_KEY not set — relying on a logged-in Claude Code CLI. The app itself requires the key.");
+    const auth = CONFIG.authMode();
+    if (auth === "subscription") {
+      console.log(" INFO  auth: Claude subscription — the $ estimate is notional; the run draws on your plan's usage limits, no API billing.");
+    } else if (auth === "none") {
+      console.log(" WARN  no Claude credentials detected (no API key, no logged-in CLI, no CLAUDE_CODE_OAUTH_TOKEN) — the first agent call will fail.");
     }
   }
 
