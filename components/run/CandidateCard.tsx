@@ -3,14 +3,24 @@
 import { motion, useReducedMotion } from "framer-motion";
 import type { DiscoveryCandidate } from "@/lib/schemas";
 
-export default function CandidateCard({ candidate, index }: { candidate: DiscoveryCandidate; index: number }) {
+export default function CandidateCard({
+  candidate,
+  index,
+  entrance,
+}: {
+  candidate: DiscoveryCandidate;
+  index: number;
+  /** Animate in only when cards arrive live mid-run; terminal renders settle instantly. */
+  entrance: boolean;
+}) {
   const reduced = useReducedMotion() ?? false;
+  const animateIn = entrance && !reduced;
   const shownTraits = candidate.matchedTraits.slice(0, 3);
   const more = candidate.matchedTraits.length - shownTraits.length;
 
   return (
     <motion.article
-      initial={reduced ? false : { opacity: 0, y: 10 }}
+      initial={animateIn ? { opacity: 0, y: 10 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.6), ease: "easeOut" }}
       className="panel flex flex-col p-4"
@@ -25,7 +35,7 @@ export default function CandidateCard({ candidate, index }: { candidate: Discove
       <p className="mt-2 line-clamp-3 text-[13px] leading-snug text-muted">{candidate.thesis}</p>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {shownTraits.map((t) => (
-          <span key={t} className="chip border-discovery/40 text-discovery">
+          <span key={t} className="chip inline-block max-w-full truncate border-discovery/40 text-discovery">
             {t}
           </span>
         ))}

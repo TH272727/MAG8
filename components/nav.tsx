@@ -18,29 +18,29 @@ export default async function Nav() {
   const active = getActiveRun();
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-void/90 backdrop-blur-sm">
-      <nav className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Mag8 home">
+      <nav className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Mag8 home">
           <Mark />
           <span className="font-display text-[17px] font-bold tracking-[0.08em]">MAG8</span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-2">
           {active && (
             <Link
               href={`/runs/${active.id}`}
-              className="chip mr-1 border-fundamentals/40 text-fundamentals hover:border-fundamentals"
+              className="chip mr-1 shrink-0 border-fundamentals/40 text-fundamentals hover:border-fundamentals"
             >
               <span className="live-dot" aria-hidden="true" />
               LIVE RUN
             </Link>
           )}
-          <Link href="/rankings" className="rounded px-2.5 py-1.5 text-sm text-muted transition-colors hover:text-ink">
+          <Link href="/rankings" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
             Rankings
           </Link>
-          <Link href="/methodology" className="rounded px-2.5 py-1.5 text-sm text-muted transition-colors hover:text-ink">
+          <Link href="/methodology" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
             Methodology
           </Link>
-          <Link href="/admin" className="rounded px-2.5 py-1.5 text-sm text-muted transition-colors hover:text-ink">
+          <Link href="/admin" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
             Admin
           </Link>
         </div>

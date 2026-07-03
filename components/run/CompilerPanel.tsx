@@ -36,7 +36,7 @@ export default function CompilerPanel({
 
       {report && (
         <>
-          <div className="mt-4 grid gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
             {podium.map((s) => (
               <Link key={s.ticker} href={`/stocks/${s.ticker}`} className="group bg-panel p-4 transition-colors hover:bg-panel2">
                 <div className="flex items-baseline justify-between">

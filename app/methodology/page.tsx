@@ -88,7 +88,7 @@ export default function MethodologyPage() {
         <h2 id="pipeline-h" className="eyebrow">
           The pipeline
         </h2>
-        <div className="mt-4 grid gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
           {STAGES.map((s) => (
             <div key={s.n} className="bg-panel p-5">
               <div className="font-mono text-[11px] tracking-[0.14em] text-dim">STAGE {s.n}</div>
@@ -104,7 +104,7 @@ export default function MethodologyPage() {
         <h2 id="lenses-h" className="eyebrow">
           The four threads
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {LENSES.map((l) => (
             <div key={l.skill} className={`panel border-t-2 p-5 ${ACCENT_BORDER[l.accent]}`}>
               <div className="flex items-baseline justify-between gap-3">
@@ -134,7 +134,7 @@ export default function MethodologyPage() {
       </section>
 
       {/* Operational notes */}
-      <section className="mt-12 grid gap-4 sm:grid-cols-2" aria-label="Operational notes">
+      <section className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2" aria-label="Operational notes">
         <div className="panel p-5">
           <h3 className="font-display text-base font-semibold">Freshness &amp; caching</h3>
           <p className="mt-2 text-sm text-muted">

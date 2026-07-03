@@ -94,7 +94,7 @@ export default function HomePage() {
         <h2 id="how-h" className="eyebrow">
           How a run works
         </h2>
-        <div className="mt-4 grid gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
           {HOW.map((s) => (
             <div key={s.n} className="bg-panel p-5">
               <div className="font-mono text-[11px] tracking-[0.14em] text-dim">STAGE {s.n}</div>
@@ -124,7 +124,7 @@ export default function HomePage() {
               full board →
             </Link>
           </div>
-          <div className="mt-4 grid gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
             {top3.map((s) => (
               <Link
                 key={s.ticker}

@@ -73,7 +73,7 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         {/* ---- Main column ---- */}
         <div className="min-w-0 space-y-6">
           {/* Why this score — the grounding notes */}
@@ -118,7 +118,7 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
               <p className="mt-2 text-sm leading-relaxed text-ink/90">{candidate.thesis}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {candidate.matchedTraits.map((t) => (
-                  <span key={t} className="chip border-discovery/40 text-discovery">
+                  <span key={t} className="chip inline-block max-w-full truncate border-discovery/40 text-discovery">
                     {t}
                   </span>
                 ))}

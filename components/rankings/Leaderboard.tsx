@@ -11,7 +11,7 @@ export default function Leaderboard({ report, lensMap }: { report: CompiledRepor
         <span className="eyebrow text-right">Score</span>
         <span className="eyebrow text-right">Confluence</span>
       </div>
-      <ol className="grid gap-px overflow-hidden rounded-md border border-hairline bg-hairline">
+      <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline">
         {report.rankings.map((s) => (
           <li key={s.ticker} className="contents">
             <RankRow stock={s} lenses={lensMap[s.ticker]} />

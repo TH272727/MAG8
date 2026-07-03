@@ -79,7 +79,7 @@ export default function AdminPanel({
       )}
 
       {/* Controls */}
-      <div className="mt-6 grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div>
           <label htmlFor="count" className="eyebrow">
             Candidates to discover

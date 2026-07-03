@@ -9,7 +9,7 @@ import DiscoveryFeed from "./DiscoveryFeed";
 import MatrixGrid from "./MatrixGrid";
 import StageRail, { type StageStatus } from "./StageRail";
 import type { RunSnapshot } from "@/lib/db";
-import { fmtDateTime, fmtMoney } from "@/lib/format";
+import { fmtDateTime, fmtMoney, shortId } from "@/lib/format";
 import {
   snapshotToStreamState,
   useRunStream,
@@ -114,7 +114,7 @@ export default function RunView({ snapshot }: { snapshot: RunSnapshot }) {
           <div>
             <p className="eyebrow">Mission control</p>
             <h1 className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Run <span className="font-mono text-muted">{run.id.slice(0, 8)}</span>
+              Run <span className="font-mono text-muted">{shortId(run.id)}</span>
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -176,9 +176,9 @@ export default function RunView({ snapshot }: { snapshot: RunSnapshot }) {
           <h2 id="cohort-h" className="eyebrow">
             Stage 01 · Cohort — {state.candidates.length} candidates
           </h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {state.candidates.map((c, i) => (
-              <CandidateCard key={c.ticker} candidate={c} index={i} />
+              <CandidateCard key={c.ticker} candidate={c} index={i} entrance={live && !state.terminal} />
             ))}
           </div>
         </section>

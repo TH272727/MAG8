@@ -35,7 +35,7 @@ export default function RankRow({ stock, lenses }: { stock: RankedStock; lenses?
   return (
     <Link
       href={`/stocks/${stock.ticker}`}
-      className="group grid grid-cols-[2.5rem_1fr_auto] items-center gap-x-4 gap-y-2 bg-panel px-4 py-4 transition-colors hover:bg-panel2 sm:grid-cols-[3rem_minmax(0,1.6fr)_minmax(0,1fr)_auto_11rem] sm:px-5"
+      className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 bg-panel px-4 py-4 transition-colors hover:bg-panel2 sm:grid-cols-[3rem_minmax(0,1.6fr)_minmax(0,1fr)_auto_11rem] sm:px-5"
     >
       <div className="tabular font-mono text-lg font-bold text-dim group-hover:text-muted">
         {String(stock.rank).padStart(2, "0")}
