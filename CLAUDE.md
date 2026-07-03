@@ -122,8 +122,8 @@ a gap note); the ASTS×institutional-forecast cell cache-hits after a seed/prior
 Native structured outputs primary (fenced fallback pre-built in `extract.ts`, activate only if a
 real run shows native+skills misbehaving); additive `discovery_activity` + `compile_activity` event
 variants; compiler prompt omits `fullAnalysisMarkdown`; email capture is a server action; deps added
-(`react-markdown`, `remark-gfm`, `tsx`); deterministic re-verify; discovery gets `Read` (its skill
-references missing files — see below); `MAG8_ALLOW_MOCK` staging escape hatch.
+(`react-markdown`, `remark-gfm`, `tsx`); deterministic re-verify; discovery gets `Read` (to read its
+skill's references/ files — see below); `MAG8_ALLOW_MOCK` staging escape hatch.
 
 ## Open items (the actual next work)
 
@@ -131,10 +131,14 @@ references missing files — see below); `MAG8_ALLOW_MOCK` staging escape hatch.
    N=4 from `/admin` (~14 calls, est shown pre-confirm). Watch for: native structured output ×
    skills interplay at scale, lens keyMetrics schema fit on real data (nullable fields), discovery
    returning exactly N.
-2. **`new-gen-stock` is a stub** — its `references/playbook.md` + `references/megacap-dna.md` were
-   missing from the shipped archive. The Stage-1 wrapper prompt inlines constraints + a
-   don't-stall-on-missing-files instruction. Dropping the real files into
-   `.claude/skills/new-gen-stock/references/` upgrades discovery with zero code changes (commit them).
+2. **`new-gen-stock` references — RESOLVED 2026-07-03.** The real `references/playbook.md` +
+   `references/megacap-dna.md` (user-supplied; the package's SKILL.md was byte-identical to the
+   installed one) are committed under `.claude/skills/new-gen-stock/references/`; every references/
+   path across all four skills now resolves. Residual caveat: the gitignored `new-gen-stock (1).skill`
+   archive is still the stub and `setup-skills.ps1` deletes + re-extracts each skill folder, so
+   re-running `npm run setup:skills` removes the two files — restore with
+   `git restore .claude/skills/new-gen-stock` (or repack the archive to make setup idempotent).
+   The wrapper prompt's don't-stall-on-missing-files line stays as harmless resilience.
 3. **Email capture stores but never sends** — `email_signups` table fills; no sender wired. Landing
    copy is honest about this.
 4. Deploy target undecided — needs a long-lived single instance (SSE + in-process bus + SQLite).

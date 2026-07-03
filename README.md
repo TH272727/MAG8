@@ -73,9 +73,9 @@ npm run seed                                 # (re)seed the demo fixture run
 - **Resilience** — a lens-cell failure becomes an error cell (scored neutral, gap noted), never a run failure. Runs are watchdog-aborted after 45 min. On boot, any `pending/running` row left by a crash is marked `interrupted` with a synthetic terminal event so replaying clients always resolve.
 - **Skills are read-only** — the four `SKILL.md` files are never edited; per-call wrapper prompts + the SDK `skills` filter scope each agent to exactly one skill.
 
-### Known limitation: `new-gen-stock` references
+### Note: `new-gen-stock` references are committed in-repo, not in the archive
 
-The `new-gen-stock (1).skill` archive ships only its `SKILL.md`, which points at `references/playbook.md` and `references/megacap-dna.md` that were **not in the archive**. The Stage-1 wrapper prompt inlines the operative constraints from the skill's own description and tells the agent not to stall on the missing files. Discovery quality will improve the moment the real reference files are dropped into `.claude/skills/new-gen-stock/references/` — no code change needed.
+The `new-gen-stock (1).skill` archive ships only its `SKILL.md`; the two reference files it points at (`references/playbook.md` — method, universe constraints, DNA scorecard, workflow, report format — and `references/megacap-dna.md` — the pre-ascent pattern library) are committed directly under `.claude/skills/new-gen-stock/references/`. Caveat: `npm run setup:skills` deletes and re-extracts each skill folder from its archive, so re-running it removes these two files — restore them with `git restore .claude/skills/new-gen-stock`. The Stage-1 wrapper prompt still inlines the core constraints and tells the agent not to stall if the files are ever absent.
 
 ### Deviations from the build spec (all flagged, all additive)
 
@@ -85,7 +85,7 @@ The `new-gen-stock (1).skill` archive ships only its `SKILL.md`, which points at
 4. Email capture is a server action rather than a fourth API route.
 5. `react-markdown` + `remark-gfm` and `tsx` added to the dependency list.
 6. `finalizeRankings()` deterministically re-verifies the compiler's arithmetic.
-7. Stage-1 discovery also gets the `Read` tool so the skill's own "read references/" instruction degrades gracefully.
+7. Stage-1 discovery also gets the `Read` tool so it can follow the skill's own "read references/" instruction (and degrade gracefully if the files are ever absent).
 
 ## Deploying
 
