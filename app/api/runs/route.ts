@@ -39,8 +39,11 @@ export async function POST(req: NextRequest) {
     mock: parsed.data.mock ?? false,
   };
 
-  if (params.mock && !CONFIG.isDev) {
-    return NextResponse.json({ code: "mock_dev_only", error: "Mock runs are available in development only." }, { status: 400 });
+  if (params.mock && !CONFIG.allowMock()) {
+    return NextResponse.json(
+      { code: "mock_dev_only", error: "Mock runs are available in development only (set MAG8_ALLOW_MOCK=1 to enable them on a demo deployment)." },
+      { status: 400 },
+    );
   }
   if (!params.mock && !CONFIG.hasApiKey()) {
     return NextResponse.json(

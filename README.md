@@ -1,0 +1,102 @@
+# Mag8
+
+**Four independent research lenses hunt the next trillion-dollar stocks. Agreement is the signal.**
+
+Mag8 is a Next.js app that orchestrates four existing Claude Skills (via `@anthropic-ai/claude-agent-sdk`) into a three-stage equity-research pipeline with a live multi-agent Mission Control:
+
+1. **Discovery** — a scout agent runs the `new-gen-stock` skill: heavy web research nominating small/mid-cap candidates that match the traits today's mega-caps had before they were big.
+2. **Analysis matrix** — every candidate is analyzed by three agents that never see each other's work: `stock-scanner` (fundamentals: Piotroski F, Altman Z, reverse-DCF, value-trap gates), `gt-predictor` (game-theory macro read with an Asymmetry Score), and `institutional-forecast` (live-verified street consensus). 3×N cells, concurrency-capped.
+3. **Compile & verify** — a compiler agent applies the **Trillion-Dollar Confluence Score** rubric; deterministic TypeScript then re-derives the gate from the scanner's own labels, recomputes the arithmetic, re-sorts, and enforces the placement rule. The model judges; the code enforces.
+
+The product thesis: any single analysis can talk itself into anything. Independent methods agreeing is harder to fake — that agreement (all three lenses bullish → +10 confluence bonus) is itself the signal, rendered everywhere as the gold braid.
+
+---
+
+## Quickstart
+
+```bash
+npm install
+npm run setup:skills   # unpacks the four *.skill archives into .claude/skills/
+npm run seed           # seeds a complete demo run so every page renders with zero spend
+npm run dev            # http://localhost:3000
+```
+
+Windows note: `setup:skills` is a PowerShell script. On macOS/Linux, unzip manually instead:
+`for f in *.skill; do unzip -o "$f" -d .claude/skills/; done` (each archive contains one `<skill-name>/SKILL.md` folder).
+
+Browse `/runs/fixture-demo-run`, `/rankings`, `/stocks/ASTS` to see the seeded demo. Trigger a **mock run** from `/admin` (dev-only, zero spend) to watch Mission Control stream live over SSE.
+
+### Before your first real run
+
+```bash
+# 1. set the key
+echo ANTHROPIC_API_KEY=sk-ant-... >> .env.local
+
+# 2. cheap wiring probe (~$0.20): auth, skills filter, structured output, bypassPermissions
+npm run pipeline -- --smoke
+
+# 3. either run headless…
+npm run pipeline -- --full --count 4
+# …or restart `npm run dev` and click "Run the pipeline" on /admin
+```
+
+A real run makes `1 + 3N + 1` agent calls (N=8 → 26 calls, roughly $5–$22 and 15–30 minutes; the admin desk shows the estimate before you confirm). One run at a time, by design.
+
+## Environment variables
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | for real runs | Claude API key used by the Agent SDK. Locally a logged-in Claude Code CLI may also resolve credentials, but the key is the supported configuration; without it the app allows mock runs only. |
+| `ADMIN_TOKEN` | production | Gates `/admin` and `POST /api/runs` (constant-time compare; httpOnly cookie or `x-admin-token` header). Unset in development = desk open; unset in production = desk locked. |
+| `MAG8_DISCOVERY_MODEL` / `MAG8_LENS_MODEL` / `MAG8_COMPILER_MODEL` | no | Model overrides (defaults: `claude-opus-4-8` / `claude-sonnet-5` / `claude-opus-4-8`). |
+| `MAG8_MAX_CONCURRENT_STOCKS` | no | Candidates in flight at once (default 3 → ≤9 concurrent agent sessions). |
+| `MAG8_DB_PATH` | no | SQLite path (default `./db/mag8.db`). |
+| `MAG8_ALLOW_MOCK` | no | `1` enables zero-spend mock runs on a production/staging deployment (dev always allows them). |
+| `MAG8_*_TIMEOUT_MS`, `MAG8_MAX_TURNS_*`, `MAG8_MOCK_SPEED` | no | See `.env.example`. |
+
+## CLI harness
+
+```bash
+npm run pipeline -- --smoke                  # go/no-go integration probe (pennies)
+npm run pipeline -- --full --count 8         # whole pipeline headless, live console rendering
+npm run pipeline -- --full --mock            # whole pipeline through the mock path (zero spend)
+npm run pipeline -- --full --count 8 --force # skip this week's lens cache
+npm run seed                                 # (re)seed the demo fixture run
+```
+
+## How it holds together
+
+- **Contracts** (`lib/schemas.ts`) — zod v4 schemas for every agent handoff. The SDK's native structured outputs (`outputFormat: json_schema`) are the primary handoff; zod re-validates anyway, and a schema failure triggers exactly one corrective retry that resumes the same session. A pre-built fenced-block parser (`lib/orchestrator/extract.ts`) exists as the fallback handoff path.
+- **Rubric** (`lib/ranking.ts`) — gate multipliers, weights, bonus, and placement rule live as constants; `buildRubricText()` renders the same text into both the compiler prompt and `/methodology`, so the page and the pipeline cannot drift. `finalizeRankings()` recomputes everything and appends any correction to the stock's grounding notes in plain sight.
+- **Cache** — lens analyses double as a cache keyed `(ticker, skill, ISO week)`, matching the scanner's weekly cadence. Cache hits render instantly as "cached" chips and cost $0. Demo/mock rows use a `-demo` suffixed week so fixture data can never leak into a real run's cache. `force` skips lookup.
+- **Progress** — every event is persisted to SQLite *before* it is emitted in-process; the rowid doubles as the SSE event id, so browser reconnects resume via `Last-Event-ID` for free. Mission Control is fully event-sourced; terminal runs render server-side from a snapshot with no stream.
+- **Resilience** — a lens-cell failure becomes an error cell (scored neutral, gap noted), never a run failure. Runs are watchdog-aborted after 45 min. On boot, any `pending/running` row left by a crash is marked `interrupted` with a synthetic terminal event so replaying clients always resolve.
+- **Skills are read-only** — the four `SKILL.md` files are never edited; per-call wrapper prompts + the SDK `skills` filter scope each agent to exactly one skill.
+
+### Known limitation: `new-gen-stock` references
+
+The `new-gen-stock (1).skill` archive ships only its `SKILL.md`, which points at `references/playbook.md` and `references/megacap-dna.md` that were **not in the archive**. The Stage-1 wrapper prompt inlines the operative constraints from the skill's own description and tells the agent not to stall on the missing files. Discovery quality will improve the moment the real reference files are dropped into `.claude/skills/new-gen-stock/references/` — no code change needed.
+
+### Deviations from the build spec (all flagged, all additive)
+
+1. Native structured outputs are the primary handoff; the spec's fenced-JSON+retry is the pre-built fallback (the spec itself prefers native).
+2. Additive `discovery_activity` and `compile_activity` progress-event variants (Mission Control needs Stage-1/Stage-3 live feeds).
+3. The compiler prompt omits `fullAnalysisMarkdown` (display-only bulk; the rubric consumes scores/summaries/keyMetrics).
+4. Email capture is a server action rather than a fourth API route.
+5. `react-markdown` + `remark-gfm` and `tsx` added to the dependency list.
+6. `finalizeRankings()` deterministically re-verifies the compiler's arithmetic.
+7. Stage-1 discovery also gets the `Read` tool so the skill's own "read references/" instruction degrades gracefully.
+
+## Deploying
+
+This app needs a **single long-lived Node process**: runs execute in-process for up to ~45 minutes, SSE connections stay open, and SQLite lives on local disk.
+
+- **Good fits:** Render, Fly.io, Railway, a VPS, or any Docker host. `npm run build && npm run start`.
+- **Vercel/serverless:** not as-is — verify long-running compute support before relying on it; the detached orchestrator and the in-process event bus assume one persistent instance.
+- **Scale-out:** the SQLite layer is one file (`lib/db.ts` holds every SQL statement; no raw handle escapes it), so a Postgres port is contained. The in-process `EventEmitter` bus would need a shared channel (e.g. LISTEN/NOTIFY) for multi-instance SSE.
+- **better-sqlite3 fallback:** if the native module won't build on your platform, `lib/db.ts` is the only file to swap to `node:sqlite`'s `DatabaseSync` (Node ≥ 22.5).
+- **Docker + `bypassPermissions`:** agents run unattended with permissions bypassed. Don't run the container as root without a sandbox; give it a non-root user and no credentials beyond `ANTHROPIC_API_KEY`.
+
+## Disclaimer
+
+Mag8 is a research experiment demonstrating multi-agent orchestration. **It is not investment advice.** Outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.

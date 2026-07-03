@@ -57,6 +57,8 @@ export const CONFIG = {
     : path.join(process.cwd(), "db", "mag8.db"),
 
   isDev: process.env.NODE_ENV !== "production",
+  /** Mock runs are dev-only unless explicitly enabled (staging demos of Mission Control). */
+  allowMock: () => process.env.NODE_ENV !== "production" || process.env.MAG8_ALLOW_MOCK === "1",
   hasApiKey: () => Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
 } as const;
 

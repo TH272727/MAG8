@@ -64,6 +64,7 @@ export default async function AdminPage() {
         <AdminPanel
           hasKey={CONFIG.hasApiKey()}
           isDev={CONFIG.isDev}
+          allowMock={CONFIG.allowMock()}
           defaultCount={CONFIG.candidates.default}
           estimates={estimates}
         />

@@ -21,11 +21,13 @@ interface Message {
 export default function AdminPanel({
   hasKey,
   isDev,
+  allowMock,
   defaultCount,
   estimates,
 }: {
   hasKey: boolean;
   isDev: boolean;
+  allowMock: boolean;
   defaultCount: number;
   estimates: Record<number, RunEstimate>;
 }) {
@@ -129,7 +131,7 @@ export default function AdminPanel({
         <button type="button" className="btn btn-primary" disabled={!hasKey || busy !== null} onClick={() => trigger(false)}>
           {busy === "real" ? "Starting…" : "Run the pipeline"}
         </button>
-        {isDev && (
+        {allowMock && (
           <button type="button" className="btn" disabled={busy !== null} onClick={() => trigger(true)}>
             {busy === "mock" ? "Starting…" : "Mock run (no spend)"}
           </button>
