@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Mag8 mark: three independent lenses converging on one gold confluence point -->
+  <rect width="64" height="64" rx="14" fill="#0a0f1c"/>
+  <path d="M9 19 C 26 19, 34 31, 50 31.5" stroke="#5fbf7a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <path d="M9 32 C 24 32, 36 32, 50 32" stroke="#e0854a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <path d="M9 45 C 26 45, 34 33, 50 32.5" stroke="#3fd1c9" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <circle cx="51" cy="32" r="6.5" fill="#f2c75c"/>
+  <circle cx="51" cy="32" r="9.5" fill="none" stroke="#f2c75c" stroke-opacity="0.35" stroke-width="2"/>
+</svg>

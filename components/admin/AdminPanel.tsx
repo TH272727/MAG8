@@ -74,7 +74,9 @@ export default function AdminPanel({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <span className="chip gate-pass">CLAUDE SUBSCRIPTION AUTH</span>
           <span className="text-[12px] text-dim">
-            Real runs use your logged-in Claude credentials — no API billing; usage draws on your plan limits.
+            Real runs use your logged-in Claude credentials — no API billing; usage draws on your plan&apos;s
+            5-hour window. Size runs to the window: 4–8 candidates is realistic, 12 has exhausted it mid-run.
+            Completed cells cache for the ISO week, so a follow-up run finishes the remainder.
           </span>
         </div>
       ) : (

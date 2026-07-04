@@ -43,8 +43,24 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
     const { cells, costUsd: analysisCost } = await runAnalysisMatrix(runId, discovery.candidates, {
       force: params.force,
       signal: watchdog.signal,
+      // Plan-limit / auth failures hit every subsequent call too — abort the run
+      // instead of cascading the same error through the whole matrix + compile.
+      onFatal: (reason) => {
+        if (!watchdog.signal.aborted) {
+          watchdog.abort(
+            new Error(
+              `${reason} — run aborted early. Completed lens cells are cached for this ISO week; re-running later only re-does the unfinished ones.`,
+            ),
+          );
+        }
+      },
     });
     totalCost += analysisCost;
+
+    if (watchdog.signal.aborted) {
+      const reason = watchdog.signal.reason;
+      throw reason instanceof Error ? reason : new Error(String(reason));
+    }
 
     const okCells = [...cells.values()].filter((c) => c.ok).length;
     if (okCells === 0) {

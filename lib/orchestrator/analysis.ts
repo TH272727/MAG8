@@ -4,14 +4,14 @@ import {
   LENS_SKILLS,
   cellKey,
   lensHeadline,
-  lensWireSchema,
+  lensWireNoMarkdownSchema,
   type CellKey,
   type DiscoveryCandidate,
   type LensAnalysis,
   type LensSkill,
   type LensStatusEvent,
 } from "../schemas";
-import { runAgentWithContract } from "./agent";
+import { ContractError, runAgentWithContract } from "./agent";
 import { createLimiter } from "./limit";
 import { lensPrompt } from "./prompts";
 import { emitProgress, nowIso } from "./progress";
@@ -23,6 +23,14 @@ export interface CellOutcome {
   cached: boolean;
   costUsd: number;
 }
+
+/**
+ * Errors that will hit EVERY subsequent agent call too (plan usage exhausted,
+ * auth broken) — burning through the remaining matrix is pointless and the
+ * cascade buries the real cause, so these escalate to a run-level abort.
+ */
+const FATAL_AGENT_ERROR =
+  /(hit|reached) your (session|usage|weekly|5-hour) limit|session limit|usage limit|credit balance is too low|invalid (api key|bearer token)|authentication[_ ]error|oauth token (has )?(expired|been revoked)/i;
 
 export interface AnalysisMatrixResult {
   cells: Map<CellKey, CellOutcome>;
@@ -47,7 +55,7 @@ function emitLens(
 export async function runAnalysisMatrix(
   runId: string,
   candidates: DiscoveryCandidate[],
-  opts: { force: boolean; signal: AbortSignal },
+  opts: { force: boolean; signal: AbortSignal; onFatal?: (reason: string) => void },
 ): Promise<AnalysisMatrixResult> {
   const week = isoWeekKey();
   const cells = new Map<CellKey, CellOutcome>();
@@ -84,7 +92,7 @@ async function runOneCell(
   candidate: DiscoveryCandidate,
   skill: LensSkill,
   week: string,
-  opts: { force: boolean; signal: AbortSignal },
+  opts: { force: boolean; signal: AbortSignal; onFatal?: (reason: string) => void },
 ): Promise<CellOutcome> {
   const { ticker } = candidate;
   const label = `lens:${ticker}:${skill}`;
@@ -107,7 +115,7 @@ async function runOneCell(
 
     emitLens(runId, ticker, skill, { status: "running", activity: "Starting analysis…" });
 
-    const { data, costUsd } = await runAgentWithContract(lensWireSchema(skill), {
+    const { data, costUsd, narrativeText } = await runAgentWithContract(lensWireNoMarkdownSchema(skill), {
       prompt: lensPrompt(skill, candidate),
       model: CONFIG.models.lens,
       allowedTools: ["WebSearch", "WebFetch", "Bash", "Read"],
@@ -119,7 +127,9 @@ async function runOneCell(
       onActivity: (activity) => emitLens(runId, ticker, skill, { status: "running", activity }),
     });
 
-    const analysis: LensAnalysis = { ticker, skill, ...data };
+    // The wire fence carries only compact fields; the markdown report is the
+    // message itself (models corrupt 10KB+ strings inside JSON far too often).
+    const analysis: LensAnalysis = { ticker, skill, ...data, fullAnalysisMarkdown: narrativeText.trim() || data.summary };
     insertLensResult({ runId, ticker, skill, isoWeek: week, status: "ok", analysis, costUsd });
     emitLens(runId, ticker, skill, {
       status: "done",
@@ -130,12 +140,17 @@ async function runOneCell(
     return { ok: true, analysis, cached: false, costUsd };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    // Persist the WHY (zod issue report) and the cost of the failed attempts, not just the headline.
+    const detail = err instanceof ContractError && err.detail ? `\n${err.detail.slice(0, 800)}` : "";
+    const costUsd = err instanceof ContractError ? err.costUsd : 0;
+    const stored = `${message}${detail}`;
     try {
-      insertLensResult({ runId, ticker, skill, isoWeek: week, status: "error", error: message });
+      insertLensResult({ runId, ticker, skill, isoWeek: week, status: "error", error: stored, costUsd });
     } catch {
       // DB write failed on top of the cell failure — the event below still tells the client.
     }
     emitLens(runId, ticker, skill, { status: "error", error: message });
-    return { ok: false, error: message, cached: false, costUsd: 0 };
+    if (FATAL_AGENT_ERROR.test(message)) opts.onFatal?.(message);
+    return { ok: false, error: stored, cached: false, costUsd };
   }
 }

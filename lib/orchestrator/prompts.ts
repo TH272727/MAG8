@@ -25,7 +25,9 @@ Operative constraints (from the skill's own mandate):
 
 Resilience note: if the skill instructs you to read files under its references/ directory and any such file is missing, do not stall — proceed with the method described in the skill text itself plus the constraints above.
 
-Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.`;
+Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.
+
+End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketContext (string) and candidates (array of { ticker, companyName, sector, thesis, matchedTraits }). Strict JSON only — no comments, no trailing commas; any prose belongs BEFORE the block, and nothing may follow the closing fence.`;
 }
 
 const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate) =>
@@ -36,7 +38,16 @@ Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.th
 `;
 
 const LENS_OUTRO = `
-Your fullAnalysisMarkdown field must contain your complete write-up in the skill's own output format. The summary field is 4–8 plain-language sentences a non-expert can read. riskFlags carries the key risks / falsification conditions. Set verdict to your overall lean for the ticker through THIS lens only: bullish, neutral, or bearish.`;
+Shape your FINAL message exactly like this:
+1. Your complete analysis write-up in markdown, following the skill's own output format. This text IS the published report — make it complete and self-contained.
+2. Then, as the very LAST thing in the message, exactly ONE fenced code block labeled json, containing ONLY these top-level fields:
+   - verdict: "bullish" | "neutral" | "bearish" — your overall lean for the ticker through THIS lens only
+   - confidence: "low" | "medium" | "high"
+   - summary: 4–8 plain-language sentences a non-expert can read
+   - riskFlags: array of short strings (the key risks / falsification conditions)
+   - keyMetrics: an object with exactly the fields listed above
+
+Wire-payload rules (a violation aborts this cell): strict JSON only — double-quoted strings, bare numbers, true/false booleans, null ONLY where a field is explicitly nullable; NO comments of any kind inside the JSON, NO trailing commas, NO placeholder text, enum values with EXACT casing as specified. Nothing may follow the closing fence.`;
 
 export function lensPrompt(skill: LensSkill, c: DiscoveryCandidate): string {
   switch (skill) {
@@ -127,7 +138,9 @@ ${JSON.stringify(
   )}
 
 ${input.gaps.length ? `## Known gaps\n\n${input.gaps.map((g) => `- ${g}`).join("\n")}\n` : ""}
-Also produce: marketOverview (2–4 sentences synthesizing the run), methodologyNote (2–3 sentences on how confluence shaped THIS ranking), and gapsNoted (every data gap that affected scoring; empty array if none).`;
+Also produce: marketOverview (2–4 sentences synthesizing the run), methodologyNote (2–3 sentences on how confluence shaped THIS ranking), and gapsNoted (every data gap that affected scoring; empty array if none).
+
+End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketOverview (string), methodologyNote (string), gapsNoted (array of strings), and rankings — an array with one entry per candidate, each { ticker, companyName, gate: "pass"|"caution"|"fail", gateReason, scores: { fundamentals, discoveryThesis, gtAsymmetry, institutionalGap } (each 0–100), confluence (boolean), finalScore (0–100), verdictLine, groundingNotes, riskFlags (array of strings) }. Strict JSON only — no comments, no trailing commas; nothing may follow the closing fence.`;
 }
 
 /** Names all four skills; used by the smoke test to assert the filter hides the rest. */

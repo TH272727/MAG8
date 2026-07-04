@@ -52,7 +52,8 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
 - `lib/orchestrator/` — `agent.ts` (the ONLY place that calls `query()`), `prompts.ts` (wrapper
   prompts; SKILL.md files never edited), `discovery|analysis|compiler.ts`, `index.ts` (executeRun,
   never rejects), `mock.ts` (same persist+emit path, zero spend), `progress.ts` (bus + `toActivity()`),
-  `limit.ts`, `extract.ts` (fenced-block fallback parser, currently dormant)
+  `limit.ts`, `extract.ts` (tolerant fence/JSON salvage + narrative stitching — the PRIMARY parser,
+  see invariant 5; NOT dormant)
 - `lib/run-manager.ts` — single-active-run lock (globalThis + DB belt-and-braces), detached execute
 - `lib/hooks/useRunStream.ts` — event-sourced reducer; `snapshotToStreamState()` for terminal runs
 - `app/api/runs/*` — POST (202/400/401/409/503 with `code` field), snapshot GET, SSE stream
@@ -76,9 +77,23 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
    filter). Do NOT add `'Skill'` to `allowedTools` — deprecated in SDK 0.3.198; the `skills` option
    auto-enables it.
 4. `permissionMode: 'bypassPermissions'` requires `allowDangerouslySkipPermissions: true` (SDK option).
-5. Structured output arrives on result message `subtype === 'success'` as `.structured_output`;
-   failure subtype `error_max_structured_output_retries`. zod re-validates; exactly ONE corrective
-   retry resumes the session (`resume: sessionId`).
+5. Structured handoff — REALITY (proven by replaying the 2026-07-03/04 real-run transcripts):
+   CLI 2.1.198 treats `outputFormat: json_schema` as ADVISORY — no constrained sampling, fails open
+   (subtype `success` with NO `.structured_output`). 100% of first attempts failed under the old
+   design (mostly a missing `confidence` field — the old prompt never named it — plus pseudo-YAML /
+   `//`-commented fences). The load-bearing contract is now prompt-pinned at all three stages:
+   final message = markdown analysis + trailing ```json fence with the compact wire fields (lens
+   schemas EXCLUDE `fullAnalysisMarkdown`; the narrative is stitched from the message text via
+   `stripTrailingJsonFence`, choosing the longer attempt). `agent.ts` prefers `.structured_output`
+   when present, else `extractJsonLoose()` (labeled fence → bare fence → bare JSON → {...} slice,
+   each retried through a string-aware comment/trailing-comma repair). Wire schemas normalize
+   observed drift (enum case/synonyms, numeric confidence 0.6 → "medium", "7" → 7, "N/A" → null).
+   Exactly ONE corrective retry resumes the session (`resume: sessionId`) carrying the ACTUAL zod
+   issues + the JSON schema verbatim — the old "✖ Invalid input" retry made models guess and they
+   guessed wrong. `ContractError` carries `detail` + `costUsd`; error cells persist both. Agent
+   sessions run `strictMcpConfig: true` (else they inherit the machine's claude.ai MCP connectors —
+   observed: Gmail/Shopify/Higgsfield instructions injected into lens sessions) plus a
+   `disallowedTools` list (ToolSearch, ReportFindings, …).
 6. Fixture/mock lens rows use `demoWeekKey()` (`YYYY-Www-demo`) so demo data can NEVER satisfy a
    real run's cache lookup (`getCachedLens` uses plain `isoWeekKey()`).
 7. A lens-cell failure becomes an error cell (neutral 50 in scoring + gap note) — never a run failure.
@@ -115,6 +130,15 @@ full real run (needs `ANTHROPIC_API_KEY`); the `--smoke` probe DID pass live via
   dev serves 404 CSS; delete `.next` and restart dev.
 - `Expand-Archive` refuses non-.zip extensions; `setup-skills.ps1` uses .NET `ZipFile` instead.
 - tsx doesn't auto-load env files → `run-pipeline.ts` calls `process.loadEnvFile()` for `.env.local`/`.env`.
+- **Debug agent sessions from transcripts**: every SDK session (cwd = Mag8) writes
+  `C:\Users\nocap\.claude\projects\C--Users-nocap-Mag8\<sessionId>.jsonl` — first user entry is the
+  wrapper prompt (classify by "Stage 1/Stage-2/Stage 3 of Mag8" + ticker/skill regex), assistant
+  text entries hold the final messages. Replaying those texts through the extraction+zod pipeline
+  reproduces cell outcomes EXACTLY (did it for all 69 lens sessions) — diagnose from data, not
+  guesses. Corrective retries append to the SAME session file (resume works).
+- SQLite is WAL mode — a read-only `better-sqlite3` connection from a side process is safe during a
+  live run. NEVER import `lib/db.ts` from a side process while a run is active: its boot
+  reconciliation marks running runs as interrupted.
 - Killing port 3000: `powershell Get-NetTCPConnection -LocalPort 3000 … Stop-Process`.
 
 ## Commands
@@ -142,13 +166,14 @@ skill's references/ files — see below); `MAG8_ALLOW_MOCK` staging escape hatch
 
 ## Open items (the actual next work)
 
-1. **First full real run** — subscription auth (2026-07-03) means NO API key is needed: the user's
-   logged-in CLI is auto-detected and `/admin` shows `CLAUDE SUBSCRIPTION AUTH` (user explicitly
-   prefers this — zero API spend pre-marketing). Start with N=4 from `/admin` (~14 calls). Watch
-   for: native structured output × skills interplay at scale, lens keyMetrics schema fit on real
-   data (nullable fields), discovery returning exactly N, and plan rate limits mid-run (rate-limited
-   cells degrade to error cells, neutral 50 + gap note; if that bites, lower
-   `MAG8_MAX_CONCURRENT_STOCKS` or run in a fresh 5-hour window).
+1. **Finish the first clean real run** (subscription auth, NO API key — user explicitly wants zero
+   API spend pre-marketing). Two count=12 runs on 2026-07-03/04 both died on the plan's 5-hour
+   session limit, compounded by the 100% first-attempt schema-failure bug (autopsied via
+   transcripts; root causes fixed 2026-07-04 — see invariant 5, plus fatal-error fast-abort and
+   count guidance on /admin). Next step after the window resets: `npm run pipeline -- --smoke`
+   (should report `via fenced handoff`), then a count 4–8 run with `force=false` — this week's ok
+   cells (2026-W27: RKLB/NBIS/ALAB/OKLO/ASTS/TEM/KTOS partials) cache-hit, so only failed cells
+   re-run. Deleting the two error runs from /admin history afterwards is cosmetic, optional.
 2. **`new-gen-stock` references — RESOLVED 2026-07-03.** The real `references/playbook.md` +
    `references/megacap-dna.md` (user-supplied; the package's SKILL.md was byte-identical to the
    installed one) are committed under `.claude/skills/new-gen-stock/references/`; every references/

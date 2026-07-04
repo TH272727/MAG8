@@ -71,7 +71,7 @@ npm run seed                                 # (re)seed the demo fixture run
 
 ## How it holds together
 
-- **Contracts** (`lib/schemas.ts`) — zod v4 schemas for every agent handoff. The SDK's native structured outputs (`outputFormat: json_schema`) are the primary handoff; zod re-validates anyway, and a schema failure triggers exactly one corrective retry that resumes the same session. A pre-built fenced-block parser (`lib/orchestrator/extract.ts`) exists as the fallback handoff path.
+- **Contracts** (`lib/schemas.ts`) — zod v4 schemas for every agent handoff. Each agent ends its final message with the full markdown analysis plus one trailing ```json fence carrying compact wire fields (the SDK's `outputFormat: json_schema` proved advisory-only in practice, so the fence contract is pinned in the prompts). A tolerant parser (`lib/orchestrator/extract.ts`) salvages labeled/bare/commented fences; the schemas normalize real-world drift (enum casing, numeric confidences, numbers-as-strings); zod re-validates everything, and a failure triggers exactly one corrective retry that resumes the same session carrying the precise validation issues and the schema itself.
 - **Rubric** (`lib/ranking.ts`) — gate multipliers, weights, bonus, and placement rule live as constants; `buildRubricText()` renders the same text into both the compiler prompt and `/methodology`, so the page and the pipeline cannot drift. `finalizeRankings()` recomputes everything and appends any correction to the stock's grounding notes in plain sight.
 - **Cache** — lens analyses double as a cache keyed `(ticker, skill, ISO week)`, matching the scanner's weekly cadence. Cache hits render instantly as "cached" chips and cost $0. Demo/mock rows use a `-demo` suffixed week so fixture data can never leak into a real run's cache. `force` skips lookup.
 - **Progress** — every event is persisted to SQLite *before* it is emitted in-process; the rowid doubles as the SSE event id, so browser reconnects resume via `Last-Event-ID` for free. Mission Control is fully event-sourced; terminal runs render server-side from a snapshot with no stream.
@@ -84,7 +84,7 @@ The `new-gen-stock (1).skill` archive ships only its `SKILL.md`; the two referen
 
 ### Deviations from the build spec (all flagged, all additive)
 
-1. Native structured outputs are the primary handoff; the spec's fenced-JSON+retry is the pre-built fallback (the spec itself prefers native).
+1. The spec's fenced-JSON+retry is the primary handoff (real runs proved the SDK's native structured outputs advisory-only on this CLI version; `structured_output` is still preferred whenever the CLI does return it).
 2. Additive `discovery_activity` and `compile_activity` progress-event variants (Mission Control needs Stage-1/Stage-3 live feeds).
 3. The compiler prompt omits `fullAnalysisMarkdown` (display-only bulk; the rubric consumes scores/summaries/keyMetrics).
 4. Email capture is a server action rather than a fourth API route.

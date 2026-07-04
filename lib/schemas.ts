@@ -65,30 +65,92 @@ export type DiscoveryResult = z.infer<typeof DiscoveryResultSchema>;
  * Stage 2 — Lens analyses
  * ========================================================================== */
 
-export const VerdictSchema = z
-  .enum(["bullish", "neutral", "bearish"])
-  .describe("Overall lean of THIS lens for the ticker");
+/* ----------------------------------------------------------------------------
+ * Wire tolerance helpers. Real-run transcripts (2026-07-03) showed models
+ * drifting on exactly these shapes: enum casing/synonyms, numeric confidence
+ * ("0.6"), numbers-as-strings ("4"), and "N/A" in nullable numerics. The
+ * preprocess layer normalizes; z.toJSONSchema serializes the clean OUTPUT
+ * side, so the schema shown to agents stays canonical.
+ * -------------------------------------------------------------------------- */
+
+/** Case-insensitive enum with an alias map; canonical casing survives. */
+function ciEnum<const T extends readonly [string, ...string[]]>(
+  values: T,
+  aliases: Record<string, T[number]> = {},
+) {
+  return z.preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const k = v.trim().toLowerCase();
+    return values.find((x) => x.toLowerCase() === k) ?? aliases[k] ?? v;
+  }, z.enum(values));
+}
+
+const NUMERIC_STRING = /^-?\d+(\.\d+)?$/;
+const numberish = (v: unknown): unknown =>
+  typeof v === "string" && NUMERIC_STRING.test(v.trim()) ? Number(v.trim()) : v;
+const NULLISH_STRINGS = new Set(["null", "n/a", "na", "none", "unknown", "not available", "-", "—"]);
+const nullish = (v: unknown): unknown =>
+  typeof v === "string" && NULLISH_STRINGS.has(v.trim().toLowerCase()) ? null : v;
+
+/** Number that tolerates numeric strings ("8.5"). */
+const looseNumber = (inner: z.ZodNumber) => z.preprocess(numberish, inner);
+/** Nullable number that also maps "N/A"-style placeholders to null. */
+const looseNullableNumber = (inner: z.ZodNumber) =>
+  z.preprocess((v) => nullish(numberish(v)), inner.nullable());
+/** Boolean that tolerates "true"/"yes" strings. */
+const looseBoolean = () =>
+  z.preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const k = v.trim().toLowerCase();
+    return k === "true" || k === "yes" ? true : k === "false" || k === "no" ? false : v;
+  }, z.boolean());
+
+export const VerdictSchema = ciEnum(["bullish", "neutral", "bearish"]).describe(
+  "Overall lean of THIS lens for the ticker",
+);
 export type Verdict = z.infer<typeof VerdictSchema>;
 
-export const ConfidenceSchema = z.enum(["low", "medium", "high"]);
+/** Accepts the canonical strings, common synonyms, and numeric confidences (0–1, 1–10, or percent). */
+export const ConfidenceSchema = z.preprocess((v) => {
+  const n = typeof v === "number" ? v : typeof v === "string" && NUMERIC_STRING.test(v.trim()) ? Number(v.trim()) : null;
+  if (n !== null && Number.isFinite(n) && n >= 0) {
+    const scaled = n > 10 ? n / 100 : n > 1 ? n / 10 : n;
+    return scaled >= 0.7 ? "high" : scaled >= 0.4 ? "medium" : "low";
+  }
+  if (typeof v === "string") {
+    const k = v.trim().toLowerCase();
+    if (k === "low" || k === "medium" || k === "high") return k;
+    const aliases: Record<string, string> = { moderate: "medium", med: "medium", mid: "medium", "very high": "high", "very low": "low" };
+    if (aliases[k]) return aliases[k];
+  }
+  return v;
+}, z.enum(["low", "medium", "high"]));
 export type Confidence = z.infer<typeof ConfidenceSchema>;
 
 /** stock-scanner keyMetrics — mirrors the skill's own labels. */
 export const ScannerMetricsSchema = z.object({
-  piotroskiF: z.number().min(0).max(9).nullable().describe("Piotroski F-Score, 0-9; null if not computable"),
-  altmanZ: z.number().nullable().describe("Altman Z-Score; null if not meaningful"),
-  altmanZone: z.enum(["safe", "grey", "distress", "not-meaningful"]),
+  piotroskiF: looseNullableNumber(z.number().min(0).max(9)).describe("Piotroski F-Score, 0-9; null if not computable"),
+  altmanZ: looseNullableNumber(z.number()).describe("Altman Z-Score; null if not meaningful"),
+  altmanZone: ciEnum(["safe", "grey", "distress", "not-meaningful"], {
+    gray: "grey",
+    "not meaningful": "not-meaningful",
+    "n/a": "not-meaningful",
+    na: "not-meaningful",
+    none: "not-meaningful",
+  }),
   reverseDcfVerdict: z.string().describe("Plain-language read: implied bar too low / about right / too high"),
   rewardRisk: z.string().describe("Probability-weighted reward/risk, e.g. '2.8 : 1'"),
-  composite: z.number().nullable().describe("The skill's composite score across its scoring dimensions"),
-  scannerVerdict: z.enum(["Buy", "Watchlist", "Pass"]).describe("The skill's own post-veto verdict"),
-  valueTrap: z.boolean().describe("True if the skill flags this as a probable value trap"),
+  composite: looseNullableNumber(z.number()).describe("The skill's composite score across its scoring dimensions"),
+  scannerVerdict: ciEnum(["Buy", "Watchlist", "Pass"], { watch: "Watchlist", hold: "Watchlist", avoid: "Pass", sell: "Pass" }).describe(
+    "The skill's own post-veto verdict",
+  ),
+  valueTrap: looseBoolean().describe("True if the skill flags this as a probable value trap"),
 });
 export type ScannerMetrics = z.infer<typeof ScannerMetricsSchema>;
 
 /** gt-predictor keyMetrics. */
 export const GtMetricsSchema = z.object({
-  asymmetryScore: z.number().min(1).max(10).describe("1 = fully priced in, 10 = maximum mispricing"),
+  asymmetryScore: looseNumber(z.number().min(1).max(10)).describe("1 = fully priced in, 10 = maximum mispricing"),
   entryWindow: z.string().describe("The skill's entry-window read for the highest-conviction implication"),
   baseRate: z.string().describe("Outside-view base rate the forecast anchored on"),
   adjustedProbability: z.string().describe("Base rate → adjusted probability for the primary outcome"),
@@ -98,13 +160,13 @@ export type GtMetrics = z.infer<typeof GtMetricsSchema>;
 
 /** institutional-forecast keyMetrics (DEEP mode Consensus Dashboard). */
 export const ForecastMetricsSchema = z.object({
-  currentPrice: z.number().nullable().describe("Spot price at retrieval, USD"),
-  consensusTarget: z.number().nullable().describe("Descriptive average of verified targets, USD"),
-  consensusTargetLow: z.number().nullable(),
-  consensusTargetHigh: z.number().nullable(),
-  impliedUpsidePct: z.number().nullable().describe("Consensus target vs spot, percent"),
+  currentPrice: looseNullableNumber(z.number()).describe("Spot price at retrieval, USD"),
+  consensusTarget: looseNullableNumber(z.number()).describe("Descriptive average of verified targets, USD"),
+  consensusTargetLow: looseNullableNumber(z.number()),
+  consensusTargetHigh: looseNullableNumber(z.number()),
+  impliedUpsidePct: looseNullableNumber(z.number()).describe("Consensus target vs spot, percent"),
   stance: z.string().describe("Strongly Bullish / Bullish / Mixed / Bearish / Strongly Bearish"),
-  bankCount: z.number().nullable().describe("How many of the 8 primary institutions were verified"),
+  bankCount: looseNullableNumber(z.number()).describe("How many of the 8 primary institutions were verified"),
   spread: z.string().describe("Tight / Moderate / Wide"),
   freshness: z.string().describe("e.g. '4 fresh · 1 aging · 1 stale'"),
 });
@@ -188,7 +250,7 @@ export function lensHeadline(skill: LensSkill, km: Record<string, MetricValue>):
  * Stage 3 — Compiled report
  * ========================================================================== */
 
-export const GateSchema = z.enum(["pass", "caution", "fail"]);
+export const GateSchema = ciEnum(["pass", "caution", "fail"]);
 export type Gate = z.infer<typeof GateSchema>;
 
 export const SubScoresSchema = z.object({

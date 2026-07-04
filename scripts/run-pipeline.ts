@@ -75,7 +75,7 @@ async function smoke(): Promise<number> {
   console.log(` ....  probing (model ${CONFIG.models.lens}, ~4 turns, pennies)…`);
   const started = Date.now();
   try {
-    const { data, costUsd, numTurns } = await runAgentWithContract(SmokeSchema, {
+    const { data, costUsd, numTurns, via } = await runAgentWithContract(SmokeSchema, {
       prompt:
         "This is a wiring smoke test for the Mag8 pipeline. Do exactly two things. " +
         "1) Run this via the Bash tool: echo mag8-smoke-ok " +
@@ -91,7 +91,7 @@ async function smoke(): Promise<number> {
 
     const visible = data.visibleSkills.map((s) => s.toLowerCase());
     allOk = checkLine("auth + agent round-trip", true, `${((Date.now() - started) / 1000).toFixed(0)}s, ~$${costUsd.toFixed(4)}, ${numTurns} turns`) && allOk;
-    allOk = checkLine("structured output round-trip (zod-validated)", true) && allOk;
+    allOk = checkLine("structured output round-trip (zod-validated)", true, `via ${via} handoff${via === "fenced" ? " — CLI treats outputFormat as advisory; fence contract is load-bearing" : ""}`) && allOk;
     allOk = checkLine(
       "skills filter shows stock-scanner",
       visible.some((s) => s.includes("stock-scanner")),
@@ -110,7 +110,7 @@ async function smoke(): Promise<number> {
     allOk = checkLine("agent probe", false, err instanceof Error ? err.message : String(err));
   }
 
-  console.log(allOk ? "\nSmoke test PASSED — native structured-output handoff is go." : "\nSmoke test FAILED — fix the above before a full run.");
+  console.log(allOk ? "\nSmoke test PASSED — structured handoff is go." : "\nSmoke test FAILED — fix the above before a full run.");
   return allOk ? 0 : 1;
 }
 
