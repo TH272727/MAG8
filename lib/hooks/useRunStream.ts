@@ -1,22 +1,26 @@
 "use client";
 
 import { useEffect, useReducer } from "react";
-import type { RunSnapshot } from "../db";
 import {
-  cellKey,
-  type CompiledReport,
-  type Confidence,
-  type DiscoveryCandidate,
-  type LensCellStatus,
-  type ProgressEvent,
-  type Stage,
-  type Verdict,
+  publicCellKey,
+  type PublicProgressEvent,
+  type PublicRunSnapshot,
+} from "../public-lens";
+import type {
+  CompiledReport,
+  Confidence,
+  DiscoveryCandidate,
+  LensCellStatus,
+  Stage,
+  Verdict,
 } from "../schemas";
 
 /* ============================================================================
  * Event-sourced client state for Mission Control. Live pages rebuild entirely
  * from the SSE replay (server replays from id 0 or Last-Event-ID); terminal
  * pages skip SSE and convert the server snapshot to the same shape.
+ * The stream and snapshot both arrive pre-translated through the public-view
+ * boundary — this module only ever sees public lens codes.
  * ========================================================================== */
 
 const MAX_FEED = 50;
@@ -62,7 +66,7 @@ export const initialRunStreamState: RunStreamState = {
 };
 
 type Action =
-  | { kind: "event"; id: number; event: ProgressEvent }
+  | { kind: "event"; id: number; event: PublicProgressEvent }
   | { kind: "connected" }
   | { kind: "disconnected" };
 
@@ -85,7 +89,7 @@ export function runStreamReducer(state: RunStreamState, action: Action): RunStre
     case "discovery_complete":
       return { ...s, marketContext: event.marketContext, candidates: event.candidates };
     case "lens_status": {
-      const key = cellKey(event.ticker, event.skill);
+      const key = publicCellKey(event.ticker, event.lens);
       const prev = state.cells[key] ?? { status: "queued" as const, activity: [] };
       const cell: CellState = {
         status: event.status,
@@ -123,7 +127,7 @@ export function useRunStream(runId: string, enabled: boolean): RunStreamState {
     es.onopen = () => dispatch({ kind: "connected" });
     es.onmessage = (m: MessageEvent<string>) => {
       try {
-        const event = JSON.parse(m.data) as ProgressEvent;
+        const event = JSON.parse(m.data) as PublicProgressEvent;
         dispatch({ kind: "event", id: Number(m.lastEventId) || 0, event });
         if (event.type === "run_complete" || event.type === "run_error") es.close();
       } catch {
@@ -138,10 +142,10 @@ export function useRunStream(runId: string, enabled: boolean): RunStreamState {
 }
 
 /** Convert a server snapshot into the same view-model shape (terminal runs, no SSE). */
-export function snapshotToStreamState(snapshot: RunSnapshot): RunStreamState {
+export function snapshotToStreamState(snapshot: PublicRunSnapshot): RunStreamState {
   const cells: Record<string, CellState> = {};
   for (const c of snapshot.cells) {
-    cells[cellKey(c.ticker, c.skill)] = {
+    cells[publicCellKey(c.ticker, c.lens)] = {
       status: c.status === "ok" ? "done" : "error",
       activity: [],
       verdict: c.verdict,

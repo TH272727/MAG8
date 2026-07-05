@@ -27,6 +27,7 @@ import {
   type VerifyContext,
 } from "./ranking";
 import { isoWeekKey } from "./db";
+import { PUBLIC_LENS_LABEL } from "./public-view";
 
 /* ============================================================================
  * Deterministic fixture run: 8 candidates, 24 ok lens cells, rankings, events.
@@ -603,7 +604,7 @@ const DEMO_BANNER = "> **Seeded demo analysis** — fixture data for UI preview,
 function scannerMarkdown(s: TickerSeed): string {
   const k = s.scanner.km;
   return `${DEMO_BANNER}
-# Stock Scanner Deep-Dive — ${s.ticker} (${s.companyName})
+# Fundamentals — ${s.ticker} (${s.companyName})
 
 ## The Setup
 ${s.thesis}
@@ -633,7 +634,7 @@ ${s.scanner.riskFlags.map((r) => `- ${r}`).join("\n")}
 function gtMarkdown(s: TickerSeed): string {
   const k = s.gt.km;
   return `${DEMO_BANNER}
-# GT Predictor — ${s.ticker} macro situation read
+# Macro Asymmetry — ${s.ticker} situation read
 
 ## Outside View
 - Reference class: ${k.baseRate}
@@ -660,7 +661,7 @@ function forecastMarkdown(s: TickerSeed): string {
   const k = s.forecast.km;
   const upside = pctUpside(k.currentPrice ?? 0, k.consensusTarget);
   return `${DEMO_BANNER}
-# Institutional Forecast — ${s.ticker} (DEEP mode)
+# Street Consensus — ${s.ticker} (deep verification)
 
 ## Consensus Dashboard
 | Metric | Value |
@@ -772,7 +773,10 @@ export function buildFixtureReport(opts: {
   const { rankings, notes } = finalizeRankings(wire, ctx);
 
   const gapsNoted = [
-    ...[...missing].map((key) => `Lens cell ${key} errored — treated as neutral in scoring.`),
+    ...[...missing].map((key) => {
+      const [ticker, skill] = key.split(":") as [string, LensSkill];
+      return `${ticker} × ${PUBLIC_LENS_LABEL(skill)} errored — treated as neutral in scoring.`;
+    }),
     ...notes,
   ];
 
@@ -801,7 +805,7 @@ export const FIXTURE_DISCOVERY_ACTIVITIES = [
   'Searching: "warehouse automation backlog growth"',
   'Searching: "quantum computing export controls procurement"',
   "Reading sec.gov",
-  "Loading skill new-gen-stock",
+  "Opening the research playbook",
 ];
 
 export function fixtureCellActivities(skill: LensSkill, ticker: string): string[] {
@@ -816,10 +820,10 @@ export function fixtureCellActivities(skill: LensSkill, ticker: string): string[
       ];
     case "gt-predictor":
       return [
-        "Reading references/prediction_log.md",
+        "Opening the research playbook",
         `Searching: "${ticker} sector policy geopolitical drivers"`,
         `Searching: "current fed policy direction real yields"`,
-        "Reading references/asset_map.md",
+        "Reading the prediction log",
       ];
     case "institutional-forecast":
       return [

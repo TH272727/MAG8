@@ -1,4 +1,4 @@
-import type { LensSkill } from "@/lib/schemas";
+import type { PublicLens } from "@/lib/public-lens";
 
 /* ============================================================================
  * Confluence Line geometry — hand-authored beziers, viewBox 0 0 1200 240.
@@ -10,7 +10,7 @@ export const VIEWBOX_FULL = "0 0 1200 240";
 /** Right half only: convergence, braid, chip — for compact row rendering. */
 export const VIEWBOX_COMPACT = "560 30 640 180";
 
-export type ThreadKey = "discovery" | LensSkill;
+export type ThreadKey = "discovery" | PublicLens;
 
 export interface ThreadDef {
   key: ThreadKey;
@@ -26,17 +26,17 @@ export const THREADS: ThreadDef[] = [
     d: "M 0 36 C 240 36, 420 44, 560 70 C 660 89, 722 106, 760 120",
   },
   {
-    key: "stock-scanner",
+    key: "fundamentals",
     colorVar: "--color-fundamentals",
     d: "M 0 92 C 240 92, 430 96, 580 104 C 672 109, 726 114, 760 120",
   },
   {
-    key: "gt-predictor",
+    key: "macro",
     colorVar: "--color-macro",
     d: "M 0 148 C 240 148, 430 144, 580 136 C 672 131, 726 126, 760 120",
   },
   {
-    key: "institutional-forecast",
+    key: "consensus",
     colorVar: "--color-consensus",
     d: "M 0 204 C 240 204, 420 196, 560 170 C 660 151, 722 134, 760 120",
   },

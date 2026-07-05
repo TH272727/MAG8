@@ -11,6 +11,7 @@ import {
   type MetricValue,
   type Verdict,
 } from "../schemas";
+import { LENS_TO_PUBLIC, PUBLIC_LENS_LABEL, sanitizeError } from "../public-view";
 import { runAgentWithContract } from "./agent";
 import type { CellOutcome } from "./analysis";
 import { compilerPrompt } from "./prompts";
@@ -35,21 +36,24 @@ export async function runCompiler(
     at: nowIso(),
   });
 
+  // Reports are persisted, publishable artifacts — public lens vocabulary and
+  // sanitized error text are applied HERE at generation, not at the boundary.
   const lensData: Record<string, Record<string, unknown>> = {};
   const gaps: string[] = [];
   for (const c of candidates) {
-    const perSkill: Record<string, unknown> = {};
+    const perLens: Record<string, unknown> = {};
     for (const skill of LENS_SKILLS) {
       const cell = cells.get(cellKey(c.ticker, skill));
       if (cell?.ok && cell.analysis) {
         const { fullAnalysisMarkdown: _md, ticker: _t, skill: _s, ...wire } = cell.analysis;
-        perSkill[skill] = wire;
+        perLens[LENS_TO_PUBLIC[skill]] = wire;
       } else {
-        perSkill[skill] = `MISSING (${cell?.error ?? "cell not run"})`;
-        gaps.push(`${c.ticker} × ${skill}: ${cell?.error ?? "cell not run"}`);
+        const why = cell?.error ? sanitizeError(cell.error) : "cell not run";
+        perLens[LENS_TO_PUBLIC[skill]] = `MISSING (${why})`;
+        gaps.push(`${c.ticker} × ${PUBLIC_LENS_LABEL(skill)}: ${why}`);
       }
     }
-    lensData[c.ticker] = perSkill;
+    lensData[c.ticker] = perLens;
   }
 
   emitProgress(runId, {

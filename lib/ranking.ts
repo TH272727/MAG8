@@ -101,16 +101,16 @@ export function buildRubricText(): string {
 
 Each candidate receives four sub-scores, each 0–100, one per independent lens:
 
-1. **Fundamentals** — weight ${w("fundamentals")}. From the stock-scanner lens: financial strength (Piotroski F, Altman Z), quality and moat, reverse-DCF expectations gap, reward/risk, and the scanner's own composite and verdict.
-2. **Discovery thesis** — weight ${w("discoveryThesis")}. From the Stage-1 scout: how credibly the company matches pre-scale mega-cap DNA traits and rides a durable secular wave.
-3. **GT asymmetry** — weight ${w("gtAsymmetry")}. From the gt-predictor lens: Asymmetry Score (1–10, 10 = maximum mispricing), strength and direction of the macro/game-theoretic read, quality of the entry window.
-4. **Institutional gap** — weight ${w("institutionalGap")}. From the institutional-forecast lens: implied upside vs verified consensus targets, stance, coverage breadth, and spread (a tight bullish consensus scores higher than a wide scattered one).
+1. **Fundamentals** — weight ${w("fundamentals")}. From the fundamentals lens: financial strength (Piotroski F, Altman Z), quality and moat, reverse-DCF expectations gap, reward/risk, and the lens's own composite and verdict.
+2. **Discovery thesis** — weight ${w("discoveryThesis")}. From the Stage-1 discovery scout: how credibly the company matches pre-scale mega-cap DNA traits and rides a durable secular wave.
+3. **GT asymmetry** — weight ${w("gtAsymmetry")}. From the macro-asymmetry lens: Asymmetry Score (1–10, 10 = maximum mispricing), strength and direction of the macro/game-theoretic read, quality of the entry window.
+4. **Institutional gap** — weight ${w("institutionalGap")}. From the street-consensus lens: implied upside vs verified consensus targets, stance, coverage breadth, and spread (a tight bullish consensus scores higher than a wide scattered one).
 
 **Sub-score anchors:** 80+ exceptional evidence, 60–79 strong, 40–59 mixed/neutral, below 40 weak or contradicting.
 
 **Weighted base** = ${WEIGHTS.fundamentals}·Fundamentals + ${WEIGHTS.discoveryThesis}·DiscoveryThesis + ${WEIGHTS.gtAsymmetry}·GTAsymmetry + ${WEIGHTS.institutionalGap}·InstitutionalGap.
 
-**Fundamentals gate** — derived from stock-scanner's own labels, then applied as a multiplier on the weighted base:
+**Fundamentals gate** — derived from the fundamentals lens's own labels, then applied as a multiplier on the weighted base:
 
 - **pass** ×${GATE_MULTIPLIER.pass.toFixed(2)} — clean Buy verdict; no distress or value-trap flags.
 - **caution** ×${GATE_MULTIPLIER.caution.toFixed(2)} — Watchlist verdict, or one moderate unresolved flag.

@@ -11,7 +11,8 @@ import {
   latestRunForTicker,
 } from "@/lib/db";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { LENS_SKILLS, type LensSkill } from "@/lib/schemas";
+import { PUBLIC_LENSES, type PublicLens } from "@/lib/public-lens";
+import { sanitizeRankedStock, toPublicLensRow } from "@/lib/public-view";
 
 export const dynamic = "force-dynamic";
 
@@ -30,18 +31,21 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
 
   const run = latestRunForTicker(ticker);
   if (!run) notFound();
-  const ranked = getRankingForTicker(run.id, ticker);
-  if (!ranked) notFound();
+  const rankedRaw = getRankingForTicker(run.id, ticker);
+  if (!rankedRaw) notFound();
+  // Public-view boundary: everything rendered below must carry public lens
+  // vocabulary and sanitized text, even for legacy rows.
+  const ranked = sanitizeRankedStock(rankedRaw);
 
   const candidate = getCandidate(run.id, ticker);
-  const lensRows = getLensRowsForTicker(run.id, ticker);
-  const bySkill = new Map(lensRows.map((r) => [r.skill, r]));
-  const orderedRows = LENS_SKILLS.map((s) => bySkill.get(s)).filter((r) => r !== undefined);
+  const lensRows = getLensRowsForTicker(run.id, ticker).map(toPublicLensRow);
+  const byLens = new Map(lensRows.map((r) => [r.lens, r]));
+  const orderedRows = PUBLIC_LENSES.map((l) => byLens.get(l)).filter((r) => r !== undefined);
 
-  const threads: Partial<Record<"discovery" | LensSkill, ThreadState>> = { discovery: "done" };
-  for (const s of LENS_SKILLS) {
-    const row = bySkill.get(s);
-    threads[s] = !row ? "idle" : row.status === "ok" ? "done" : "error";
+  const threads: Partial<Record<"discovery" | PublicLens, ThreadState>> = { discovery: "done" };
+  for (const l of PUBLIC_LENSES) {
+    const row = byLens.get(l);
+    threads[l] = !row ? "idle" : row.status === "ok" ? "done" : "error";
   }
 
   const total = run.report?.rankings.length ?? 0;
@@ -104,7 +108,7 @@ export default async function StockPage({ params }: { params: Promise<{ ticker: 
 
           {/* The three lenses */}
           {orderedRows.map((row) => (
-            <LensCard key={row.skill} row={row} />
+            <LensCard key={row.lens} row={row} />
           ))}
         </div>
 

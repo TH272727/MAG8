@@ -1,28 +1,29 @@
 "use client";
 
 import type { CellState } from "@/lib/hooks/useRunStream";
-import type { LensSkill, Verdict } from "@/lib/schemas";
+import type { PublicLens } from "@/lib/public-lens";
+import type { Verdict } from "@/lib/schemas";
 
-const LENS_TEXT: Record<LensSkill, string> = {
-  "stock-scanner": "text-fundamentals",
-  "gt-predictor": "text-macro",
-  "institutional-forecast": "text-consensus",
+const LENS_TEXT: Record<PublicLens, string> = {
+  fundamentals: "text-fundamentals",
+  macro: "text-macro",
+  consensus: "text-consensus",
 };
-const LENS_DOT: Record<LensSkill, string> = {
-  "stock-scanner": "var(--color-fundamentals)",
-  "gt-predictor": "var(--color-macro)",
-  "institutional-forecast": "var(--color-consensus)",
+const LENS_DOT: Record<PublicLens, string> = {
+  fundamentals: "var(--color-fundamentals)",
+  macro: "var(--color-macro)",
+  consensus: "var(--color-consensus)",
 };
 const GLYPH: Record<Verdict, string> = { bullish: "▲", neutral: "─", bearish: "▼" };
 
 export default function MatrixCell({
-  skill,
+  lens,
   cell,
   expanded,
   onToggle,
   label,
 }: {
-  skill: LensSkill;
+  lens: PublicLens;
   cell: CellState | undefined;
   expanded: boolean;
   onToggle: () => void;
@@ -42,8 +43,8 @@ export default function MatrixCell({
 
       {status === "running" && (
         <>
-          <span className="live-dot shrink-0" style={{ background: LENS_DOT[skill] }} aria-hidden="true" />
-          <span className={`truncate ${LENS_TEXT[skill]}`}>
+          <span className="live-dot shrink-0" style={{ background: LENS_DOT[lens] }} aria-hidden="true" />
+          <span className={`truncate ${LENS_TEXT[lens]}`}>
             {cell?.activity?.length ? cell.activity[cell.activity.length - 1] : "running…"}
           </span>
         </>
@@ -51,7 +52,7 @@ export default function MatrixCell({
 
       {status === "done" && (
         <>
-          <span className={`shrink-0 ${LENS_TEXT[skill]}`} aria-hidden="true">
+          <span className={`shrink-0 ${LENS_TEXT[lens]}`} aria-hidden="true">
             {cell?.verdict ? GLYPH[cell.verdict] : "✓"}
           </span>
           <span className="truncate text-ink/90">{cell?.headline ?? cell?.verdict ?? "done"}</span>

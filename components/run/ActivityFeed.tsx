@@ -24,7 +24,7 @@ export default function ActivityFeed({
   }
 
   return (
-    <div ref={boxRef} className={`feed overflow-y-auto pr-2 ${maxHeightClass}`} role="log" aria-label="Agent activity">
+    <div ref={boxRef} className={`feed overflow-y-auto pr-2 ${maxHeightClass}`} role="log" aria-label="Research activity">
       {lines.map((line, i) => (
         <div key={`${i}-${line.slice(0, 24)}`} className="feed-line">
           <span aria-hidden="true" className="select-none text-dim">

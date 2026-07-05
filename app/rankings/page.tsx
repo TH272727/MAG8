@@ -4,6 +4,7 @@ import Leaderboard from "@/components/rankings/Leaderboard";
 import type { LensMap } from "@/components/rankings/RankRow";
 import { getLensRowsForRun, latestCompleteRun } from "@/lib/db";
 import { fmtDate, fmtMoney } from "@/lib/format";
+import { LENS_TO_PUBLIC, toPublicReport } from "@/lib/public-view";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,8 @@ export const metadata: Metadata = {
 
 export default function RankingsPage() {
   const run = latestCompleteRun();
-  const report = run?.report ?? null;
+  // Public-view boundary: reports can be legacy rows with internal phrasing.
+  const report = run?.report ? toPublicReport(run.report) : null;
 
   if (!run || !report || report.rankings.length === 0) {
     return (
@@ -40,7 +42,7 @@ export default function RankingsPage() {
   const lensMap: LensMap = {};
   for (const row of getLensRowsForRun(run.id)) {
     const entry = (lensMap[row.ticker] ??= {});
-    entry[row.skill] = row.status === "ok" ? { verdict: row.analysis?.verdict } : { error: true };
+    entry[LENS_TO_PUBLIC[row.skill]] = row.status === "ok" ? { verdict: row.analysis?.verdict } : { error: true };
   }
 
   return (

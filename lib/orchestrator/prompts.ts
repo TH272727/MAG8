@@ -1,6 +1,7 @@
 import { buildRubricText } from "../ranking";
 import {
   DISCOVERY_SKILL,
+  LENS_META,
   LENS_SKILLS,
   type DiscoveryCandidate,
   type LensSkill,
@@ -25,6 +26,8 @@ Operative constraints (from the skill's own mandate):
 
 Resilience note: if the skill instructs you to read files under its references/ directory and any such file is missing, do not stall — proceed with the method described in the skill text itself plus the constraints above.
 
+Naming discipline: in marketContext and every thesis, write as the Mag8 discovery scout. Never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform in any output text.
+
 Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.
 
 End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketContext (string) and candidates (array of { ticker, companyName, sector, thesis, matchedTraits }). Strict JSON only — no comments, no trailing commas; any prose belongs BEFORE the block, and nothing may follow the closing fence.`;
@@ -33,13 +36,15 @@ End your FINAL message with exactly ONE fenced code block labeled json containin
 const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate) =>
   `You are one of three INDEPENDENT Stage-2 lenses in the Mag8 research pipeline, analyzing ${c.ticker} (${c.companyName}, ${c.sector}). Use the "${skill}" skill — it is the only skill available to you. Do not reference or assume the other lenses' outputs; independence is the point.
 
+Public identity: to readers you are the "${LENS_META[skill].label}" lens. Title your report "${LENS_META[skill].label} — ${c.ticker}" and never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform anywhere in the write-up.
+
 Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
 
 `;
 
 const LENS_OUTRO = `
 Shape your FINAL message exactly like this:
-1. Your complete analysis write-up in markdown, following the skill's own output format. This text IS the published report — make it complete and self-contained.
+1. Your complete analysis write-up in markdown, following your research playbook's own output format (retitled per your public identity). This text IS the published report — make it complete and self-contained.
 2. Then, as the very LAST thing in the message, exactly ONE fenced code block labeled json, containing ONLY these top-level fields:
    - verdict: "bullish" | "neutral" | "bearish" — your overall lean for the ticker through THIS lens only
    - confidence: "low" | "medium" | "high"
@@ -110,7 +115,8 @@ ${buildRubricText()}
 ## Scoring discipline
 
 - Assign each of the four sub-scores (0–100) from the evidence; be willing to use the full range.
-- Derive the gate strictly from the scanner's own labels per the rubric. If the scanner cell is MISSING, use gate "caution" and say so in gateReason.
+- Derive the gate strictly from the fundamentals lens's own labels per the rubric. If the fundamentals cell is MISSING, use gate "caution" and say so in gateReason.
+- Naming discipline: in every output field, refer to the analyses only as the fundamentals, macro-asymmetry, and street-consensus lenses (matching the lens data keys). Never mention internal tool, skill, or file names, session mechanics, or the AI platform.
 - confluence is true ONLY when all three lenses' verdicts are bullish. A MISSING lens can never count as bullish.
 - A lens marked MISSING scores neutral (50) for its sub-score, and the gap goes in gapsNoted AND in that stock's groundingNotes.
 - groundingNotes MUST narrate the arithmetic explicitly, e.g. "Base 72.4 = 0.35×80 + 0.25×70 + 0.20×65 + 0.20×72. Gate caution ×0.75 → 54.3 (Watchlist: deployment-pace flag). No confluence bonus. Final 54.3." — then 1–3 sentences of evidence citing the lens data.

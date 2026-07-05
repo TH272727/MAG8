@@ -63,12 +63,12 @@ export function toActivity(name: string, input: Record<string, unknown>): string
     case "Read": {
       const p = typeof input.file_path === "string" ? input.file_path : typeof input.path === "string" ? input.path : "";
       const base = p.split(/[\\/]/).pop();
-      return base ? `Reading ${base}` : null;
+      if (!base) return null;
+      // Playbook files are internal — never name them in the public feed.
+      return base.toUpperCase() === "SKILL.MD" ? "Opening the research playbook" : `Reading ${base}`;
     }
-    case "Skill": {
-      const s = input.skill ?? input.command ?? input.name;
-      return typeof s === "string" && s ? `Loading skill ${s}` : "Loading a skill";
-    }
+    case "Skill":
+      return "Opening the research playbook";
     default:
       return null;
   }

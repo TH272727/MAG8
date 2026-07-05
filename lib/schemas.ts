@@ -140,18 +140,18 @@ export const ScannerMetricsSchema = z.object({
   }),
   reverseDcfVerdict: z.string().describe("Plain-language read: implied bar too low / about right / too high"),
   rewardRisk: z.string().describe("Probability-weighted reward/risk, e.g. '2.8 : 1'"),
-  composite: looseNullableNumber(z.number()).describe("The skill's composite score across its scoring dimensions"),
+  composite: looseNullableNumber(z.number()).describe("The lens's composite score across its scoring dimensions"),
   scannerVerdict: ciEnum(["Buy", "Watchlist", "Pass"], { watch: "Watchlist", hold: "Watchlist", avoid: "Pass", sell: "Pass" }).describe(
-    "The skill's own post-veto verdict",
+    "The lens's own post-veto verdict",
   ),
-  valueTrap: looseBoolean().describe("True if the skill flags this as a probable value trap"),
+  valueTrap: looseBoolean().describe("True if the lens flags this as a probable value trap"),
 });
 export type ScannerMetrics = z.infer<typeof ScannerMetricsSchema>;
 
 /** gt-predictor keyMetrics. */
 export const GtMetricsSchema = z.object({
   asymmetryScore: looseNumber(z.number().min(1).max(10)).describe("1 = fully priced in, 10 = maximum mispricing"),
-  entryWindow: z.string().describe("The skill's entry-window read for the highest-conviction implication"),
+  entryWindow: z.string().describe("The lens's entry-window read for the highest-conviction implication"),
   baseRate: z.string().describe("Outside-view base rate the forecast anchored on"),
   adjustedProbability: z.string().describe("Base rate → adjusted probability for the primary outcome"),
   gapVsMarket: z.string().describe("Where the GT read differs from current market pricing"),
@@ -185,7 +185,7 @@ const LensWireBase = z.object({
   fullAnalysisMarkdown: z
     .string()
     .min(1)
-    .describe("The complete analysis write-up in markdown, following the skill's own output format"),
+    .describe("The complete analysis write-up in markdown, following the lens's own report format"),
 });
 
 export const ScannerWireSchema = LensWireBase.extend({ keyMetrics: ScannerMetricsSchema });
@@ -264,7 +264,7 @@ export type SubScores = z.infer<typeof SubScoresSchema>;
 export const RankedStockWireSchema = z.object({
   ticker: z.string().min(1),
   companyName: z.string().min(1),
-  gate: GateSchema.describe("Fundamentals gate derived from stock-scanner's own labels"),
+  gate: GateSchema.describe("Fundamentals gate derived from the fundamentals lens's own labels"),
   gateReason: z.string().min(1),
   scores: SubScoresSchema,
   confluence: z.boolean().describe("True when all three lenses independently lean bullish"),

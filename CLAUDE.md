@@ -9,11 +9,15 @@ Mag8 orchestrates four packaged Claude Skills (in `.claude/skills/`, committed, 
 `*.skill` zips in the repo root) into a three-stage equity-research pipeline via
 `@anthropic-ai/claude-agent-sdk`, with a live SSE "Mission Control" UI:
 
-- **Stage 1** `new-gen-stock` (opus) discovers N candidates (4–12, default 8)
-- **Stage 2** `stock-scanner` / `gt-predictor` / `institutional-forecast` (sonnet) run per candidate,
+- **Stage 1** `new-gen-stock` discovers N candidates (4–12, default 8)
+- **Stage 2** `stock-scanner` / `gt-predictor` / `institutional-forecast` run per candidate,
   independently, 3 candidates in flight → ≤9 concurrent agent sessions
-- **Stage 3** compiler (opus, no tools) applies the Trillion-Dollar Confluence rubric;
+- **Stage 3** compiler (no tools) applies the Trillion-Dollar Confluence rubric;
   deterministic TS re-verifies gate/confluence/score arithmetic and re-sorts
+
+All three stages default to `claude-sonnet-5` (2026-07-04; discovery/compiler were opus before —
+count=12 runs kept exhausting the subscription 5-hour window). `MAG8_{DISCOVERY,LENS,COMPILER}_MODEL`
+env knobs restore opus per stage; /admin estimate ranges in `lib/config.ts` assume the sonnet defaults.
 
 Product thesis: independent lenses agreeing IS the signal (+10 confluence bonus when all three
 lenses are bullish; gold in the UI exists only where a verdict exists).

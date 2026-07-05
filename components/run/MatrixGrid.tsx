@@ -4,12 +4,13 @@ import Link from "next/link";
 import ActivityFeed from "./ActivityFeed";
 import MatrixCell from "./MatrixCell";
 import type { CellState } from "@/lib/hooks/useRunStream";
-import { LENS_META, LENS_SKILLS, cellKey, type DiscoveryCandidate, type LensSkill } from "@/lib/schemas";
+import { PUBLIC_LENSES, PUBLIC_LENS_META, publicCellKey, type PublicLens } from "@/lib/public-lens";
+import type { DiscoveryCandidate } from "@/lib/schemas";
 
-const HEAD_TEXT: Record<LensSkill, string> = {
-  "stock-scanner": "text-fundamentals",
-  "gt-predictor": "text-macro",
-  "institutional-forecast": "text-consensus",
+const HEAD_TEXT: Record<PublicLens, string> = {
+  fundamentals: "text-fundamentals",
+  macro: "text-macro",
+  consensus: "text-consensus",
 };
 
 export default function MatrixGrid({
@@ -26,7 +27,7 @@ export default function MatrixGrid({
   terminal: boolean;
 }) {
   const expandedCell = expandedKey ? cells[expandedKey] : undefined;
-  const [expandedTicker, expandedSkill] = (expandedKey?.split(":") ?? [null, null]) as [string | null, LensSkill | null];
+  const [expandedTicker, expandedLens] = (expandedKey?.split(":") ?? [null, null]) as [string | null, PublicLens | null];
 
   return (
     <div className="overflow-x-auto rounded-md border border-hairline">
@@ -34,42 +35,42 @@ export default function MatrixGrid({
         {/* header */}
         <div className="grid grid-cols-[92px_repeat(3,minmax(0,1fr))] border-b border-hairline bg-panel2">
           <div className="eyebrow sticky left-0 z-10 border-r border-hairline bg-panel2 px-3 py-2.5">Ticker</div>
-          {LENS_SKILLS.map((s) => (
-            <div key={s} className={`eyebrow px-3 py-2.5 ${HEAD_TEXT[s]}`}>
-              {LENS_META[s].label}
+          {PUBLIC_LENSES.map((l) => (
+            <div key={l} className={`eyebrow px-3 py-2.5 ${HEAD_TEXT[l]}`}>
+              {PUBLIC_LENS_META[l].label}
             </div>
           ))}
         </div>
 
         {/* rows */}
         {candidates.map((c) => {
-          const rowExpanded = expandedTicker === c.ticker && expandedSkill !== null;
+          const rowExpanded = expandedTicker === c.ticker && expandedLens !== null;
           return (
             <div key={c.ticker}>
               <div className="grid grid-cols-[92px_repeat(3,minmax(0,1fr))]">
                 <div className="sticky left-0 z-10 flex items-center border-b border-r border-hairline bg-panel px-3 py-2 font-mono text-sm font-bold tracking-wide">
                   {c.ticker}
                 </div>
-                {LENS_SKILLS.map((s) => {
-                  const key = cellKey(c.ticker, s);
+                {PUBLIC_LENSES.map((l) => {
+                  const key = publicCellKey(c.ticker, l);
                   return (
                     <MatrixCell
                       key={key}
-                      skill={s}
+                      lens={l}
                       cell={cells[key]}
                       expanded={expandedKey === key}
                       onToggle={() => onToggle(key)}
-                      label={`${c.ticker} × ${LENS_META[s].label}`}
+                      label={`${c.ticker} × ${PUBLIC_LENS_META[l].label}`}
                     />
                   );
                 })}
               </div>
 
-              {rowExpanded && expandedSkill && (
+              {rowExpanded && expandedLens && (
                 <div className="border-b border-hairline bg-void/60 px-4 py-3">
                   <div className="flex items-baseline justify-between gap-3">
-                    <p className={`eyebrow ${HEAD_TEXT[expandedSkill]}`}>
-                      {c.ticker} × {LENS_META[expandedSkill].label}
+                    <p className={`eyebrow ${HEAD_TEXT[expandedLens]}`}>
+                      {c.ticker} × {PUBLIC_LENS_META[expandedLens].label}
                       {expandedCell?.cached ? " · cached" : ""}
                     </p>
                     {terminal && expandedCell?.status === "done" && (

@@ -8,14 +8,14 @@ import CompilerPanel from "./CompilerPanel";
 import DiscoveryFeed from "./DiscoveryFeed";
 import MatrixGrid from "./MatrixGrid";
 import StageRail, { type StageStatus } from "./StageRail";
-import type { RunSnapshot } from "@/lib/db";
 import { fmtDateTime, fmtMoney, shortId } from "@/lib/format";
 import {
   snapshotToStreamState,
   useRunStream,
   type RunStreamState,
 } from "@/lib/hooks/useRunStream";
-import { LENS_SKILLS, cellKey, type Stage } from "@/lib/schemas";
+import { PUBLIC_LENSES, publicCellKey, type PublicRunSnapshot } from "@/lib/public-lens";
+import type { Stage } from "@/lib/schemas";
 
 function deriveThreads(state: RunStreamState): Partial<Record<ThreadKey, ThreadState>> {
   const threads: Partial<Record<ThreadKey, ThreadState>> = {};
@@ -25,21 +25,21 @@ function deriveThreads(state: RunStreamState): Partial<Record<ThreadKey, ThreadS
   else if (state.stage === "discovery") threads.discovery = "active";
   else threads.discovery = "idle";
 
-  for (const skill of LENS_SKILLS) {
+  for (const lens of PUBLIC_LENSES) {
     if (state.candidates.length === 0) {
-      threads[skill] = "idle";
+      threads[lens] = "idle";
       continue;
     }
-    const column = state.candidates.map((c) => state.cells[cellKey(c.ticker, skill)]);
+    const column = state.candidates.map((c) => state.cells[publicCellKey(c.ticker, lens)]);
     const done = column.filter((c) => c?.status === "done").length;
     const error = column.filter((c) => c?.status === "error").length;
     const running = column.some((c) => c?.status === "running");
     const settled = done + error === column.length;
 
-    if (running) threads[skill] = "active";
-    else if (settled || state.stage === "compile" || state.report) threads[skill] = done > 0 ? "done" : error > 0 ? "error" : "idle";
-    else if (done + error > 0) threads[skill] = "active";
-    else threads[skill] = "idle";
+    if (running) threads[lens] = "active";
+    else if (settled || state.stage === "compile" || state.report) threads[lens] = done > 0 ? "done" : error > 0 ? "error" : "idle";
+    else if (done + error > 0) threads[lens] = "active";
+    else threads[lens] = "idle";
   }
   return threads;
 }
@@ -78,7 +78,7 @@ const STAGE_LABEL: Record<Stage, string> = {
   compile: "Stage 3 — compile and verify",
 };
 
-export default function RunView({ snapshot }: { snapshot: RunSnapshot }) {
+export default function RunView({ snapshot }: { snapshot: PublicRunSnapshot }) {
   const { run } = snapshot;
   const live = run.status === "pending" || run.status === "running";
   const stream = useRunStream(run.id, live);
@@ -188,7 +188,7 @@ export default function RunView({ snapshot }: { snapshot: RunSnapshot }) {
       {state.candidates.length > 0 && (
         <section className="mt-8" aria-labelledby="matrix-h">
           <h2 id="matrix-h" className="eyebrow">
-            Stage 02 · Analysis matrix — {state.candidates.length} × {LENS_SKILLS.length}, independent
+            Stage 02 · Analysis matrix — {state.candidates.length} × {PUBLIC_LENSES.length}, independent
           </h2>
           <div className="mt-3">
             <MatrixGrid

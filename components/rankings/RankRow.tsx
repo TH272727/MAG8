@@ -1,24 +1,20 @@
 import Link from "next/link";
 import ConfluenceLine from "@/components/confluence/ConfluenceLine";
 import type { ThreadState } from "@/components/confluence/ConfluenceLine";
-import { LENS_SKILLS, type LensSkill, type RankedStock, type Verdict } from "@/lib/schemas";
+import { PUBLIC_LENSES, PUBLIC_LENS_META, type PublicLens } from "@/lib/public-lens";
+import type { RankedStock, Verdict } from "@/lib/schemas";
 
 export interface LensCellInfo {
   verdict?: Verdict;
   error?: boolean;
 }
-export type LensMap = Record<string, Partial<Record<LensSkill, LensCellInfo>>>;
+export type LensMap = Record<string, Partial<Record<PublicLens, LensCellInfo>>>;
 
 const GLYPH: Record<Verdict, string> = { bullish: "▲", neutral: "─", bearish: "▼" };
-const LENS_TEXT: Record<LensSkill, string> = {
-  "stock-scanner": "text-fundamentals",
-  "gt-predictor": "text-macro",
-  "institutional-forecast": "text-consensus",
-};
-const LENS_NAME: Record<LensSkill, string> = {
-  "stock-scanner": "Fundamentals",
-  "gt-predictor": "Macro Asymmetry",
-  "institutional-forecast": "Street Consensus",
+const LENS_TEXT: Record<PublicLens, string> = {
+  fundamentals: "text-fundamentals",
+  macro: "text-macro",
+  consensus: "text-consensus",
 };
 
 function gateChip(gate: RankedStock["gate"]) {
@@ -26,10 +22,10 @@ function gateChip(gate: RankedStock["gate"]) {
   return <span className={`chip ${cls}`}>GATE {gate.toUpperCase()}</span>;
 }
 
-export default function RankRow({ stock, lenses }: { stock: RankedStock; lenses?: Partial<Record<LensSkill, LensCellInfo>> }) {
-  const threads: Partial<Record<"discovery" | LensSkill, ThreadState>> = { discovery: "done" };
-  for (const s of LENS_SKILLS) {
-    threads[s] = lenses?.[s]?.error ? "error" : "done";
+export default function RankRow({ stock, lenses }: { stock: RankedStock; lenses?: Partial<Record<PublicLens, LensCellInfo>> }) {
+  const threads: Partial<Record<"discovery" | PublicLens, ThreadState>> = { discovery: "done" };
+  for (const l of PUBLIC_LENSES) {
+    threads[l] = lenses?.[l]?.error ? "error" : "done";
   }
 
   return (
@@ -50,13 +46,13 @@ export default function RankRow({ stock, lenses }: { stock: RankedStock; lenses?
           {gateChip(stock.gate)}
           {stock.confluence && <span className="chip border-confluence/50 bg-confluence/10 text-confluence">CONFLUENCE</span>}
           <span className="flex items-center gap-1.5 font-mono text-[13px]" aria-label="Lens verdicts">
-            {LENS_SKILLS.map((s) => {
-              const v = lenses?.[s];
+            {PUBLIC_LENSES.map((l) => {
+              const v = lenses?.[l];
               return (
                 <span
-                  key={s}
-                  className={v?.error ? "text-danger" : LENS_TEXT[s]}
-                  title={`${LENS_NAME[s]}: ${v?.error ? "errored" : (v?.verdict ?? "n/a")}`}
+                  key={l}
+                  className={v?.error ? "text-danger" : LENS_TEXT[l]}
+                  title={`${PUBLIC_LENS_META[l].label}: ${v?.error ? "errored" : (v?.verdict ?? "n/a")}`}
                 >
                   {v?.error ? "✕" : v?.verdict ? GLYPH[v.verdict] : "·"}
                 </span>

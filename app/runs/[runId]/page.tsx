@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import RunView from "@/components/run/RunView";
 import { getRunSnapshot } from "@/lib/db";
+import { toPublicSnapshot } from "@/lib/public-view";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +15,6 @@ export default async function RunPage({ params }: { params: Promise<{ runId: str
   const { runId } = await params;
   const snapshot = getRunSnapshot(decodeURIComponent(runId));
   if (!snapshot) notFound();
-  return <RunView snapshot={snapshot} />;
+  // Public-view boundary: RunView is a client component — its props ride the RSC flight payload.
+  return <RunView snapshot={toPublicSnapshot(snapshot)} />;
 }

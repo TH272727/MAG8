@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEventsSince, getRun } from "@/lib/db";
 import { bus, runChannel, type BusEvent } from "@/lib/orchestrator/progress";
+import { toPublicEvent } from "@/lib/public-view";
 import type { ProgressEvent } from "@/lib/schemas";
 
 export const runtime = "nodejs";
@@ -67,7 +68,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ runId: stri
       const send = (id: number, event: ProgressEvent) => {
         if (closed || id <= maxSentId) return;
         maxSentId = id;
-        write(`id: ${id}\ndata: ${JSON.stringify(event)}\n\n`);
+        // Public-view boundary: internal skill ids / engine jargon never leave the server.
+        write(`id: ${id}\ndata: ${JSON.stringify(toPublicEvent(event))}\n\n`);
         if (TERMINAL.has(event.type)) cleanup();
       };
 

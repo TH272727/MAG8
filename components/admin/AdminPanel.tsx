@@ -132,7 +132,7 @@ export default function AdminPanel({
           <p className="tabular mt-2 font-mono text-[13px] leading-relaxed text-muted">
             1 discovery + {count}×3 lenses + 1 compile
             <br />
-            <span className="text-ink">{est.calls} agent calls</span>
+            <span className="text-ink">{est.calls} research calls</span>
             <br />
             {authMode === "subscription" ? (
               <>plan usage, $0 API · ~{est.minutesLow}–{est.minutesHigh} min</>

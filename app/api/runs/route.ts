@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       {
         code: "no_auth",
         error:
-          "No Claude credentials detected. Real runs need ANTHROPIC_API_KEY in .env.local, or Claude subscription auth (a logged-in Claude Code CLI on this machine, or CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`). Restart the server after configuring. Mock runs remain available in development.",
+          "Research credentials are not configured on this server, so live runs are disabled. The operator can configure them from the admin desk setup notes and restart the server. Demo runs remain available in development.",
       },
       { status: 503 },
     );

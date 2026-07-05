@@ -43,9 +43,12 @@ function resolveAuthMode(): AuthMode {
 
 export const CONFIG = {
   models: {
-    discovery: process.env.MAG8_DISCOVERY_MODEL ?? "claude-opus-4-8",
+    // All stages default to Sonnet 5 (2026-07-04) to stretch subscription usage
+    // limits — count=12 opus-bookended runs were exhausting the 5-hour window.
+    // Restore opus per stage via these env knobs if discovery/compile quality dips.
+    discovery: process.env.MAG8_DISCOVERY_MODEL ?? "claude-sonnet-5",
     lens: process.env.MAG8_LENS_MODEL ?? "claude-sonnet-5",
-    compiler: process.env.MAG8_COMPILER_MODEL ?? "claude-opus-4-8",
+    compiler: process.env.MAG8_COMPILER_MODEL ?? "claude-sonnet-5",
   },
 
   /** Candidates admitted to Stage 2 simultaneously; each fans out 3 lens calls (≤ 3× this in flight). */
@@ -69,9 +72,10 @@ export const CONFIG = {
   /** Rough per-call knobs used only for the /admin pre-run estimate. */
   estimate: {
     usd: {
-      discovery: [0.6, 2.5] as const,
+      // Discovery/compile ranges assume the sonnet-5 defaults (opus ≈ 1.7× these).
+      discovery: [0.4, 1.5] as const,
       lens: [0.15, 0.75] as const,
-      compile: [0.4, 1.5] as const,
+      compile: [0.25, 0.9] as const,
     },
     minutes: {
       discovery: [3, 9] as const,

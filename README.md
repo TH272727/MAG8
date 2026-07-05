@@ -53,7 +53,7 @@ A real run makes `1 + 3N + 1` agent calls (N=8 → 26 calls, roughly $5–$22 on
 | `CLAUDE_CODE_OAUTH_TOKEN` | no | Long-lived Claude subscription token (`claude setup-token`) for machines without a logged-in CLI. Plan usage, no API billing. |
 | `MAG8_AUTH_MODE` | no | `subscription` asserts subscription auth when detection can't see it (e.g. macOS Keychain); `disabled` blocks real runs even if credentials exist. |
 | `ADMIN_TOKEN` | production | Gates `/admin` and `POST /api/runs` (constant-time compare; httpOnly cookie or `x-admin-token` header). Unset in development = desk open; unset in production = desk locked. |
-| `MAG8_DISCOVERY_MODEL` / `MAG8_LENS_MODEL` / `MAG8_COMPILER_MODEL` | no | Model overrides (defaults: `claude-opus-4-8` / `claude-sonnet-5` / `claude-opus-4-8`). |
+| `MAG8_DISCOVERY_MODEL` / `MAG8_LENS_MODEL` / `MAG8_COMPILER_MODEL` | no | Model overrides (all three default to `claude-sonnet-5`; set e.g. `MAG8_DISCOVERY_MODEL=claude-opus-4-8` to run a stage on Opus). |
 | `MAG8_MAX_CONCURRENT_STOCKS` | no | Candidates in flight at once (default 3 → ≤9 concurrent agent sessions). |
 | `MAG8_DB_PATH` | no | SQLite path (default `./db/mag8.db`). |
 | `MAG8_ALLOW_MOCK` | no | `1` enables zero-spend mock runs on a production/staging deployment (dev always allows them). |

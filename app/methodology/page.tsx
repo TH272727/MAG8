@@ -3,7 +3,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { buildRubricText } from "@/lib/ranking";
-import { DISCOVERY_META, LENS_META } from "@/lib/schemas";
+import { PUBLIC_DISCOVERY, PUBLIC_LENS_META } from "@/lib/public-lens";
 
 export const dynamic = "force-dynamic";
 
@@ -16,43 +16,43 @@ const STAGES = [
   {
     n: "01",
     name: "Discovery",
-    body: "A scout agent runs the new-gen-stock skill: heavy web research matching small and mid-cap companies against the traits today's mega-caps had before they were big, riding durable secular waves. It nominates the candidate cohort.",
+    body: "The discovery scout runs a proprietary playbook: heavy web research matching small and mid-cap companies against the traits today's mega-caps had before they were big, riding durable secular waves. It nominates the candidate cohort.",
   },
   {
     n: "02",
     name: "Independent lenses",
-    body: "Each candidate is analyzed by three agents that cannot see each other's work: a fundamentals scanner (Piotroski F, Altman Z, reverse-DCF, value-trap gates), a game-theory macro engine (base rates, asymmetry scoring), and a street-consensus aggregator (live-verified analyst targets).",
+    body: "Each candidate is analyzed by three lenses that cannot see each other's work: a fundamentals scanner (Piotroski F, Altman Z, reverse-DCF, value-trap gates), a game-theory macro engine (base rates, asymmetry scoring), and a street-consensus aggregator (live-verified analyst targets).",
   },
   {
     n: "03",
     name: "Compilation",
-    body: "A compiler applies the confluence rubric below to every candidate. The platform then re-computes the arithmetic deterministically — gates, bonuses, sorting — so the model judges and the code enforces.",
+    body: "A compiler applies the confluence rubric below to every candidate. The platform then re-computes the arithmetic deterministically — gates, bonuses, sorting — so judgment proposes and the code enforces.",
   },
 ];
 
 const LENSES = [
   {
     accent: "discovery",
-    name: DISCOVERY_META.label,
-    skill: "new-gen-stock",
+    name: PUBLIC_DISCOVERY.label,
+    code: PUBLIC_DISCOVERY.short,
     body: "Finds the cohort and argues each thesis: what mega-cap DNA does this company match, and what wave is it riding?",
   },
   {
     accent: "fundamentals",
-    name: LENS_META["stock-scanner"].label,
-    skill: "stock-scanner",
+    name: PUBLIC_LENS_META.fundamentals.label,
+    code: PUBLIC_LENS_META.fundamentals.short,
     body: "Is the business financially real? Distress-zone balance sheets (Altman Z < 1.81, Piotroski F ≤ 3) or value-trap mechanics veto the gate no matter how good the story is.",
   },
   {
     accent: "macro",
-    name: LENS_META["gt-predictor"].label,
-    skill: "gt-predictor",
+    name: PUBLIC_LENS_META.macro.label,
+    code: PUBLIC_LENS_META.macro.short,
     body: "What do structural forces say? Anchors on outside-view base rates, then scores how mispriced the setup is (Asymmetry 1–10) with explicit falsification conditions.",
   },
   {
     accent: "consensus",
-    name: LENS_META["institutional-forecast"].label,
-    skill: "institutional-forecast",
+    name: PUBLIC_LENS_META.consensus.label,
+    code: PUBLIC_LENS_META.consensus.short,
     body: "What does the street actually say right now? Live-verified price targets only — stance, spread, freshness, and the gap between consensus and spot.",
   },
 ] as const;
@@ -80,7 +80,7 @@ export default function MethodologyPage() {
       <p className="mt-4 max-w-2xl text-muted">
         Any single analysis can talk itself into anything. Mag8 runs four that cannot talk to each
         other, then measures where they land together. The pipeline, the lenses, and the exact scoring
-        arithmetic are below — the same rubric text the compiler agent receives.
+        arithmetic are below — the same rubric text the compiler receives.
       </p>
 
       {/* Pipeline */}
@@ -106,10 +106,10 @@ export default function MethodologyPage() {
         </h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {LENSES.map((l) => (
-            <div key={l.skill} className={`panel border-t-2 p-5 ${ACCENT_BORDER[l.accent]}`}>
+            <div key={l.code} className={`panel border-t-2 p-5 ${ACCENT_BORDER[l.accent]}`}>
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className={`font-display text-base font-semibold ${ACCENT_TEXT[l.accent]}`}>{l.name}</h3>
-                <span className="font-mono text-[11px] text-dim">{l.skill}</span>
+                <span className="font-mono text-[11px] text-dim">{l.code}</span>
               </div>
               <p className="mt-2 text-sm text-muted">{l.body}</p>
             </div>
@@ -138,17 +138,18 @@ export default function MethodologyPage() {
         <div className="panel p-5">
           <h3 className="font-display text-base font-semibold">Freshness &amp; caching</h3>
           <p className="mt-2 text-sm text-muted">
-            Lens analyses are cached per ticker, per skill, per ISO week — matching the scanner&apos;s weekly
-            cadence. Within a week, repeat runs reuse completed cells (marked &ldquo;cached&rdquo;); a new week
-            means fresh research. Admins can force a full re-run.
+            Lens analyses are cached per ticker, per lens, per ISO week — matching the fundamentals
+            lens&apos;s weekly cadence. Within a week, repeat runs reuse completed cells (marked
+            &ldquo;cached&rdquo;); a new week means fresh research. Admins can force a full re-run.
           </p>
         </div>
         <div className="panel p-5">
-          <h3 className="font-display text-base font-semibold">Model judgment, code arithmetic</h3>
+          <h3 className="font-display text-base font-semibold">Judgment proposes, code enforces</h3>
           <p className="mt-2 text-sm text-muted">
-            Agents assign sub-scores and write the evidence; deterministic code re-derives the gate from
-            the scanner&apos;s own labels, recomputes the weighted score, re-sorts, and enforces the placement
-            rule. Any correction is appended to the stock&apos;s grounding notes in plain sight.
+            The lenses assign sub-scores and write the evidence; deterministic code re-derives the gate
+            from the fundamentals lens&apos;s own labels, recomputes the weighted score, re-sorts, and
+            enforces the placement rule. Any correction is appended to the stock&apos;s grounding notes in
+            plain sight.
           </p>
         </div>
       </section>
@@ -160,9 +161,9 @@ export default function MethodologyPage() {
         </h2>
         <div className="panel mt-4 space-y-3 p-6 text-sm text-muted">
           <p>
-            Mag8 is a research experiment demonstrating multi-agent orchestration. It is provided for
-            information and education only and is <strong className="text-ink">not investment advice</strong>,
-            not a recommendation, and not an offer or solicitation to buy or sell any security.
+            Mag8 is an automated research pipeline provided for information and education only. It is{" "}
+            <strong className="text-ink">not investment advice</strong>, not a recommendation, and not an
+            offer or solicitation to buy or sell any security.
           </p>
           <p>
             Outputs are generated by AI language models. They can hallucinate figures, misread sources,
