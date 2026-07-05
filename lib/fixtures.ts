@@ -558,6 +558,63 @@ function pctUpside(price: number, target: number): number {
   return round1((target / price - 1) * 100);
 }
 
+/* ----------------------------------------------------------------------------
+ * Optional structured extras (visual data layer) — deterministically DERIVED
+ * from each seed's existing numbers, so no gate/score input ever changes and
+ * the seed regression stays byte-identical.
+ * -------------------------------------------------------------------------- */
+
+const round2 = (x: number) => Math.round(x * 100) / 100;
+const clampPct = (n: number) => Math.max(5, Math.min(90, Math.round(n)));
+const clamp10 = (n: number) => Math.max(1, Math.min(10, round1(n)));
+
+function scannerExtras(s: TickerSeed): Pick<ScannerMetrics, "spotPrice" | "scenarios"> {
+  const k = s.forecast.km;
+  const spot = k.currentPrice ?? null;
+  const low = k.consensusTargetLow ?? k.consensusTarget;
+  const high = k.consensusTargetHigh ?? k.consensusTarget;
+  return {
+    spotPrice: spot,
+    scenarios: {
+      bear: { price: spot !== null ? round2(Math.min(low, spot) * 0.85) : null, probability: 25 },
+      base: { price: k.consensusTarget, probability: 50 },
+      bull: { price: round2(high * 1.15), probability: 25 },
+    },
+  };
+}
+
+function gtExtras(s: TickerSeed): Pick<GtMetrics, "players" | "horizonProbabilities"> {
+  const a = s.gt.km.asymmetryScore;
+  const bullish = s.gt.verdict === "bullish";
+  const base = clampPct(a * (bullish ? 7 : 4));
+  return {
+    players: [
+      { name: s.companyName, role: "Operator", m: clamp10(3 + a * 0.4), e: clamp10(5 + a * 0.4), c: clamp10(4 + a * 0.3), read: "Executing against the entry window" },
+      { name: "US policy apparatus", role: "Regulator / demand anchor", m: 9, e: clamp10(3 + a * 0.3), c: 4, read: "Sets the pace of the wave" },
+      { name: "Incumbent competition", role: "Counterforce", m: 7, e: clamp10(8 - a * 0.4), c: 5, read: "Scale advantage, slower to move" },
+      { name: "Capital markets", role: "Financier", m: 6, e: 5, c: 6, read: "Funding window open but fickle" },
+    ],
+    horizonProbabilities: { m3: clampPct(base - 15), m6: clampPct(base - 5), m12: base, m24: clampPct(base + 10) },
+  };
+}
+
+const FIXTURE_DESKS = ["Goldman Sachs", "JPMorgan", "Morgan Stanley", "Bank of America", "Citi", "UBS", "BlackRock", "Bridgewater"];
+
+function forecastExtras(s: TickerSeed): Pick<ForecastMetrics, "institutions"> {
+  const k = s.forecast.km;
+  const n = Math.max(2, Math.min(8, Math.round(k.bankCount ?? 4)));
+  const low = k.consensusTargetLow ?? k.consensusTarget;
+  const high = k.consensusTargetHigh ?? k.consensusTarget;
+  return {
+    institutions: Array.from({ length: n }, (_, i) => ({
+      name: FIXTURE_DESKS[i],
+      target: round2(low + ((high - low) * i) / Math.max(1, n - 1)),
+      asOf: "this week",
+      stance: s.forecast.verdict === "bullish" ? (i % 3 === 2 ? "Neutral" : "Buy") : i % 2 ? "Hold" : "Buy",
+    })),
+  };
+}
+
 export function fixtureLensAnalysis(seed: TickerSeed, skill: LensSkill): LensAnalysis {
   if (skill === "stock-scanner") {
     return {
@@ -566,7 +623,7 @@ export function fixtureLensAnalysis(seed: TickerSeed, skill: LensSkill): LensAna
       verdict: seed.scanner.verdict,
       confidence: seed.scanner.confidence,
       summary: seed.scanner.summary,
-      keyMetrics: { ...seed.scanner.km } as Record<string, MetricValue>,
+      keyMetrics: { ...seed.scanner.km, ...scannerExtras(seed) } as unknown as Record<string, MetricValue>,
       riskFlags: seed.scanner.riskFlags,
       fullAnalysisMarkdown: scannerMarkdown(seed),
     };
@@ -578,7 +635,7 @@ export function fixtureLensAnalysis(seed: TickerSeed, skill: LensSkill): LensAna
       verdict: seed.gt.verdict,
       confidence: seed.gt.confidence,
       summary: seed.gt.summary,
-      keyMetrics: { ...seed.gt.km } as Record<string, MetricValue>,
+      keyMetrics: { ...seed.gt.km, ...gtExtras(seed) } as unknown as Record<string, MetricValue>,
       riskFlags: seed.gt.riskFlags,
       fullAnalysisMarkdown: gtMarkdown(seed),
     };
@@ -586,6 +643,7 @@ export function fixtureLensAnalysis(seed: TickerSeed, skill: LensSkill): LensAna
   const km: ForecastMetrics = {
     ...seed.forecast.km,
     impliedUpsidePct: pctUpside(seed.forecast.km.currentPrice ?? 0, seed.forecast.km.consensusTarget),
+    ...forecastExtras(seed),
   };
   return {
     ticker: seed.ticker,
@@ -620,7 +678,22 @@ ${s.thesis}
 ${k.reverseDcfVerdict}.
 
 ## Scenarios
-Probability-weighted reward/risk: **${k.rewardRisk}**.
+${(() => {
+    const x = scannerExtras(s);
+    const sc = x.scenarios;
+    if (!sc) return `Probability-weighted reward/risk: **${k.rewardRisk}**.`;
+    const row = (label: string, v: { price: number | null; probability: number | null }) =>
+      `| ${label} | ${v.price === null ? "n/m" : `$${v.price}`} | ${v.probability ?? "–"}% |`;
+    return `Spot used in valuation: ${x.spotPrice === null || x.spotPrice === undefined ? "n/m" : `$${x.spotPrice}`}.
+
+| Scenario | Price | Probability |
+|---|---|---|
+${row("Bear", sc.bear)}
+${row("Base", sc.base)}
+${row("Bull", sc.bull)}
+
+Probability-weighted reward/risk: **${k.rewardRisk}**.`;
+  })()}
 
 ## Falsification — what would prove this wrong
 ${s.scanner.riskFlags.map((r) => `- ${r}`).join("\n")}
@@ -642,6 +715,20 @@ function gtMarkdown(s: TickerSeed): string {
 
 ## Structural Setup
 ${s.gt.summary}
+
+## Player Map (Mass × Energy × Coordination, 1–10)
+${(() => {
+    const x = gtExtras(s);
+    const rows = (x.players ?? [])
+      .map((p) => `| ${p.name} | ${p.role ?? ""} | ${p.m} | ${p.e} | ${p.c} | ${p.read ?? ""} |`)
+      .join("\n");
+    const h = x.horizonProbabilities;
+    return `| Player | Role | M | E | C | Read |
+|---|---|---|---|---|---|
+${rows}
+
+Primary-outcome probability path: 3mo ${h?.m3 ?? "–"}% · 6mo ${h?.m6 ?? "–"}% · 12mo ${h?.m12 ?? "–"}% · 24mo ${h?.m24 ?? "–"}%.`;
+  })()}
 
 ## Asset Implication
 | Field | Reading |
@@ -673,6 +760,16 @@ function forecastMarkdown(s: TickerSeed): string {
 | Coverage | ${k.bankCount} of 8 primary institutions verified |
 | Spread | ${k.spread} |
 | Freshness | ${k.freshness} |
+
+## Institution-by-institution
+${(() => {
+    const rows = (forecastExtras(s).institutions ?? [])
+      .map((r) => `| ${r.name} | ${r.target === null ? "n/m" : `$${r.target}`} | ${r.stance ?? ""} | ${r.asOf ?? ""} |`)
+      .join("\n");
+    return `| Institution | Target | Stance | As of |
+|---|---|---|---|
+${rows}`;
+  })()}
 
 ## Synthesis
 ${s.forecast.summary}

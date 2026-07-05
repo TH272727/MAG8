@@ -47,7 +47,11 @@ export async function runCompiler(
       const cell = cells.get(cellKey(c.ticker, skill));
       if (cell?.ok && cell.analysis) {
         const { fullAnalysisMarkdown: _md, ticker: _t, skill: _s, ...wire } = cell.analysis;
-        perLens[LENS_TO_PUBLIC[skill]] = wire;
+        // Roster-style arrays (players, institutions) are display data — they
+        // inform no sub-score and only bloat the compiler prompt. Scenario and
+        // horizon numbers stay: they sharpen the scoring judgment.
+        const { players: _players, institutions: _institutions, ...keyMetrics } = wire.keyMetrics;
+        perLens[LENS_TO_PUBLIC[skill]] = { ...wire, keyMetrics };
       } else {
         const why = cell?.error ? sanitizeError(cell.error) : "cell not run";
         perLens[LENS_TO_PUBLIC[skill]] = `MISSING (${why})`;

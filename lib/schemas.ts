@@ -127,6 +127,45 @@ export const ConfidenceSchema = z.preprocess((v) => {
 }, z.enum(["low", "medium", "high"]));
 export type Confidence = z.infer<typeof ConfidenceSchema>;
 
+/* ----------------------------------------------------------------------------
+ * Optional structured extensions (2026-07-05, visual data layer). Every field
+ * below is retry-proof by construction: .optional().catch(undefined) means a
+ * malformed value is DROPPED, never a zod failure, never a corrective retry.
+ * Arrays are slice-capped in preprocess (never .max() rejection).
+ * -------------------------------------------------------------------------- */
+
+/** Probability as 0–100 percent; tolerates 0–1 fractions (0.35 → 35) and "N/A". */
+const loosePercent = z.preprocess((v) => {
+  const n = nullish(numberish(v));
+  if (typeof n === "number" && Number.isFinite(n) && n > 0 && n < 1) return n * 100;
+  return n;
+}, z.number().min(0).max(100).nullable());
+
+const capArray = (max: number) => (v: unknown) => (Array.isArray(v) ? v.slice(0, max) : v);
+
+const GtPlayerSchema = z.object({
+  name: z.string().min(1),
+  role: z.string().optional().catch(undefined),
+  m: looseNumber(z.number().min(0).max(10)).describe("Mass 1-10"),
+  e: looseNumber(z.number().min(0).max(10)).describe("Energy 1-10"),
+  c: looseNumber(z.number().min(0).max(10)).describe("Coordination 1-10"),
+  read: z.string().optional().catch(undefined).describe("One-line read on this player"),
+});
+export type GtPlayer = z.infer<typeof GtPlayerSchema>;
+
+const ScenarioSchema = z.object({
+  price: looseNullableNumber(z.number()).describe("Scenario price target, USD"),
+  probability: loosePercent.describe("Scenario probability, 0-100 percent"),
+});
+
+const InstitutionRowSchema = z.object({
+  name: z.string().min(1),
+  target: looseNullableNumber(z.number()).describe("Verified price target, USD"),
+  asOf: z.string().optional().catch(undefined).describe("Target publication date"),
+  stance: z.string().optional().catch(undefined),
+});
+export type InstitutionRow = z.infer<typeof InstitutionRowSchema>;
+
 /** stock-scanner keyMetrics — mirrors the skill's own labels. */
 export const ScannerMetricsSchema = z.object({
   piotroskiF: looseNullableNumber(z.number().min(0).max(9)).describe("Piotroski F-Score, 0-9; null if not computable"),
@@ -145,6 +184,14 @@ export const ScannerMetricsSchema = z.object({
     "The lens's own post-veto verdict",
   ),
   valueTrap: looseBoolean().describe("True if the lens flags this as a probable value trap"),
+  spotPrice: looseNullableNumber(z.number()).optional().catch(undefined).describe(
+    "OPTIONAL: spot price used in the valuation, USD; null if unverified",
+  ),
+  scenarios: z
+    .object({ bear: ScenarioSchema, base: ScenarioSchema, bull: ScenarioSchema })
+    .optional()
+    .catch(undefined)
+    .describe("OPTIONAL: probability-weighted scenario targets from the valuation"),
 });
 export type ScannerMetrics = z.infer<typeof ScannerMetricsSchema>;
 
@@ -155,6 +202,16 @@ export const GtMetricsSchema = z.object({
   baseRate: z.string().describe("Outside-view base rate the forecast anchored on"),
   adjustedProbability: z.string().describe("Base rate → adjusted probability for the primary outcome"),
   gapVsMarket: z.string().describe("Where the GT read differs from current market pricing"),
+  players: z
+    .preprocess(capArray(8), z.array(GtPlayerSchema))
+    .optional()
+    .catch(undefined)
+    .describe("OPTIONAL: the player map — up to 8 key actors with Mass/Energy/Coordination scored 1-10 each"),
+  horizonProbabilities: z
+    .object({ m3: loosePercent, m6: loosePercent, m12: loosePercent, m24: loosePercent })
+    .optional()
+    .catch(undefined)
+    .describe("OPTIONAL: primary-outcome probability (0-100 percent) at 3/6/12/24 months"),
 });
 export type GtMetrics = z.infer<typeof GtMetricsSchema>;
 
@@ -169,6 +226,11 @@ export const ForecastMetricsSchema = z.object({
   bankCount: looseNullableNumber(z.number()).describe("How many of the 8 primary institutions were verified"),
   spread: z.string().describe("Tight / Moderate / Wide"),
   freshness: z.string().describe("e.g. '4 fresh · 1 aging · 1 stale'"),
+  institutions: z
+    .preprocess(capArray(10), z.array(InstitutionRowSchema))
+    .optional()
+    .catch(undefined)
+    .describe("OPTIONAL: up to 10 per-institution verified target rows"),
 });
 export type ForecastMetrics = z.infer<typeof ForecastMetricsSchema>;
 
@@ -211,8 +273,26 @@ export function lensWireNoMarkdownSchema(skill: LensSkill) {
   return lensWireSchema(skill).omit({ fullAnalysisMarkdown: true });
 }
 
-const MetricValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-export type MetricValue = z.infer<typeof MetricValueSchema>;
+/** Persisted metric values — recursive so structured keyMetrics (players[],
+ * scenarios{}, institutions[], horizonProbabilities{}) persist alongside the
+ * primitives. All existing consumers use typeof guards, so widening is safe. */
+export type MetricValue =
+  | string
+  | number
+  | boolean
+  | null
+  | MetricValue[]
+  | { [key: string]: MetricValue | undefined };
+const MetricValueSchema: z.ZodType<MetricValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(MetricValueSchema),
+    z.record(z.string(), MetricValueSchema),
+  ]),
+);
 
 /** Persisted lens analysis (payload_json + full_markdown column). */
 export const LensAnalysisSchema = z.object({

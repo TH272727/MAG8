@@ -13,6 +13,7 @@ const GLYPH: Record<Verdict, string> = { bullish: "▲ bullish", neutral: "─ n
 const str = (v: MetricValue | undefined, fallback = "—"): string => {
   if (v === null || v === undefined || v === "") return fallback;
   if (typeof v === "boolean") return v ? "yes" : "no";
+  if (typeof v === "object") return fallback; // structured metrics render as charts, not rows
   return String(v);
 };
 const money = (v: MetricValue | undefined): string => (typeof v === "number" ? `$${v}` : str(v));

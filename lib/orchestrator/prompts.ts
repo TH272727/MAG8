@@ -107,6 +107,9 @@ Populate keyMetrics exactly with:
 - composite (your composite score)
 - scannerVerdict ("Buy" | "Watchlist" | "Pass" — your post-veto verdict)
 - valueTrap (boolean)
+Plus these OPTIONAL-but-preferred fields — include them when your analysis produced the numbers; use null for unknown values; NEVER invent a number:
+- spotPrice (the spot price your valuation used, USD)
+- scenarios ({ bear, base, bull } each { price: USD number or null, probability: 0–100 percent number or null } — your probability-weighted scenario table)
 
 Map scannerVerdict to the top-level verdict: Buy → bullish, Watchlist → neutral, Pass → bearish (deviate only with strong reason, explained in summary).${LENS_OUTRO}`;
 
@@ -119,6 +122,9 @@ Populate keyMetrics exactly with:
 - baseRate (the outside-view base rate you anchored on)
 - adjustedProbability (base rate → adjusted, e.g. "35% → 60% on carrier coordination")
 - gapVsMarket (where your read differs from current market pricing)
+Plus these OPTIONAL-but-preferred fields — include them when your analysis produced them; NEVER invent values:
+- players (your player map, up to 8 entries: { name, role, m, e, c, read } with m/e/c = Mass/Energy/Coordination each scored 1–10 exactly as your framework scores them)
+- horizonProbabilities ({ m3, m6, m12, m24 } — probability of the primary outcome at 3/6/12/24 months, each 0–100 percent or null)
 
 Map the VERDICT direction to the top-level verdict: Bullish → bullish, Neutral → neutral, Bearish → bearish.${LENS_OUTRO}`;
 
@@ -134,6 +140,8 @@ Populate keyMetrics exactly with:
 - bankCount (how many of the 8 primary institutions you verified)
 - spread ("Tight" | "Moderate" | "Wide")
 - freshness (e.g. "4 fresh · 2 aging · 1 stale")
+Plus this OPTIONAL-but-preferred field — include it when you verified individual targets; NEVER invent rows:
+- institutions (up to 10 entries: { name, target: USD number or null, asOf: date string, stance } — one row per institution you actually verified this session)
 
 Map stance to the top-level verdict: Strongly Bullish/Bullish → bullish, Mixed → neutral, Bearish/Strongly Bearish → bearish. Thin coverage (< ~4 desks) → confidence low.${LENS_OUTRO}`;
   }
