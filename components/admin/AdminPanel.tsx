@@ -25,12 +25,14 @@ export default function AdminPanel({
   allowMock,
   defaultCount,
   estimates,
+  effortLine,
 }: {
   authMode: AuthMode;
   isDev: boolean;
   allowMock: boolean;
   defaultCount: number;
   estimates: Record<number, RunEstimate>;
+  effortLine?: string;
 }) {
   const router = useRouter();
   const [count, setCount] = useState(defaultCount);
@@ -155,6 +157,12 @@ export default function AdminPanel({
               <>plan usage, $0 API · ~{est.minutesLow}–{est.minutesHigh} min</>
             ) : (
               <>~${est.usdLow}–${est.usdHigh} · ~{est.minutesLow}–{est.minutesHigh} min</>
+            )}
+            {effortLine && (
+              <>
+                <br />
+                <span className="text-dim">effort: {effortLine}</span>
+              </>
             )}
           </p>
         </div>

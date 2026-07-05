@@ -5,19 +5,22 @@
  *                                          structured output, bypassPermissions)
  *   npm run pipeline -- --full --count 4   whole pipeline: API-key billing, or plan usage on subscription auth
  *   npm run pipeline -- --full --mock      whole pipeline through the mock path (zero spend)
+ *   npm run pipeline -- --lens-probe RKLB [--effort medium]
+ *                                          ONE fundamentals lens cell, no run row, no cache —
+ *                                          the effort A/B comparator (cost/turns/quality metrics)
  *   flags: --count N (4..12), --force (skip lens cache)
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { CONFIG, estimateRun } from "../lib/config";
+import { CONFIG, estimateRun, type EffortLevel } from "../lib/config";
 import { createRun, getRunSnapshot } from "../lib/db";
 import { executeRun } from "../lib/orchestrator";
 import { runAgentWithContract } from "../lib/orchestrator/agent";
 import { bus, runChannel, type BusEvent } from "../lib/orchestrator/progress";
-import { ALL_SKILLS } from "../lib/orchestrator/prompts";
-import { LENS_SKILLS, type RunParams } from "../lib/schemas";
+import { ALL_SKILLS, lensPrompt } from "../lib/orchestrator/prompts";
+import { LENS_SKILLS, lensWireNoMarkdownSchema, type RunParams } from "../lib/schemas";
 
 // tsx does not auto-load env files the way Next does.
 for (const f of [".env.local", ".env"]) {
@@ -202,10 +205,88 @@ async function full(): Promise<number> {
   return snapshot?.run.status === "complete" ? 0 : 1;
 }
 
+/* ============================================================================
+ * --lens-probe: one fundamentals cell against a stub candidate — no run row,
+ * no cache read/write. The effort A/B comparator: run the same ticker at
+ * --effort high and --effort medium, then compare cost / turns / retry /
+ * populated-metrics / source-link counts before flipping MAG8_LENS_EFFORT.
+ * ========================================================================== */
+
+const EFFORT_CHOICES = new Set(["low", "medium", "high", "xhigh", "max"]);
+
+async function lensProbe(): Promise<number> {
+  const ticker = (argValue("--lens-probe") ?? "").trim().toUpperCase();
+  if (!ticker || ticker.startsWith("--")) {
+    console.log("Usage: npm run pipeline -- --lens-probe TICKER [--effort low|medium|high|xhigh|max]");
+    return 2;
+  }
+  const effortArg = argValue("--effort")?.trim().toLowerCase();
+  const effort: EffortLevel = effortArg && EFFORT_CHOICES.has(effortArg) ? (effortArg as EffortLevel) : CONFIG.effort.lens;
+
+  banner(`MAG8 LENS PROBE — ${ticker} × fundamentals @ effort=${effort} (model ${CONFIG.models.lens})`);
+  const auth = CONFIG.authMode();
+  if (auth === "none") console.log(" WARN  no credentials detected — the probe will fail.");
+  else console.log(` INFO  auth: ${auth}${auth === "subscription" ? " — $ figures are notional plan usage" : ""}`);
+
+  const candidate = {
+    ticker,
+    companyName: ticker,
+    sector: "probe",
+    thesis: `Probe run: analyze ${ticker} strictly on its own merits.`,
+    matchedTraits: ["probe"],
+  };
+
+  let retried = false;
+  const started = Date.now();
+  try {
+    const { data, costUsd, numTurns, via, narrativeText } = await runAgentWithContract(
+      lensWireNoMarkdownSchema("stock-scanner"),
+      {
+        prompt: lensPrompt("stock-scanner", candidate),
+        model: CONFIG.models.lens,
+        allowedTools: ["WebSearch", "WebFetch", "Bash", "Read"],
+        skills: ["stock-scanner"],
+        maxTurns: CONFIG.maxTurns.lens,
+        timeoutMs: CONFIG.timeoutsMs.lens,
+        effort,
+        thinking: CONFIG.thinking.lens,
+        maxBudgetUsd: CONFIG.maxBudgetUsd.lens,
+        label: `probe:${ticker}:fundamentals`,
+        onActivity: (a) => {
+          if (a.includes("failed validation")) retried = true;
+          console.log(`        ${a}`);
+        },
+      },
+    );
+
+    const km = data.keyMetrics as Record<string, unknown>;
+    const nullFields = Object.entries(km)
+      .filter(([, v]) => v === null || v === undefined)
+      .map(([k]) => k);
+    const urlCount = (narrativeText.match(/https?:\/\//g) ?? []).length;
+
+    banner("PROBE RESULT");
+    console.log(`  duration        ${((Date.now() - started) / 1000).toFixed(0)}s`);
+    console.log(`  cost            $${costUsd.toFixed(4)} (${auth === "subscription" ? "notional" : "billed"})`);
+    console.log(`  turns           ${numTurns}`);
+    console.log(`  handoff         via ${via}${retried ? " — CORRECTIVE RETRY FIRED" : " — first attempt"}`);
+    console.log(`  verdict         ${data.verdict} (confidence ${data.confidence})`);
+    console.log(`  keyMetrics      ${JSON.stringify(km)}`);
+    console.log(`  null metrics    ${nullFields.length ? nullFields.join(", ") : "none"}`);
+    console.log(`  source links    ${urlCount} in the narrative (${narrativeText.length} chars)`);
+    console.log(`  riskFlags       ${data.riskFlags.length}`);
+    return 0;
+  } catch (err) {
+    console.log(`  PROBE FAILED — ${err instanceof Error ? err.message : String(err)}`);
+    return 1;
+  }
+}
+
 async function main() {
   if (args.has("--smoke")) process.exit(await smoke());
   if (args.has("--full")) process.exit(await full());
-  console.log("Usage: npm run pipeline -- --smoke | --full [--count N] [--force] [--mock]");
+  if (args.has("--lens-probe")) process.exit(await lensProbe());
+  console.log("Usage: npm run pipeline -- --smoke | --full [--count N] [--force] [--mock] | --lens-probe TICKER [--effort LEVEL]");
   process.exit(2);
 }
 

@@ -69,6 +69,9 @@ export async function runCompiler(
     allowedTools: [],
     maxTurns: CONFIG.maxTurns.compile,
     timeoutMs: CONFIG.timeoutsMs.compile,
+    effort: CONFIG.effort.compiler,
+    thinking: CONFIG.thinking.compiler,
+    maxBudgetUsd: CONFIG.maxBudgetUsd.compile,
     signal,
     label: "compiler",
   });

@@ -115,13 +115,16 @@ async function runOneCell(
 
     emitLens(runId, ticker, skill, { status: "running", activity: "Starting analysis…" });
 
-    const { data, costUsd, narrativeText } = await runAgentWithContract(lensWireNoMarkdownSchema(skill), {
+    const { data, costUsd, narrativeText, numTurns } = await runAgentWithContract(lensWireNoMarkdownSchema(skill), {
       prompt: lensPrompt(skill, candidate),
       model: CONFIG.models.lens,
       allowedTools: ["WebSearch", "WebFetch", "Bash", "Read"],
       skills: [skill],
       maxTurns: CONFIG.maxTurns.lens,
       timeoutMs: CONFIG.timeoutsMs.lens,
+      effort: CONFIG.effort.lens,
+      thinking: CONFIG.thinking.lens,
+      maxBudgetUsd: CONFIG.maxBudgetUsd.lens,
       signal: opts.signal,
       label,
       onActivity: (activity) => emitLens(runId, ticker, skill, { status: "running", activity }),
@@ -130,7 +133,7 @@ async function runOneCell(
     // The wire fence carries only compact fields; the markdown report is the
     // message itself (models corrupt 10KB+ strings inside JSON far too often).
     const analysis: LensAnalysis = { ticker, skill, ...data, fullAnalysisMarkdown: narrativeText.trim() || data.summary };
-    insertLensResult({ runId, ticker, skill, isoWeek: week, status: "ok", analysis, costUsd });
+    insertLensResult({ runId, ticker, skill, isoWeek: week, status: "ok", analysis, costUsd, numTurns });
     emitLens(runId, ticker, skill, {
       status: "done",
       verdict: analysis.verdict,

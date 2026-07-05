@@ -62,6 +62,12 @@ export interface AgentCallOptions {
   skills?: string[];
   maxTurns: number;
   timeoutMs: number;
+  /** Reasoning effort (SDK default "high"); the main usage-window lever. */
+  effort?: "low" | "medium" | "high" | "xhigh" | "max";
+  /** Thinking override; unset → SDK default. */
+  thinking?: "adaptive" | "disabled";
+  /** Hard USD cap for this call; breach ends the query with error_max_budget_usd. */
+  maxBudgetUsd?: number;
   /** Run-level watchdog signal. */
   signal?: AbortSignal;
   onActivity?: (activity: string) => void;
@@ -155,6 +161,9 @@ export async function runAgentWithContract<S extends z.ZodType>(
           strictMcpConfig: true,
           ...(opts.skills ? { skills: opts.skills } : {}),
           maxTurns: opts.maxTurns,
+          ...(opts.effort ? { effort: opts.effort } : {}),
+          ...(opts.thinking ? { thinking: { type: opts.thinking } } : {}),
+          ...(opts.maxBudgetUsd ? { maxBudgetUsd: opts.maxBudgetUsd } : {}),
           abortController: ac,
           outputFormat: { type: "json_schema", schema: jsonSchema },
           ...(resume ? { resume } : {}),

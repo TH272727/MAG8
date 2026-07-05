@@ -47,6 +47,7 @@ export interface LensRow {
   error: string | null;
   cachedFromId: number | null;
   costUsd: number | null;
+  numTurns: number | null;
   createdAt: string;
 }
 
@@ -107,6 +108,7 @@ CREATE TABLE IF NOT EXISTS lens_analyses (
   error TEXT,
   cached_from_id INTEGER,
   cost_usd REAL,
+  num_turns INTEGER,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   UNIQUE (run_id, ticker, skill)
 );
@@ -145,9 +147,26 @@ function init(): Database.Database {
   db.pragma("busy_timeout = 5000");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA_SQL);
-  db.pragma("user_version = 1");
+  migrate(db);
   reconcileInterrupted(db);
   return db;
+}
+
+/**
+ * Guarded mini-migrations — the sanctioned pattern for schema evolution.
+ * SCHEMA_SQL always creates the LATEST shape (fresh DBs need no ALTERs);
+ * version-gated ALTERs below upgrade existing files. Each step is guarded by
+ * a column check so a partially-applied step is safe to re-run.
+ */
+function migrate(db: Database.Database): void {
+  const v = db.pragma("user_version", { simple: true }) as number;
+  if (v < 2) {
+    const cols = db.prepare(`PRAGMA table_info(lens_analyses)`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === "num_turns")) {
+      db.exec(`ALTER TABLE lens_analyses ADD COLUMN num_turns INTEGER`);
+    }
+    db.pragma("user_version = 2");
+  }
 }
 
 /** Boot reconciliation: fires once per true process start (globalThis survives dev HMR). */
@@ -237,6 +256,7 @@ interface RawLensRow {
   error: string | null;
   cached_from_id: number | null;
   cost_usd: number | null;
+  num_turns: number | null;
   created_at: string;
 }
 
@@ -253,6 +273,7 @@ function toLensRow(r: RawLensRow): LensRow {
     error: r.error,
     cachedFromId: r.cached_from_id,
     costUsd: r.cost_usd,
+    numTurns: r.num_turns,
     createdAt: r.created_at,
   };
 }
@@ -441,6 +462,7 @@ export function insertLensResult(input: {
   analysis?: LensAnalysis;
   error?: string;
   costUsd?: number;
+  numTurns?: number;
   cachedFromId?: number;
 }): number {
   const payload = input.analysis
@@ -449,8 +471,8 @@ export function insertLensResult(input: {
   const info = getDb()
     .prepare(
       `INSERT OR REPLACE INTO lens_analyses
-       (run_id, ticker, skill, iso_week, status, payload_json, full_markdown, error, cached_from_id, cost_usd)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (run_id, ticker, skill, iso_week, status, payload_json, full_markdown, error, cached_from_id, cost_usd, num_turns)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.runId,
@@ -463,6 +485,7 @@ export function insertLensResult(input: {
       input.error ?? null,
       input.cachedFromId ?? null,
       input.costUsd ?? null,
+      input.numTurns ?? null,
     );
   return Number(info.lastInsertRowid);
 }

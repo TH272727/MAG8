@@ -67,6 +67,7 @@ export default async function AdminPage() {
           allowMock={CONFIG.allowMock()}
           defaultCount={CONFIG.candidates.default}
           estimates={estimates}
+          effortLine={`${CONFIG.effort.discovery} discovery · ${CONFIG.effort.lens} lens · ${CONFIG.effort.compiler} compile`}
         />
       </div>
 

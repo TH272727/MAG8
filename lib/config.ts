@@ -12,6 +12,21 @@ function num(v: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/** Reasoning-effort levels the SDK accepts (its own default is "high"). */
+export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
+const EFFORT_LEVELS: ReadonlySet<string> = new Set(["low", "medium", "high", "xhigh", "max"]);
+function effortLevel(v: string | undefined, fallback: EffortLevel): EffortLevel {
+  const k = v?.trim().toLowerCase();
+  return k && EFFORT_LEVELS.has(k) ? (k as EffortLevel) : fallback;
+}
+
+/** Thinking override: "adaptive" | "disabled"; anything else → undefined (SDK default). */
+export type ThinkingMode = "adaptive" | "disabled";
+function thinkingMode(v: string | undefined): ThinkingMode | undefined {
+  const k = v?.trim().toLowerCase();
+  return k === "adaptive" || k === "disabled" ? k : undefined;
+}
+
 /** How real agent calls will authenticate (the SDK's spawned CLI resolves credentials itself). */
 export type AuthMode = "api-key" | "subscription" | "none";
 
@@ -69,13 +84,41 @@ export const CONFIG = {
     compile: int(process.env.MAG8_MAX_TURNS_COMPILE, 8),
   },
 
+  /**
+   * Reasoning effort per stage (SDK default is "high"). The real constraint on
+   * subscription auth is the plan's 5-hour usage window, so effort cuts buy
+   * survivability directly. Compiler runs "medium": it has no tools and its
+   * arithmetic is re-verified deterministically in TS. Lens stays "high" until
+   * the --lens-probe A/B (Phase 8) proves "medium" holds quality.
+   */
+  effort: {
+    discovery: effortLevel(process.env.MAG8_DISCOVERY_EFFORT, "high"),
+    lens: effortLevel(process.env.MAG8_LENS_EFFORT, "high"),
+    compiler: effortLevel(process.env.MAG8_COMPILER_EFFORT, "medium"),
+  },
+
+  /** Optional thinking override per stage: adaptive | disabled (unset → SDK default). */
+  thinking: {
+    discovery: thinkingMode(process.env.MAG8_DISCOVERY_THINKING),
+    lens: thinkingMode(process.env.MAG8_LENS_THINKING),
+    compiler: thinkingMode(process.env.MAG8_COMPILER_THINKING),
+  },
+
+  /** Hard per-call USD caps — runaway protection (SDK stops at error_max_budget_usd). */
+  maxBudgetUsd: {
+    discovery: num(process.env.MAG8_DISCOVERY_MAX_USD, 2.0),
+    lens: num(process.env.MAG8_LENS_MAX_USD, 1.0),
+    compile: num(process.env.MAG8_COMPILE_MAX_USD, 1.0),
+  },
+
   /** Rough per-call knobs used only for the /admin pre-run estimate. */
   estimate: {
     usd: {
-      // Discovery/compile ranges assume the sonnet-5 defaults (opus ≈ 1.7× these).
+      // Discovery/compile ranges assume the sonnet-5 defaults (opus ≈ 1.7× these);
+      // compile range reflects its "medium" effort default.
       discovery: [0.4, 1.5] as const,
       lens: [0.15, 0.75] as const,
-      compile: [0.25, 0.9] as const,
+      compile: [0.15, 0.6] as const,
     },
     minutes: {
       discovery: [3, 9] as const,
