@@ -1,4 +1,5 @@
 import { CONFIG } from "../config";
+import type { CoverageEntry } from "../db";
 import {
   DISCOVERY_SKILL,
   DiscoveryResultSchema,
@@ -6,7 +7,7 @@ import {
   type DiscoveryResult,
 } from "../schemas";
 import { ContractError, runAgentWithContract } from "./agent";
-import { discoveryPrompt } from "./prompts";
+import { discoveryPrompt, runDateLine } from "./prompts";
 import { emitProgress, nowIso } from "./progress";
 
 /** Stage 1: run the new-gen-stock scout and normalize its candidate list. */
@@ -14,9 +15,10 @@ export async function runDiscovery(
   runId: string,
   count: number,
   signal: AbortSignal,
+  ctx: { coverage: CoverageEntry[]; modifier?: string },
 ): Promise<{ discovery: DiscoveryResult; costUsd: number }> {
   const { data, costUsd } = await runAgentWithContract(DiscoveryResultSchema, {
-    prompt: discoveryPrompt(count),
+    prompt: discoveryPrompt(count, { dateLine: runDateLine(), coverage: ctx.coverage, modifier: ctx.modifier }),
     model: CONFIG.models.discovery,
     // Read included so the skill's own "read references/" instruction degrades
     // gracefully (the archive shipped without them); no Bash for discovery.

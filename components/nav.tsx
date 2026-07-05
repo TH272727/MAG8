@@ -37,6 +37,9 @@ export default async function Nav() {
           <Link href="/rankings" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
             Rankings
           </Link>
+          <Link href="/lab" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
+            Lab
+          </Link>
           <Link href="/methodology" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
             Methodology
           </Link>

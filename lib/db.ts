@@ -383,6 +383,41 @@ export function getCandidate(runId: string, ticker: string): DiscoveryCandidate 
   return getCandidates(runId).find((c) => c.ticker === ticker) ?? null;
 }
 
+export interface CoverageEntry {
+  ticker: string;
+  companyName: string;
+  /** ISO week the run that surfaced this ticker was started in. */
+  weekKey: string;
+}
+
+/**
+ * Tickers surfaced by the last N completed REAL runs (mock/demo excluded),
+ * most recent first, deduped by ticker. Fed into the discovery prompt as
+ * anti-repetition pressure — never as a hard ban.
+ */
+export function getRecentCoverage(nRuns = 5): CoverageEntry[] {
+  const db = getDb();
+  const runs = db
+    .prepare(
+      `SELECT id, created_at FROM runs
+       WHERE status='complete' AND COALESCE(json_extract(params_json, '$.mock'), 0) = 0
+       ORDER BY created_at DESC, rowid DESC LIMIT ?`,
+    )
+    .all(nRuns) as { id: string; created_at: string }[];
+  const byRun = db.prepare(`SELECT ticker, company_name FROM candidates WHERE run_id=? ORDER BY position`);
+  const seen = new Set<string>();
+  const out: CoverageEntry[] = [];
+  for (const r of runs) {
+    const weekKey = isoWeekKey(new Date(r.created_at));
+    for (const c of byRun.all(r.id) as { ticker: string; company_name: string }[]) {
+      if (seen.has(c.ticker)) continue;
+      seen.add(c.ticker);
+      out.push({ ticker: c.ticker, companyName: c.company_name, weekKey });
+    }
+  }
+  return out;
+}
+
 /* ============================================================================
  * Lens analyses (doubles as the cross-run cache via idx_lens_cache)
  * ========================================================================== */

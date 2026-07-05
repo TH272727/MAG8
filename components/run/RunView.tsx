@@ -125,6 +125,18 @@ export default function RunView({ snapshot }: { snapshot: PublicRunSnapshot }) {
             <span className="chip">N = {run.params.count}</span>
             {run.params.force && <span className="chip">FORCE</span>}
             {run.params.mock && <span className="chip border-discovery/40 text-discovery">MOCK</span>}
+            {run.params.modifier && (
+              <span
+                className="chip max-w-56 border-discovery/40 text-discovery"
+                title={
+                  run.params.mock
+                    ? `Focus: ${run.params.modifier} — demo runs use the fixed demo cohort, so the focus is shown as a label only.`
+                    : `Focus: ${run.params.modifier}`
+                }
+              >
+                <span className="truncate">FOCUS · {run.params.modifier.toUpperCase()}</span>
+              </span>
+            )}
             {cost !== null && <span className="chip tabular">COST {fmtMoney(cost)}</span>}
           </div>
         </div>

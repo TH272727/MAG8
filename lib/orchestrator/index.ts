@@ -1,5 +1,5 @@
 import { CONFIG } from "../config";
-import { finishRun, insertCandidates, insertRankings, setRunStage } from "../db";
+import { finishRun, getRecentCoverage, insertCandidates, insertRankings, setRunStage } from "../db";
 import { LENS_SKILLS, type RunParams } from "../schemas";
 import { runAnalysisMatrix } from "./analysis";
 import { runCompiler } from "./compiler";
@@ -28,7 +28,10 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
   try {
     setRunStage(runId, "discovery");
     emitProgress(runId, { type: "stage_start", stage: "discovery", at: nowIso() });
-    const { discovery, costUsd: discoveryCost } = await runDiscovery(runId, params.count, watchdog.signal);
+    const { discovery, costUsd: discoveryCost } = await runDiscovery(runId, params.count, watchdog.signal, {
+      coverage: getRecentCoverage(5),
+      modifier: params.modifier,
+    });
     totalCost += discoveryCost;
     insertCandidates(runId, discovery.candidates);
     emitProgress(runId, {
@@ -77,7 +80,7 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
 
     setRunStage(runId, "compile");
     emitProgress(runId, { type: "stage_start", stage: "compile", at: nowIso() });
-    const { report, costUsd: compileCost } = await runCompiler(runId, discovery, cells, watchdog.signal);
+    const { report, costUsd: compileCost } = await runCompiler(runId, discovery, cells, watchdog.signal, params.modifier);
     totalCost += compileCost;
 
     insertRankings(runId, report.rankings);

@@ -41,6 +41,7 @@ export default function RunHistoryTable({ runs }: { runs: RunRow[] }) {
             <th className="eyebrow px-4 py-2.5 font-medium">Status</th>
             <th className="eyebrow px-4 py-2.5 text-right font-medium">N</th>
             <th className="eyebrow px-4 py-2.5 font-medium">Mode</th>
+            <th className="eyebrow px-4 py-2.5 font-medium">Focus</th>
             <th className="eyebrow px-4 py-2.5 text-right font-medium">Cost</th>
           </tr>
         </thead>
@@ -57,6 +58,9 @@ export default function RunHistoryTable({ runs }: { runs: RunRow[] }) {
               <td className="px-4 py-2.5">{statusChip(r.status)}</td>
               <td className="tabular px-4 py-2.5 text-right font-mono text-[12px] text-muted">{r.params.count}</td>
               <td className="px-4 py-2.5 font-mono text-[12px] text-muted">{r.params.mock ? "mock" : r.params.force ? "real · force" : "real"}</td>
+              <td className="max-w-40 truncate px-4 py-2.5 font-mono text-[12px] text-muted" title={r.params.modifier ?? undefined}>
+                {r.params.modifier ?? "—"}
+              </td>
               <td className="tabular px-4 py-2.5 text-right font-mono text-[12px] text-muted">{fmtMoney(r.totalCostUsd)}</td>
             </tr>
           ))}

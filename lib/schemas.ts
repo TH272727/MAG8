@@ -307,10 +307,33 @@ export type CompiledReport = z.infer<typeof CompiledReportSchema>;
  * Run params
  * ========================================================================== */
 
+/** Hard cap on the operator focus directive (a "small cap only"-style scope). */
+export const MODIFIER_MAX_LENGTH = 280;
+
+/**
+ * Strip prompt-injection surfaces from a focus directive before it goes
+ * anywhere near a prompt: no fences/backticks (cannot fake the wire contract),
+ * no control characters, collapsed whitespace, hard length cap.
+ * Returns undefined when nothing meaningful remains.
+ */
+export function sanitizeModifier(raw: string): string | undefined {
+  const cleaned = raw
+    .replace(/```+/g, " ")
+    .replace(/`/g, "'")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1f\x7f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MODIFIER_MAX_LENGTH);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
 export const RunParamsSchema = z.object({
   count: z.number().int().min(4).max(12).default(8),
   force: z.boolean().default(false),
   mock: z.boolean().default(false),
+  /** Operator focus directive — scopes discovery only; rides in params_json. */
+  modifier: z.string().min(1).max(MODIFIER_MAX_LENGTH).optional(),
 });
 export type RunParams = z.infer<typeof RunParamsSchema>;
 

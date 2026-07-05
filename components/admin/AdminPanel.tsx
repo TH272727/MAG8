@@ -35,6 +35,7 @@ export default function AdminPanel({
   const router = useRouter();
   const [count, setCount] = useState(defaultCount);
   const [force, setForce] = useState(false);
+  const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState<null | "real" | "mock">(null);
   const [msg, setMsg] = useState<Message | null>(null);
   const est = estimates[count];
@@ -46,7 +47,7 @@ export default function AdminPanel({
       const res = await fetch("/api/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count, force, mock }),
+        body: JSON.stringify({ count, force, mock, ...(focus.trim() ? { modifier: focus.trim() } : {}) }),
       });
       const data = (await res.json().catch(() => ({}))) as { runId?: string; error?: string; activeRunId?: string };
       if (res.status === 202 && data.runId) {
@@ -125,6 +126,22 @@ export default function AdminPanel({
               re-run every cell.
             </span>
           </label>
+
+          <div className="mt-4">
+            <label htmlFor="focus" className="eyebrow">
+              Focus directive <span className="normal-case text-dim">(optional — scopes discovery, e.g. &ldquo;small cap only&rdquo;)</span>
+            </label>
+            <textarea
+              id="focus"
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+              maxLength={280}
+              rows={2}
+              placeholder="Leave blank for the standard hunt"
+              className="mt-2 w-full max-w-md resize-none rounded-md border border-hairline bg-void px-3 py-2 font-mono text-[13px] text-ink placeholder:text-dim focus:border-discovery/60 focus:outline-none"
+            />
+            <p className="mt-1 font-mono text-[11px] text-dim">{focus.length}/280</p>
+          </div>
         </div>
 
         <div className="sm:text-right">

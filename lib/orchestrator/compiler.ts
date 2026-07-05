@@ -27,6 +27,7 @@ export async function runCompiler(
   discovery: DiscoveryResult,
   cells: Map<CellKey, CellOutcome>,
   signal: AbortSignal,
+  modifier?: string,
 ): Promise<{ report: CompiledReport; costUsd: number }> {
   const { candidates } = discovery;
 
@@ -63,7 +64,7 @@ export async function runCompiler(
   });
 
   const { data: wire, costUsd } = await runAgentWithContract(CompilerWireSchema, {
-    prompt: compilerPrompt({ marketContext: discovery.marketContext, candidates, lensData, gaps }),
+    prompt: compilerPrompt({ marketContext: discovery.marketContext, candidates, lensData, gaps, modifier }),
     model: CONFIG.models.compiler,
     allowedTools: [],
     maxTurns: CONFIG.maxTurns.compile,
