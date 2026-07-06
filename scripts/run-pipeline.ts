@@ -5,6 +5,8 @@
  *                                          structured output, bypassPermissions)
  *   npm run pipeline -- --full --count 4   whole pipeline: API-key billing, or plan usage on subscription auth
  *   npm run pipeline -- --full --mock      whole pipeline through the mock path (zero spend)
+ *   npm run pipeline -- --full --count 4 --focus "small cap defense"
+ *                                          focus-scoped run (modifier scopes discovery only)
  *   npm run pipeline -- --lens-probe RKLB [--effort medium]
  *                                          ONE fundamentals lens cell, no run row, no cache —
  *                                          the effort A/B comparator (cost/turns/quality metrics)
@@ -20,7 +22,7 @@ import { executeRun } from "../lib/orchestrator";
 import { runAgentWithContract } from "../lib/orchestrator/agent";
 import { bus, runChannel, type BusEvent } from "../lib/orchestrator/progress";
 import { ALL_SKILLS, lensPrompt } from "../lib/orchestrator/prompts";
-import { LENS_SKILLS, lensWireNoMarkdownSchema, type RunParams } from "../lib/schemas";
+import { LENS_SKILLS, lensWireNoMarkdownSchema, sanitizeModifier, type RunParams } from "../lib/schemas";
 
 // tsx does not auto-load env files the way Next does.
 for (const f of [".env.local", ".env"]) {
@@ -172,9 +174,11 @@ async function full(): Promise<number> {
     CONFIG.candidates.max,
     Math.max(CONFIG.candidates.min, parseInt(argValue("--count") ?? String(CONFIG.candidates.default), 10) || CONFIG.candidates.default),
   );
-  const params: RunParams = { count, force: args.has("--force"), mock };
+  const focusRaw = argValue("--focus");
+  const modifier = focusRaw ? sanitizeModifier(focusRaw) : undefined;
+  const params: RunParams = { count, force: args.has("--force"), mock, ...(modifier ? { modifier } : {}) };
 
-  banner(`MAG8 FULL PIPELINE — count=${count} force=${params.force} mock=${mock}`);
+  banner(`MAG8 FULL PIPELINE — count=${count} force=${params.force} mock=${mock}${modifier ? ` focus="${modifier}"` : ""}`);
   if (!mock) {
     const est = estimateRun(count);
     console.log(

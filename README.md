@@ -57,6 +57,10 @@ A real run makes `1 + 3N + 1` agent calls (N=8 → 26 calls, roughly $5–$22 on
 | `MAG8_MAX_CONCURRENT_STOCKS` | no | Candidates in flight at once (default 3 → ≤9 concurrent agent sessions). |
 | `MAG8_DB_PATH` | no | SQLite path (default `./db/mag8.db`). |
 | `MAG8_ALLOW_MOCK` | no | `1` enables zero-spend mock runs on a production/staging deployment (dev always allows them). |
+| `MAG8_DISCOVERY_EFFORT` / `MAG8_LENS_EFFORT` / `MAG8_COMPILER_EFFORT` | no | Reasoning effort per stage (`low…max`). Defaults: high / **medium** / medium — the 2026-07-06 A/B showed a high-effort lens cell blows the $1 per-call budget cap, while medium completes with strong sourcing. Raise `MAG8_LENS_EFFORT` and `MAG8_LENS_MAX_USD` together. |
+| `MAG8_*_MAX_USD` | no | Hard per-call USD caps (runaway protection): discovery 2.0, lens 1.0, compile 1.0. |
+| `MAG8_*_THINKING` | no | `adaptive` \| `disabled` thinking override per stage (unset = SDK default). |
+| `MAG8_PRICE_CHECK` | no | `0` disables the independent price cross-check that runs between analysis and compile. |
 | `MAG8_*_TIMEOUT_MS`, `MAG8_MAX_TURNS_*`, `MAG8_MOCK_SPEED` | no | See `.env.example`. |
 
 ## CLI harness
@@ -66,8 +70,33 @@ npm run pipeline -- --smoke                  # go/no-go integration probe (penni
 npm run pipeline -- --full --count 8         # whole pipeline headless, live console rendering
 npm run pipeline -- --full --mock            # whole pipeline through the mock path (zero spend)
 npm run pipeline -- --full --count 8 --force # skip this week's lens cache
+npm run pipeline -- --full --count 4 --focus "small-cap defense"   # focus-scoped run
+npm run pipeline -- --lens-probe RKLB --effort medium   # ONE lens cell, no run row/cache — the effort A/B comparator
 npm run seed                                 # (re)seed the demo fixture run
+npm run gen:bib                              # regenerate each skill's references/bibliography.md from lib/citations.ts
 ```
+
+## Focus runs & /lab
+
+The weekly no-input pipeline stays canonical, but a run can carry a one-line **focus directive**
+("small cap only", "energy infrastructure", …) that scopes *which stocks the scout hunts* — never
+the rules, count, or scoring. Focus scopes **discovery only** by design: lens analyses stay
+focus-blind so the weekly cache stays valid, and the compiler simply echoes the focus in its market
+overview. Set it from `/admin`, from the public **`/lab`** page (visible to everyone; execution
+gated by the admin token), or headless via `--focus`. The run page shows a FOCUS chip; mock runs
+show the chip as a label only (the demo cohort is fixed).
+
+## Grounding checks
+
+Every lens write-up must end with a `## Sources` section listing the URLs actually consulted;
+write-ups with fewer than three links are flagged. The compiler receives — and the published report
+discloses — deterministic cross-checks: the fundamentals and street-consensus lenses' spot prices
+compared against each other (>20% apart → flag) and against an independent market-data quote
+(>15% → flag, fail-silent, `MAG8_PRICE_CHECK=0` to disable). AI sampling cannot be seeded, so Mag8
+does not claim determinism from the models; repeatability lives in the deterministic score
+verification, the weekly cache, and these disclosed checks. The methodology page's References
+section — and each skill's `references/bibliography.md` — render from one verified registry
+(`lib/citations.ts`, `npm run gen:bib`), so the cited evidence base cannot drift.
 
 ## How it holds together
 
@@ -76,11 +105,7 @@ npm run seed                                 # (re)seed the demo fixture run
 - **Cache** — lens analyses double as a cache keyed `(ticker, skill, ISO week)`, matching the scanner's weekly cadence. Cache hits render instantly as "cached" chips and cost $0. Demo/mock rows use a `-demo` suffixed week so fixture data can never leak into a real run's cache. `force` skips lookup.
 - **Progress** — every event is persisted to SQLite *before* it is emitted in-process; the rowid doubles as the SSE event id, so browser reconnects resume via `Last-Event-ID` for free. Mission Control is fully event-sourced; terminal runs render server-side from a snapshot with no stream.
 - **Resilience** — a lens-cell failure becomes an error cell (scored neutral, gap noted), never a run failure. Runs are watchdog-aborted after 45 min. On boot, any `pending/running` row left by a crash is marked `interrupted` with a synthetic terminal event so replaying clients always resolve.
-- **Skills are read-only** — the four `SKILL.md` files are never edited; per-call wrapper prompts + the SDK `skills` filter scope each agent to exactly one skill.
-
-### Note: `new-gen-stock` references are committed in-repo, not in the archive
-
-The `new-gen-stock (1).skill` archive ships only its `SKILL.md`; the two reference files it points at (`references/playbook.md` — method, universe constraints, DNA scorecard, workflow, report format — and `references/megacap-dna.md` — the pre-ascent pattern library) are committed directly under `.claude/skills/new-gen-stock/references/`. Caveat: `npm run setup:skills` deletes and re-extracts each skill folder from its archive, so re-running it removes these two files — restore them with `git restore .claude/skills/new-gen-stock`. The Stage-1 wrapper prompt still inlines the core constraints and tells the agent not to stall if the files are ever absent.
+- **Skills are versioned in-repo** — the committed `.claude/skills/**` folders are the source of truth and carry improvements the original archives don't have: methodology grounding with verified citations, generated bibliographies, a widened discovery funnel, and honesty framing for the scoring heuristics. `npm run setup:skills` extracts an archive **only when its skill folder is missing**, so it can never clobber the repo versions (a deliberate factory reset = delete the folder, re-run setup, `git restore` to come back). Per-call wrapper prompts + the SDK `skills` filter still scope each agent to exactly one skill.
 
 ### Deviations from the build spec (all flagged, all additive)
 
@@ -105,4 +130,3 @@ This app needs a **single long-lived Node process**: runs execute in-process for
 ## Disclaimer
 
 Mag8 is a research experiment demonstrating multi-agent orchestration. **It is not investment advice.** Outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.
-# MAG8

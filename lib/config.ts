@@ -88,12 +88,16 @@ export const CONFIG = {
    * Reasoning effort per stage (SDK default is "high"). The real constraint on
    * subscription auth is the plan's 5-hour usage window, so effort cuts buy
    * survivability directly. Compiler runs "medium": it has no tools and its
-   * arithmetic is re-verified deterministically in TS. Lens stays "high" until
-   * the --lens-probe A/B (Phase 8) proves "medium" holds quality.
+   * arithmetic is re-verified deterministically in TS. Lens defaults "medium"
+   * per the 2026-07-06 A/B (RKLB probe): at "high" a cell exceeded the $1
+   * per-call budget cap and died mid-research; at "medium" it completed
+   * first-attempt in 97s / ~$0.69 with 18 source links and full scenario
+   * extras. Raise MAG8_LENS_EFFORT and MAG8_LENS_MAX_USD together if you want
+   * high back.
    */
   effort: {
     discovery: effortLevel(process.env.MAG8_DISCOVERY_EFFORT, "high"),
-    lens: effortLevel(process.env.MAG8_LENS_EFFORT, "high"),
+    lens: effortLevel(process.env.MAG8_LENS_EFFORT, "medium"),
     compiler: effortLevel(process.env.MAG8_COMPILER_EFFORT, "medium"),
   },
 
