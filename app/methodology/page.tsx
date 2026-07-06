@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CITATION_GROUPS, groundingShorts } from "@/lib/citations";
 import { buildRubricText } from "@/lib/ranking";
 import { PUBLIC_DISCOVERY, PUBLIC_LENS_META } from "@/lib/public-lens";
 
@@ -112,6 +113,9 @@ export default function MethodologyPage() {
                 <span className="font-mono text-[11px] text-dim">{l.code}</span>
               </div>
               <p className="mt-2 text-sm text-muted">{l.body}</p>
+              <p className="mt-3 font-mono text-[11px] leading-relaxed text-dim">
+                Grounded in: {groundingShorts(l.accent)}
+              </p>
             </div>
           ))}
         </div>
@@ -131,6 +135,54 @@ export default function MethodologyPage() {
           This text is generated from the same constants the pipeline uses to verify every score — the
           page and the compiler cannot drift apart.
         </p>
+      </section>
+
+      {/* References — rendered from the same registry that generates each lens's bibliography */}
+      <section className="mt-12" aria-labelledby="refs-h">
+        <h2 id="refs-h" className="eyebrow">
+          The evidence base
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm text-muted">
+          The methods each lens applies — and the rubric that combines them — are grounded in published
+          research and standard practice. Grounding means the method is credited and its limits are
+          measured, not that results are guaranteed: several of the works below quantify exactly how
+          often these methods fail.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          {CITATION_GROUPS.map((g) => (
+            <div key={g.key} className="panel p-5">
+              <h3 className={`font-display text-base font-semibold ${ACCENT_TEXT[g.key] ?? ""}`}>
+                {g.title}
+              </h3>
+              <p className="mt-1 text-[13px] text-muted">{g.intro}</p>
+              <ul className="mt-3 space-y-3">
+                {g.works.map((w) => (
+                  <li key={w.short} className="text-[13px] leading-relaxed">
+                    <span className="text-ink">
+                      {w.authors} ({w.year}).
+                    </span>{" "}
+                    {w.url ? (
+                      <a
+                        href={w.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-words underline decoration-hairline underline-offset-2 hover:text-ink"
+                      >
+                        <em>{w.title}</em>
+                      </a>
+                    ) : (
+                      <em>{w.title}</em>
+                    )}
+                    <span className="text-dim"> — {w.source}.</span>
+                    <span className="mt-0.5 block text-muted">
+                      {w.finding} <span className="text-dim">{w.usedFor}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Operational notes */}

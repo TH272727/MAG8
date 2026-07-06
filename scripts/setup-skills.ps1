@@ -1,6 +1,13 @@
 # Unpacks the four *.skill archives (zip format) into .claude/skills/ so the
 # Claude Agent SDK discovers them via settingSources: ['project'].
 # Works in both Windows PowerShell 5.1 and PowerShell 7+.
+#
+# The committed .claude/skills/** folders are the SOURCE OF TRUTH (they carry
+# repo-only improvements: methodology grounding, bibliographies, funnel edits).
+# The *.skill zips are vestigial first-install seeds, so extraction is
+# skip-if-present: an existing skill folder is NEVER overwritten. To force a
+# factory reset of one skill: delete its folder, then re-run this script —
+# and expect to lose the repo-side improvements (git restore brings them back).
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -23,8 +30,13 @@ foreach ($a in $archives) {
         # Normal case: archive contains a single top-level <skill-name>/ folder.
         foreach ($f in $folders) {
             $target = Join-Path $dest $f.Name
-            if (Test-Path $target) { Remove-Item -Recurse -Force $target }
-            Move-Item -Path $f.FullName -Destination $target
+            if (Test-Path $target) {
+                Write-Host (" - {0}: already installed, left untouched" -f $f.Name)
+            }
+            else {
+                Move-Item -Path $f.FullName -Destination $target
+                Write-Host (" - {0}: extracted" -f $f.Name)
+            }
         }
     }
     else {
@@ -34,9 +46,14 @@ foreach ($a in $archives) {
         $nameLine = (Select-String -Path $skillMd -Pattern '^name:\s*(.+)$').Matches[0].Groups[1].Value.Trim()
         if (-not $nameLine) { Write-Error "Could not read skill name from $($a.Name)" }
         $target = Join-Path $dest $nameLine
-        if (Test-Path $target) { Remove-Item -Recurse -Force $target }
-        New-Item -ItemType Directory -Force -Path $target | Out-Null
-        Get-ChildItem -Path $tmp | Move-Item -Destination $target
+        if (Test-Path $target) {
+            Write-Host (" - {0}: already installed, left untouched" -f $nameLine)
+        }
+        else {
+            New-Item -ItemType Directory -Force -Path $target | Out-Null
+            Get-ChildItem -Path $tmp | Move-Item -Destination $target
+            Write-Host (" - {0}: extracted" -f $nameLine)
+        }
     }
     Remove-Item -Recurse -Force $tmp
 }

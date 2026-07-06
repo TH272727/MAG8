@@ -28,9 +28,11 @@ The value of this report is that every number is real and current. The failure m
 
 Keep these facts visible when synthesizing; they shape how much confidence any output deserves.
 
-- Analyst 12-month price targets are met at the horizon only ~38% of the time (~64% at some point during the year), with absolute target errors historically averaging ~45% and a systematic optimism bias of roughly 9–15%. Directional calls on macro/rates are often near coin-flip.
-- A simple average of forecasts is very hard to beat. Complex weighting schemes usually add more estimation error than they remove ("forecast combination puzzle"), so this skill deliberately uses transparent, mostly-qualitative aggregation rather than a precise weighted score.
+- Analyst 12-month price targets are met at the horizon only ~38% of the time (~64% touched at some point during the year), absolute target-price errors have averaged ~45% (US names fare worse in international samples), and targets skew optimistic: target-implied returns have exceeded realized returns by ~15% on average, with one-year targets historically set ~24–28% above the prevailing price.¹ Directional calls on macro/rates are often near coin-flip.
+- A simple average of forecasts is very hard to beat. Complex weighting schemes usually add more estimation error than they remove — the "forecast combination puzzle" (the coinage is Stock & Watson's, 2004; the equal-weights robustness is documented across the combination literature, e.g. Timmermann 2006) — so this skill deliberately uses transparent, mostly-qualitative aggregation rather than a precise weighted score.
 - The right posture is calibrated humility: report the balance of evidence and the spread of views, flag when inputs are thin or stale, and avoid manufacturing precision the underlying data cannot support.
+
+¹ Sources for the accuracy figures: Bradshaw, Brown & Huang (2013, *Review of Accounting Studies*) — the 38% / 64% / 45% / 15% figures (US 12-month targets, 2000–2009); Bilinski, Lyssimachou & Walker (2013, *The Accounting Review*) — international corroboration (touch rate 59% pooled, ~55% US; mean absolute error ~45% pooled, ~50% US); Asquith, Mikhail & Au (2005, *Journal of Financial Economics*) — ~54% touch rate for star analysts, 1997–1999; Brav & Lehavy (2003, *Journal of Finance*) — the ~28% ex-ante target premium (note: that study shows target revisions move prices; it reports no met-rate). Full citations with links: `references/bibliography.md`.
 
 ---
 

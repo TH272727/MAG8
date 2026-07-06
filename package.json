@@ -12,7 +12,8 @@
     "start": "next start",
     "setup:skills": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-skills.ps1",
     "pipeline": "tsx scripts/run-pipeline.ts",
-    "seed": "tsx scripts/seed-fixture.ts"
+    "seed": "tsx scripts/seed-fixture.ts",
+    "gen:bib": "tsx scripts/gen-bibliographies.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.0",

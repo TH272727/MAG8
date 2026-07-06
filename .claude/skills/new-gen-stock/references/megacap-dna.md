@@ -92,3 +92,15 @@ For any candidate, answer plainly:
 - **What is the market currently misunderstanding?** If you can't articulate the gap, there is probably no asymmetry — and sometimes the very risk the market fears is the future flywheel.
 
 If a candidate can't answer most of these convincingly, it's a false positive — cut it, or tier it as a speculative moonshot with the DNA gaps named explicitly.
+
+---
+
+## The Evidence Base (why this hunt is worth making)
+
+The basket-of-potential-category-kings strategy is grounded in how equity returns are actually distributed — extreme concentration — and the lens itself borrows from standard strategy literature:
+
+- **Bessembinder (2018), *Journal of Financial Economics*** — since 1926, the best-performing ~4% of US listed companies account for the **entire** net wealth creation of the stock market above Treasury bills; the top ~90 firms (about a third of one percent) account for over half, and 57.4% of individual stocks underperformed T-bills over their lifetimes. Missing the few compounders is the expensive error; finding them is the whole game.
+- **Fahlenbrach (2009), *Journal of Financial and Quantitative Analysis*** — an equal-weighted portfolio of founder-CEO firms earned a benchmark-adjusted ~8.3% annually (1993–2002; ~4.4% after controls), with founder-led firms investing more in R&D and capex. This is the evidence behind the founder-control and reinvestment signatures (Structural DNA #1, #2, #4).
+- **The qualitative frameworks** are credited, not invented here: Rogers, *Diffusion of Innovations* and Foster, *Innovation: The Attacker's Advantage* (S-curves and their knees); Christensen, *The Innovator's Dilemma* (why incumbents rationally lose to disruptors); Moore, *Crossing the Chasm* (the early-adopter-to-mainstream gap); Helmer, *7 Powers* (durable structural advantage — "counter-positioning" is his coinage).
+
+Full citations with links: `references/bibliography.md`.

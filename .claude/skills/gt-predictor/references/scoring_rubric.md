@@ -48,6 +48,8 @@ A properly scored entry reads like: *"[TICKER]: Score ~X — [current % off ATH]
 
 ## M×E×C Player Scoring
 
+**Lineage & honesty note.** This scoring is a stylized cousin of the expected-utility actor models Bueno de Mesquita built for policy forecasting (*The War Trap*, 1981; the Policon / Predictioneer's Game line — "A New Model for Predicting Policy Choices," 2011). Those models take per-actor inputs of **position**, **salience**, and **potential influence** (clout/capabilities), plus **resolve** in the newer model. The honest mapping: **M ≈ potential influence/capabilities; E ≈ salience plus resolve. C (coordination) has no direct analog** — BDM's models compute coalition dynamics endogenously rather than scoring cohesion per actor — so treat C as this framework's own judgment call, which is exactly why the equal-weights sensitivity check below is mandatory. On the track record: a declassified CIA evaluation (Feder 1987, *Studies in Intelligence*) found Policon-style forecasts accurate ~90% of the time — **but traditional analyst forecasts scored ~90% too**; the model's documented edge was specificity ("bull's-eye twice as often"), not raw hit rate. Full citations: `references/bibliography.md`.
+
 **How to score each player:**
 
 **Mass (M) — 1–10:**
@@ -73,10 +75,14 @@ A properly scored entry reads like: *"[TICKER]: Score ~X — [current % off ATH]
 
 **Weighted Score** = [M + (2×E) + (4×C)] ÷ 7
 
+**The 1-2-4 weights are this framework's own prior, not an estimated or literature-derived parameter.** They encode the judgment that coordination beats motivation beats raw mass — treat them as a labeled assumption. The forecast-combination literature is blunt that differential weights need strong evidence to beat equal weights, so every player map gets a sensitivity check:
+
+**Equal-weights sensitivity check (mandatory):** also compute the unweighted score (M + E + C) ÷ 3 for every player. If the *ranking* of players flips between the weighted and unweighted versions, the read is weight-sensitive — flag it as **low robustness** in the output and lower confidence accordingly. If the ranking holds under both, say so; that agreement is cheap evidence the read isn't an artifact of the weights.
+
 **Example calculations** (hypothetical, to show the mechanic — not a claim about any live conflict):
-- Side A: M=9, E=5, C=5 → [9 + 10 + 20] ÷ 7 = 5.6
-- Side B: M=4, E=9, C=7 → [4 + 18 + 28] ÷ 7 = 7.1
-→ Reading: the higher-coordination, higher-energy side (B) can outperform raw-mass superiority (A) — the Law-of-Asymmetry pattern. Round to one decimal; the inputs are subjective 1–10 judgments, so further precision is illusory. Treat this as one input among several, and always sanity-check it against the base rate for conflicts of this type.
+- Side A: M=9, E=5, C=5 → weighted [9 + 10 + 20] ÷ 7 = 5.6 | unweighted (9+5+5) ÷ 3 = 6.3
+- Side B: M=4, E=9, C=7 → weighted [4 + 18 + 28] ÷ 7 = 7.1 | unweighted (4+9+7) ÷ 3 = 6.7
+→ Reading: B leads under both weightings — the ranking is robust here (B > A either way), though the margin narrows without the coordination emphasis; say which side of that line a real case lands on. The higher-coordination, higher-energy side (B) outperforming raw-mass superiority (A) is the Law-of-Asymmetry pattern. Round to one decimal; the inputs are subjective 1–10 judgments, so further precision is illusory. Treat this as one input among several, and always sanity-check it against the base rate for conflicts of this type.
 
 ---
 

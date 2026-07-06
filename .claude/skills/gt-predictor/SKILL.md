@@ -27,6 +27,7 @@ Before running analysis, decide which reference files to load:
 | `references/asset_map.md` | Mapping predictions to specific instruments, ETFs, sector rotation |
 | `references/event_templates.md` | Running a specific event type (war, CB policy, regime change, trade war, etc.) |
 | `references/scoring_rubric.md` | Calculating Asymmetry Score, M×E×C scoring, confidence calibration |
+| `references/bibliography.md` | ONLY if the user asks about the evidence base / methodological grounding — not needed for a normal run |
 
 For a full deep-dive prediction, load all five. For a quick situational read, load `prediction_log.md` (for the base-rate step) + `gt_laws.md` + `asset_map.md`.
 
@@ -106,6 +107,11 @@ If you cannot verify a fact live, say so and lower confidence — do not fill th
 **B. Establish the base rate (outside view) — before the laws.**
 Following the reference-class procedure in `prediction_log.md`: pick a class of past situations similar to this one, find how often they resolved the way you're about to forecast, and write that base rate down. This is the most evidence-backed forecasting move there is, and it exists precisely to stop the vivid, case-specific narrative the seven laws generate from producing overconfident calls. Anchor here first; the laws and current data are *adjustments* from this anchor, not replacements for it.
 
+**B2. For conflict and standoff questions, use structured analogies — and do not trust unaided game-theory intuition.** The tested evidence on forecasting decisions in conflicts (Green 2002/2005; Green & Armstrong 2007 — see `references/bibliography.md`) is blunt: game theorists' and other experts' *unaided* predictions were right only ~31–37% of the time, barely above the ~28% chance line, while **structured analogies** raised accuracy to ~46% (~60% when the forecaster knew several analogies well) and **simulated interaction** — actually role-playing the parties — roughly doubled it to ~62%. So when the question is "what will these parties decide":
+1. List 3+ analogous past situations *before* reasoning about this one, rate each for similarity, look up how each actually resolved, and let the modal outcome anchor your probability (this usually IS your Step-B reference class).
+2. For the highest-stakes calls, briefly simulate the decision from inside each key actor's constraints — argue their move as they would — before settling on the forecast.
+The player map you build next is a structuring device, not evidence; these two procedures are what has been shown to beat chance.
+
 **C. Steelman the opposing thesis.**
 Before building your player map, write the strongest version of the case *against* where you expect to land. If you're heading toward "escalation, buy hard assets," argue the de-escalation / soft-landing / disinflation case as persuasively as a smart opponent would. State what evidence would make the opposing case correct. If you can't argue the other side well, you don't understand the situation well enough to forecast it — and if the laws and the steelman disagree, that tension is information, not something to resolve in the framework's favor by default.
 
@@ -143,7 +149,7 @@ For every significant actor, record:
 |---|---|---|---|---|---|---|
 | [Actor] | [Eschatological/ideological script] | | | | [What they MUST do] | [What limits them] |
 
-**M×E×C formula**: weighted score = [M + (2×E) + (4×C)] ÷ 7 (bracket the numerator, then divide by 7; report to one decimal at most — the inputs are subjective 1–10 judgments, so more precision is false precision)
+**M×E×C formula**: weighted score = [M + (2×E) + (4×C)] ÷ 7 (bracket the numerator, then divide by 7; report to one decimal at most — the inputs are subjective 1–10 judgments, so more precision is false precision). The 1-2-4 weighting is this framework's own labeled prior, not an estimated parameter — so ALSO compute the unweighted (M + E + C) ÷ 3 per player, and if the player ranking flips, flag the read as low-robustness (full procedure in `references/scoring_rubric.md`).
 **Game Masters layer**: always add a row for transnational capital — their coordination signal is usually the earliest predictor
 
 **Key questions per player:**
