@@ -152,6 +152,18 @@ export default function MethodologyPage() {
             plain sight.
           </p>
         </div>
+        <div className="panel p-5 sm:col-span-2">
+          <h3 className="font-display text-base font-semibold">Grounding checks &amp; determinism</h3>
+          <p className="mt-2 text-sm text-muted">
+            AI text generation cannot be made bit-for-bit repeatable, so Mag8 does not pretend it can.
+            Repeatability lives in the layers around the models: the deterministic score verification,
+            the weekly cache, and independent grounding checks — every lens write-up must end with a
+            sources section, thinly-sourced write-ups are flagged, the fundamentals and street-consensus
+            lenses&apos; spot prices are compared against each other, and each spot price is cross-checked
+            against an independent market-data feed. Anything that fails a check is disclosed as a data
+            gap on the run and the affected figures are treated with caution — never silently trusted.
+          </p>
+        </div>
       </section>
 
       {/* Full disclaimer */}

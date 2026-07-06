@@ -11,6 +11,7 @@ import {
   type LensSkill,
   type LensStatusEvent,
 } from "../schemas";
+import { PUBLIC_LENS_LABEL } from "../public-view";
 import { ContractError, runAgentWithContract } from "./agent";
 import { createLimiter } from "./limit";
 import { lensPrompt } from "./prompts";
@@ -22,6 +23,24 @@ export interface CellOutcome {
   error?: string;
   cached: boolean;
   costUsd: number;
+  /** Deterministic grounding cautions (public-label vocabulary) — merged into the report's gap notes. */
+  flags?: string[];
+}
+
+/** Occurrences of http(s) links in a write-up — the deterministic sourcing signal. */
+export function countSourceLinks(markdown: string): number {
+  return markdown.match(/https?:\/\//g)?.length ?? 0;
+}
+
+const MIN_SOURCE_LINKS = 3;
+
+/** A write-up citing almost no sources earns a caution flag; applies to cached cells too. */
+function groundingFlags(ticker: string, skill: LensSkill, analysis: LensAnalysis): string[] | undefined {
+  const n = countSourceLinks(analysis.fullAnalysisMarkdown);
+  if (n >= MIN_SOURCE_LINKS) return undefined;
+  return [
+    `${ticker} × ${PUBLIC_LENS_LABEL(skill)}: only ${n} source link${n === 1 ? "" : "s"} in the write-up — treat its figures with caution.`,
+  ];
 }
 
 /**
@@ -109,7 +128,7 @@ async function runOneCell(
           confidence: hit.analysis.confidence,
           headline: lensHeadline(skill, hit.analysis.keyMetrics),
         });
-        return { ok: true, analysis: hit.analysis, cached: true, costUsd: 0 };
+        return { ok: true, analysis: hit.analysis, cached: true, costUsd: 0, flags: groundingFlags(ticker, skill, hit.analysis) };
       }
     }
 
@@ -140,7 +159,7 @@ async function runOneCell(
       confidence: analysis.confidence,
       headline: lensHeadline(skill, analysis.keyMetrics),
     });
-    return { ok: true, analysis, cached: false, costUsd };
+    return { ok: true, analysis, cached: false, costUsd, flags: groundingFlags(ticker, skill, analysis) };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     // Persist the WHY (zod issue report) and the cost of the failed attempts, not just the headline.

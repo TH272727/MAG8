@@ -84,7 +84,7 @@ Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.th
 
 const LENS_OUTRO = `
 Shape your FINAL message exactly like this:
-1. Your complete analysis write-up in markdown, following your research playbook's own output format (retitled per your public identity). This text IS the published report — make it complete and self-contained.
+1. Your complete analysis write-up in markdown, following your research playbook's own output format (retitled per your public identity). This text IS the published report — make it complete and self-contained. END the write-up with a "## Sources" section listing the URLs you actually consulted this session, one per line — real links only, never fabricated or from memory. A figure you cannot tie to a listed source must be labeled an estimate or reported as null; write-ups with thin sourcing are flagged to readers automatically.
 2. Then, as the very LAST thing in the message, exactly ONE fenced code block labeled json, containing ONLY these top-level fields:
    - verdict: "bullish" | "neutral" | "bearish" — your overall lean for the ticker through THIS lens only
    - confidence: "low" | "medium" | "high"

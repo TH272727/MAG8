@@ -1,13 +1,49 @@
 import { CONFIG } from "../config";
 import { finishRun, getRecentCoverage, insertCandidates, insertRankings, setRunStage } from "../db";
-import { LENS_SKILLS, type RunParams } from "../schemas";
-import { runAnalysisMatrix } from "./analysis";
+import { priceCheckEnabled, priceSanityFlags, type PriceCheckInput } from "../price-sanity";
+import { LENS_SKILLS, cellKey, type CellKey, type DiscoveryCandidate, type RunParams } from "../schemas";
+import { runAnalysisMatrix, type CellOutcome } from "./analysis";
 import { runCompiler } from "./compiler";
 import { runDiscovery } from "./discovery";
 import { executeMockRun } from "./mock";
 import { emitProgress, nowIso } from "./progress";
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/**
+ * Deterministic price grounding between analysis and compile: each ticker whose
+ * street-consensus cell reported a spot price gets one independent quote check;
+ * divergences come back as gap-note flags. Fail-silent and kill-switchable
+ * (MAG8_PRICE_CHECK=0) — see lib/price-sanity.ts.
+ */
+async function runPriceSanity(
+  runId: string,
+  candidates: DiscoveryCandidate[],
+  cells: Map<CellKey, CellOutcome>,
+): Promise<string[]> {
+  if (!priceCheckEnabled()) return [];
+  const inputs: PriceCheckInput[] = [];
+  for (const c of candidates) {
+    const cell = cells.get(cellKey(c.ticker, "institutional-forecast"));
+    const price = cell?.ok && cell.analysis ? cell.analysis.keyMetrics.currentPrice : null;
+    if (typeof price === "number" && price > 0) inputs.push({ ticker: c.ticker, lensPrice: price });
+  }
+  if (inputs.length === 0) return [];
+  emitProgress(runId, {
+    type: "compile_activity",
+    activity: "Cross-checking lens spot prices against an independent quote source…",
+    at: nowIso(),
+  });
+  const flags = await priceSanityFlags(inputs);
+  if (flags.length > 0) {
+    emitProgress(runId, {
+      type: "compile_activity",
+      activity: `Price check flagged ${flags.length} ticker${flags.length === 1 ? "" : "s"} — noted as data gaps.`,
+      at: nowIso(),
+    });
+  }
+  return flags;
+}
 
 /**
  * Executes one full run. NEVER rejects: every failure path lands in the DB and
@@ -80,7 +116,11 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
 
     setRunStage(runId, "compile");
     emitProgress(runId, { type: "stage_start", stage: "compile", at: nowIso() });
-    const { report, costUsd: compileCost } = await runCompiler(runId, discovery, cells, watchdog.signal, params.modifier);
+    const priceFlags = await runPriceSanity(runId, discovery.candidates, cells);
+    const { report, costUsd: compileCost } = await runCompiler(runId, discovery, cells, watchdog.signal, {
+      modifier: params.modifier,
+      extraGaps: priceFlags,
+    });
     totalCost += compileCost;
 
     insertRankings(runId, report.rankings);
