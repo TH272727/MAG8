@@ -7,6 +7,7 @@ import CandidateCard from "./CandidateCard";
 import CompilerPanel from "./CompilerPanel";
 import DiscoveryFeed from "./DiscoveryFeed";
 import MatrixGrid from "./MatrixGrid";
+import PipelineMap from "./PipelineMap";
 import StageRail, { type StageStatus } from "./StageRail";
 import { fmtDateTime, fmtMoney, shortId } from "@/lib/format";
 import {
@@ -158,6 +159,11 @@ export default function RunView({ snapshot }: { snapshot: PublicRunSnapshot }) {
       {/* ---- stage rail ---- */}
       <div className="mt-6">
         <StageRail statuses={stageStatuses} />
+      </div>
+
+      {/* ---- pipeline map ---- */}
+      <div className="panel mt-6 p-3 sm:p-4">
+        <PipelineMap state={state} />
       </div>
 
       {/* ---- error banner ---- */}

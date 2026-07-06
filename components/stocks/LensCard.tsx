@@ -1,4 +1,7 @@
 import CollapsibleMarkdown from "./CollapsibleMarkdown";
+import ForecastRangeChart from "./charts/ForecastRangeChart";
+import GtCharts from "./charts/GtCharts";
+import ScannerCharts from "./charts/ScannerCharts";
 import { PUBLIC_LENS_META, type PublicLens, type PublicLensRow } from "@/lib/public-lens";
 import type { MetricValue, Verdict } from "@/lib/schemas";
 
@@ -77,7 +80,7 @@ export default function LensCard({ row }: { row: PublicLensRow }) {
     <section className={`panel border-t-2 p-5 ${accent.border}`} aria-label={`${meta.label} lens`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 className={`font-display text-base font-semibold ${accent.text}`}>{meta.label}</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {row.cachedFromId !== null && <span className="chip">CACHED · THIS WEEK</span>}
           <span className={`chip ${accent.text}`}>{GLYPH[a.verdict]}</span>
           <span className="chip">conf {a.confidence}</span>
@@ -94,6 +97,10 @@ export default function LensCard({ row }: { row: PublicLensRow }) {
           </div>
         ))}
       </dl>
+
+      {row.lens === "fundamentals" && <ScannerCharts km={a.keyMetrics} />}
+      {row.lens === "macro" && <GtCharts km={a.keyMetrics} />}
+      {row.lens === "consensus" && <ForecastRangeChart km={a.keyMetrics} />}
 
       {a.riskFlags.length > 0 && (
         <div className="mt-4">
