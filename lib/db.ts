@@ -352,6 +352,21 @@ export function latestCompleteRun(): RunRow | null {
   return r ? toRunRow(r) : null;
 }
 
+/**
+ * Most recent complete run WITHOUT a focus directive — the canonical weekly
+ * board. Keeps a lab (focused) run from ever displacing the weekly leaderboard.
+ */
+export function latestCanonicalRun(): RunRow | null {
+  const r = getDb()
+    .prepare(
+      `SELECT * FROM runs WHERE status='complete'
+         AND ${kindClause("canonical")}
+       ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+    )
+    .get() as RawRunRow | undefined;
+  return r ? toRunRow(r) : null;
+}
+
 export function listRuns(limit = 50): RunRow[] {
   const rows = getDb()
     .prepare(`SELECT * FROM runs ORDER BY created_at DESC, rowid DESC LIMIT ?`)
@@ -558,6 +573,125 @@ export function latestRunForTicker(ticker: string): RunRow | null {
     )
     .get(ticker) as RawRunRow | undefined;
   return r ? toRunRow(r) : null;
+}
+
+/* ============================================================================
+ * All-time boards — the rankings table aggregated per ticker across completed
+ * runs, split by run kind. 'canonical' = no focus directive (the untouched
+ * weekly pipeline); 'focused' = operator/user-focused lab runs. The modifier's
+ * presence in params_json is the classifier (sanitizeModifier never persists
+ * an empty one), so historical rows sort themselves with no DDL. Computed on
+ * read: a board can only move when a run of its own kind completes.
+ * ========================================================================== */
+
+export type BoardKind = "canonical" | "focused";
+
+/** SQL predicate for a run kind; `col` is the params_json column reference. */
+function kindClause(kind: BoardKind, col = "params_json"): string {
+  const m = `json_extract(${col},'$.modifier')`;
+  return kind === "canonical" ? `(${m} IS NULL OR ${m} = '')` : `(${m} IS NOT NULL AND ${m} != '')`;
+}
+
+export interface BoardEntry {
+  ticker: string;
+  /** RankedStock payload from the run where this ticker posted its best score. */
+  best: RankedStock;
+  bestRunId: string;
+  /** When the best-scoring run finished (falls back to its start time). */
+  bestRunAt: string;
+  /** Focus directive of the best-scoring run (focused board only; internal text — sanitize at the public boundary). */
+  bestRunFocus?: string;
+  /** Qualifying runs whose leaderboard included this ticker. */
+  appearances: number;
+  lastSeenAt: string;
+}
+
+export interface BoardResult {
+  kind: BoardKind;
+  entries: BoardEntry[];
+  /** Qualifying runs feeding this board. */
+  runCount: number;
+  /** When the most recent qualifying run finished. */
+  updatedAt: string | null;
+  /** True when built from mock/demo runs because no real run of this kind exists yet. */
+  demo: boolean;
+}
+
+interface RawBoardRow {
+  ticker: string;
+  payload_json: string;
+  run_id: string;
+  created_at: string;
+  finished_at: string | null;
+  modifier: string | null;
+}
+
+function boardRows(kind: BoardKind, mock: boolean): RawBoardRow[] {
+  return getDb()
+    .prepare(
+      `SELECT k.ticker, k.payload_json, r.id AS run_id, r.created_at, r.finished_at,
+              json_extract(r.params_json,'$.modifier') AS modifier
+       FROM rankings k JOIN runs r ON r.id = k.run_id
+       WHERE r.status='complete'
+         AND COALESCE(json_extract(r.params_json,'$.mock'),0) = ?
+         AND ${kindClause(kind, "r.params_json")}`,
+    )
+    .all(mock ? 1 : 0) as RawBoardRow[];
+}
+
+export function getAllTimeBoard(kind: BoardKind, limit = 50): BoardResult {
+  let rows = boardRows(kind, false);
+  let demo = false;
+  if (rows.length === 0) {
+    rows = boardRows(kind, true);
+    demo = rows.length > 0;
+  }
+
+  const byTicker = new Map<string, BoardEntry>();
+  const runIds = new Set<string>();
+  let updatedAt: string | null = null;
+  for (const r of rows) {
+    const stock = parseJson<RankedStock>(r.payload_json);
+    if (!stock) continue;
+    runIds.add(r.run_id);
+    const at = r.finished_at ?? r.created_at;
+    if (updatedAt === null || at > updatedAt) updatedAt = at;
+    const prev = byTicker.get(r.ticker);
+    if (!prev) {
+      byTicker.set(r.ticker, {
+        ticker: r.ticker,
+        best: stock,
+        bestRunId: r.run_id,
+        bestRunAt: at,
+        ...(r.modifier ? { bestRunFocus: r.modifier } : {}),
+        appearances: 1,
+        lastSeenAt: at,
+      });
+      continue;
+    }
+    prev.appearances += 1;
+    if (at > prev.lastSeenAt) prev.lastSeenAt = at;
+    if (
+      stock.finalScore > prev.best.finalScore ||
+      (stock.finalScore === prev.best.finalScore && at > prev.bestRunAt)
+    ) {
+      prev.best = stock;
+      prev.bestRunId = r.run_id;
+      prev.bestRunAt = at;
+      if (r.modifier) prev.bestRunFocus = r.modifier;
+      else delete prev.bestRunFocus;
+    }
+  }
+
+  const entries = [...byTicker.values()]
+    .sort(
+      (a, b) =>
+        b.best.finalScore - a.best.finalScore ||
+        b.lastSeenAt.localeCompare(a.lastSeenAt) ||
+        a.ticker.localeCompare(b.ticker),
+    )
+    .slice(0, limit);
+  return { kind, entries, runCount: runIds.size, updatedAt, demo };
 }
 
 /* ============================================================================

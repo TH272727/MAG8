@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Manrope, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
+/* Variable fonts vendored in app/fonts (Google Fonts latin subsets, OFL) so
+ * builds never fetch fonts.googleapis.com — build-time DNS to it proved flaky. */
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-latin.woff2",
+  weight: "300 700",
   variable: "--font-space-grotesk",
   display: "swap",
 });
-const manrope = Manrope({
-  subsets: ["latin"],
+const manrope = localFont({
+  src: "./fonts/manrope-latin.woff2",
+  weight: "200 800",
   variable: "--font-manrope",
   display: "swap",
 });
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+const jetbrainsMono = localFont({
+  src: "./fonts/jetbrains-mono-latin.woff2",
+  weight: "100 800",
   variable: "--font-jetbrains-mono",
   display: "swap",
 });

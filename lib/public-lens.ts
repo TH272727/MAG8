@@ -87,3 +87,38 @@ export interface PublicLensRow extends Omit<LensRow, "skill" | "analysis"> {
   lens: PublicLens;
   analysis: PublicLensAnalysis | null;
 }
+
+/* ============================================================================
+ * All-time boards — per-ticker best scores aggregated across completed runs,
+ * split by run kind: 'canonical' (no focus directive) vs 'focused' (lab runs).
+ * Built server-side by lib/public-view.ts toPublicBoard(); all free text
+ * (verdict line, focus directive) is pre-sanitized.
+ * ========================================================================== */
+
+export interface PublicBoardEntry {
+  /** Position on THIS board (not the rank inside the origin run). */
+  rank: number;
+  ticker: string;
+  companyName: string;
+  gate: RankedStock["gate"];
+  confluence: boolean;
+  /** Best final score this ticker ever posted on runs of this kind. */
+  finalScore: number;
+  verdictLine: string;
+  /** Qualifying runs whose leaderboard included this ticker. */
+  appearances: number;
+  /** When the best-scoring run finished. */
+  bestRunAt: string;
+  lastSeenAt: string;
+  /** Focus directive behind the best score (focused board only). */
+  focus?: string;
+}
+
+export interface PublicBoard {
+  kind: "canonical" | "focused";
+  entries: PublicBoardEntry[];
+  runCount: number;
+  updatedAt: string | null;
+  /** Built from demo runs because no real run of this kind exists yet. */
+  demo: boolean;
+}

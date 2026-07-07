@@ -1,4 +1,4 @@
-import type { LensRow, RunSnapshot } from "./db";
+import type { BoardResult, LensRow, RunSnapshot } from "./db";
 import {
   LENS_SKILLS,
   type CompiledReport,
@@ -8,6 +8,7 @@ import {
 } from "./schemas";
 import {
   PUBLIC_LENS_META,
+  type PublicBoard,
   type PublicCellSummary,
   type PublicLens,
   type PublicLensRow,
@@ -126,6 +127,36 @@ export function toPublicReport(report: CompiledReport): CompiledReport {
     methodologyNote: sanitizeText(report.methodologyNote),
     gapsNoted: report.gapsNoted.map(sanitizeText),
     rankings: report.rankings.map(sanitizeRankedStock),
+  };
+}
+
+/**
+ * All-time board → public shape. Assigns board-position ranks (the origin-run
+ * rank inside each payload is meaningless across runs) and sanitizes the two
+ * free-text surfaces: the verdict line and the user-supplied focus directive.
+ */
+export function toPublicBoard(board: BoardResult): PublicBoard {
+  return {
+    kind: board.kind,
+    runCount: board.runCount,
+    updatedAt: board.updatedAt,
+    demo: board.demo,
+    entries: board.entries.map((e, i) => {
+      const best = sanitizeRankedStock(e.best);
+      return {
+        rank: i + 1,
+        ticker: e.ticker,
+        companyName: best.companyName,
+        gate: best.gate,
+        confluence: best.confluence,
+        finalScore: best.finalScore,
+        verdictLine: best.verdictLine,
+        appearances: e.appearances,
+        bestRunAt: e.bestRunAt,
+        lastSeenAt: e.lastSeenAt,
+        ...(e.bestRunFocus ? { focus: sanitizeText(e.bestRunFocus) } : {}),
+      };
+    }),
   };
 }
 

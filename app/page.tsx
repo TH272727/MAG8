@@ -1,8 +1,9 @@
 import Link from "next/link";
 import HeroConfluence from "@/components/confluence/HeroConfluence";
 import EmailCapture from "@/components/landing/EmailCapture";
-import { getActiveRun, latestCompleteRun } from "@/lib/db";
+import { getActiveRun, latestCanonicalRun } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
+import { sanitizeRankedStock } from "@/lib/public-view";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +26,11 @@ const HOW = [
 ];
 
 export default function HomePage() {
-  const latest = latestCompleteRun();
+  // Canonical only — a focused lab run never swaps the home preview, and the
+  // public-view boundary sanitizes legacy report rows before they reach props.
+  const latest = latestCanonicalRun();
   const active = getActiveRun();
-  const top3 = latest?.report?.rankings.slice(0, 3) ?? [];
+  const top3 = (latest?.report?.rankings.slice(0, 3) ?? []).map(sanitizeRankedStock);
 
   return (
     <main>

@@ -86,6 +86,13 @@ overview. Set it from `/admin`, from the public **`/lab`** page (visible to ever
 gated by the admin token), or headless via `--focus`. The run page shows a FOCUS chip; mock runs
 show the chip as a label only (the demo cohort is fixed).
 
+The two run kinds keep separate all-time records on `/rankings`: the **canonical board** aggregates
+every stock the untouched weekly pipeline has surfaced, and the **lab board** aggregates the best
+scores posted by focus-directed runs (each row shows the directive that surfaced it). Each board
+tracks a stock's best score to date and moves only when a run of its own kind completes; the weekly
+leaderboard and the home preview always show the latest *canonical* run, so a lab run can never
+displace them.
+
 ## Grounding checks
 
 Every lens write-up must end with a `## Sources` section listing the URLs actually consulted;
