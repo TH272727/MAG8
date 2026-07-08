@@ -40,7 +40,7 @@ export const S08_Macro: React.FC = () => {
   const brightPulse = 0.75 + 0.25 * Math.sin(frame * 0.22);
   return (
     <Void>
-      <LensScene color={O} chipLabel="LENS 02 · MACRO ASYMMETRY" headline={'Macro\nmaps the board.'} slideOutAt={140}>
+      <LensScene color={O} chipLabel="LENS 02 · MACRO ASYMMETRY" headline={'Macro\nmaps the board.'} slideOutAt={155}>
         <Instrument x={0} y={0} w={950} h={520} label="GAME TREE" appear={4}>
           <svg width={900} height={430} viewBox="0 0 920 660" style={{overflow: 'visible'}}>
             {/* great-circle arcs behind */}

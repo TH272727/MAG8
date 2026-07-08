@@ -110,9 +110,14 @@ verified via scratch-DB probe + real-DB readout + leak probe + 375px iframe prob
 fonts vendored the same day after the DNS break killed builds; brand mark (black four-blade X) shipped across all
 public surfaces + favicon/manifest/OG the same evening (leak probe 0-hit, tab-scale sim clean); launch film shipped
 the same night — `marketing/video/` (standalone Remotion project, NOT part of the app) renders
-`marketing/video-prompts.md` natively → `out/the-signal.mp4` (113s 1080p30, real site shots in `public/shots/`
+`marketing/video-prompts.md` natively → `out/the-signal.mp4` (122s 1080p30 after 2026-07-08 pacing pass — text
+scenes +15–21f, exit keys shifted in S03/S07-09/S17/S21, score regenerated; real site shots in `public/shots/`
 reshoot-after-UI-changes, procedural score off `src/timeline.ts`, film-source leak grep 0-hit; Remotion needs
 system Chrome + `chrome-for-testing` mode + rendererPort≠3000 — Edge headless is hollow on this box, and the
-headless-shell download lives on blackholed storage.googleapis). Open: (1) email capture stores but nothing sends;
+headless-shell download lives on blackholed storage.googleapis). 2026-07-08: three vertical lens shorts —
+`out/short-{fundamentals,macro,consensus}.mp4` (1080×1920@30, ~73/78/73s; shared spine + per-lens deep chapter,
+GT short = full player-map/M×E×C/21-path-tree/horizons/falsifier; `src/shorts/` timelines drive film AND
+`gen-score-shorts.ts`; stills-reviewed, leak grep 0-hit; HANDOFF-2026-07-08-lens-shorts.md).
+Open: (1) email capture stores but nothing sends;
 (2) deploy target undecided — needs one long-lived instance (SSE bus + SQLite; Postgres port = rewrite `lib/db.ts` only).
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

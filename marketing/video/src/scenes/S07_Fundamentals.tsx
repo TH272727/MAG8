@@ -15,7 +15,7 @@ export const S07_Fundamentals: React.FC = () => {
   const needle = -108 + pop(frame, 26, 15, 1.1) * 156; // sweeps to +48°
   return (
     <Void>
-      <LensScene color={G} chipLabel="LENS 01 · FUNDAMENTALS" headline={'Fundamentals\nreads the books.'} slideOutAt={140}>
+      <LensScene color={G} chipLabel="LENS 01 · FUNDAMENTALS" headline={'Fundamentals\nreads the books.'} slideOutAt={155}>
         {/* balance-sheet bars */}
         <Instrument x={0} y={30} w={440} h={310} label="LEDGER" appear={8}>
           <svg width={392} height={210}>

@@ -16,8 +16,8 @@ export const S03_Trash: React.FC = () => {
   const canDrop = lerp(frame, [88, 106], [0, 1], easeIn);
   const canY = 1120 - canUp * 330 + canDrop * 420;
 
-  // Text block dissolve (f142+)
-  const dis = lerp(frame, [142, 163], [0, 1], easeInOut);
+  // Text block dissolve (f157+ — held longer for read time)
+  const dis = lerp(frame, [157, 178], [0, 1], easeInOut);
 
   return (
     <Void depth>

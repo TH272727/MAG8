@@ -1,44 +1,45 @@
 import React from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame} from 'remotion';
-import {Void} from '../lib/ui';
-import {lerp, pop, pulse01} from '../lib/anim';
-import {C, F} from '../theme';
+import {Chip, Void} from '../../lib/ui';
+import {lerp, pop, pulse01} from '../../lib/anim';
+import {C, F} from '../../theme';
+import {LENS, useShort} from '../vlib';
 
-/** S21 — Endcard: the mark, the wordmark, one last heartbeat. No URL yet. */
-export const S21_Endcard: React.FC = () => {
+/** V13 — endcard: mark, wordmark, this short's lens tag, the disclaimer. */
+export const V13_Endcard: React.FC = () => {
   const frame = useCurrentFrame();
-  const markIn = pop(frame, 8, 14, 1);
-  const beat = Math.max(pulse01((frame - 62) / 26), pulse01((frame - 168) / 26));
-  const fadeOut = lerp(frame, [211, 225], [0, 1]);
+  const short = useShort();
+  const meta = LENS[short];
+  const markIn = pop(frame, 6, 14, 1);
+  const beat = Math.max(pulse01((frame - 56) / 26), pulse01((frame - 132) / 26));
+  const fadeOut = lerp(frame, [152, 165], [0, 1]);
   return (
     <Void depth>
       <AbsoluteFill style={{alignItems: 'center'}}>
-        {/* the four-blade mark, ink-rimmed (never gold) */}
         <div
           style={{
-            marginTop: 262,
+            marginTop: 520,
             opacity: Math.min(markIn * 1.3, 1),
             transform: `scale(${0.82 + markIn * 0.18})`,
             filter:
               'drop-shadow(0 0 1px rgba(231,234,238,0.62)) drop-shadow(0 0 6px rgba(231,234,238,0.26)) drop-shadow(0 0 18px rgba(231,234,238,0.10))',
           }}
         >
-          <Img src={staticFile('brand/mark.png')} style={{width: 148, height: 148}} />
+          <Img src={staticFile('brand/mark.png')} style={{width: 140, height: 140}} />
         </div>
 
-        {/* wordmark with the gold-dot period */}
         <div
           style={{
             display: 'flex',
             alignItems: 'baseline',
-            marginTop: 30,
-            opacity: lerp(frame, [26, 44], [0, 1]),
+            marginTop: 34,
+            opacity: lerp(frame, [22, 40], [0, 1]),
           }}
         >
           <span
             style={{
               fontFamily: F.display,
-              fontSize: 172,
+              fontSize: 150,
               fontWeight: 700,
               letterSpacing: '0.08em',
               color: C.ink,
@@ -50,8 +51,8 @@ export const S21_Endcard: React.FC = () => {
           <span
             style={{
               display: 'inline-block',
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               borderRadius: 99,
               background: C.confluence,
               marginLeft: 2,
@@ -63,26 +64,32 @@ export const S21_Endcard: React.FC = () => {
 
         <div
           style={{
-            marginTop: 34,
+            marginTop: 32,
             fontFamily: F.body,
-            fontSize: 37,
+            fontSize: 33,
             fontWeight: 400,
             color: C.muted,
-            opacity: lerp(frame, [48, 66], [0, 1]),
+            opacity: lerp(frame, [42, 58], [0, 1]),
           }}
         >
           The next trillion-dollar leaderboard.
         </div>
 
+        <div style={{marginTop: 46, opacity: lerp(frame, [68, 84], [0, 1])}}>
+          <Chip color={meta.color} border={`${meta.color}55`} bg={`${meta.color}0e`} size={17}>
+            THIS EPISODE · {meta.chip}
+          </Chip>
+        </div>
+
         <div
           style={{
             position: 'absolute',
-            bottom: 96,
+            bottom: 190,
             fontFamily: F.mono,
             fontSize: 16,
             letterSpacing: '0.16em',
             color: C.dim,
-            opacity: lerp(frame, [76, 92], [0, 1]),
+            opacity: lerp(frame, [92, 108], [0, 1]),
           }}
         >
           RESEARCH, NOT INVESTMENT ADVICE

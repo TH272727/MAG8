@@ -3,6 +3,21 @@ import {Composition, Series, continueRender, delayRender, Audio, staticFile} fro
 import {FPS, H, W} from './theme';
 import {SCENES, TOTAL_FRAMES} from './timeline';
 import {loadAllFonts} from './lib/fonts';
+import {SHORT_IDS, VH, VW, shortScenes, shortTotal} from './shorts/timeline';
+import type {ShortId} from './shorts/timeline';
+import {ShortCtx} from './shorts/vlib';
+
+import {V01_Hook} from './shorts/scenes/V01_Hook';
+import {V02_Intro} from './shorts/scenes/V02_Intro';
+import {V03_Scout} from './shorts/scenes/V03_Scout';
+import {V04_Lanes} from './shorts/scenes/V04_Lanes';
+import {V10_Fusion} from './shorts/scenes/V10_Fusion';
+import {V11_Verdict} from './shorts/scenes/V11_Verdict';
+import {V12_Receipts} from './shorts/scenes/V12_Receipts';
+import {V13_Endcard} from './shorts/scenes/V13_Endcard';
+import {VF1_Books, VF2_Quality, VF3_Traps, VF4_PricedIn, VF5_Scenarios} from './shorts/scenes/VF_Fundamentals';
+import {VM1_Board, VM2_Players, VM3_Paths, VM4_Horizons, VM5_Asymmetry} from './shorts/scenes/VM_Macro';
+import {VC1_Street, VC2_Desks, VC3_Band, VC4_BullBear, VC5_Flag} from './shorts/scenes/VC_Consensus';
 
 import {S01_Search} from './scenes/S01_Search';
 import {S02_Noise} from './scenes/S02_Noise';
@@ -90,6 +105,61 @@ const TheSignal: React.FC = () => (
   </WithFonts>
 );
 
+/* ------------------------- the three lens shorts ------------------------- */
+
+const SHORT_REGISTRY: Record<string, React.FC> = {
+  V01_Hook,
+  V02_Intro,
+  V03_Scout,
+  V04_Lanes,
+  V10_Fusion,
+  V11_Verdict,
+  V12_Receipts,
+  V13_Endcard,
+  VF1_Books,
+  VF2_Quality,
+  VF3_Traps,
+  VF4_PricedIn,
+  VF5_Scenarios,
+  VM1_Board,
+  VM2_Players,
+  VM3_Paths,
+  VM4_Horizons,
+  VM5_Asymmetry,
+  VC1_Street,
+  VC2_Desks,
+  VC3_Band,
+  VC4_BullBear,
+  VC5_Flag,
+};
+
+const makeShort = (short: ShortId): React.FC => {
+  const TheShort: React.FC = () => (
+    <WithFonts>
+      <ShortCtx.Provider value={short}>
+        <Series>
+          {shortScenes(short).map((s) => {
+            const Scene = SHORT_REGISTRY[s.id];
+            return (
+              <Series.Sequence key={s.id} durationInFrames={s.frames} name={s.id}>
+                <Scene />
+              </Series.Sequence>
+            );
+          })}
+        </Series>
+        <Audio src={staticFile(`audio/score-${short}.wav`)} />
+      </ShortCtx.Provider>
+    </WithFonts>
+  );
+  return TheShort;
+};
+
+const SHORT_COMPS = SHORT_IDS.map((short) => ({
+  short,
+  id: `Short-${short[0].toUpperCase()}${short.slice(1)}`,
+  Comp: makeShort(short),
+}));
+
 export const RemotionRoot: React.FC = () => (
   <>
     <Composition
@@ -100,6 +170,17 @@ export const RemotionRoot: React.FC = () => (
       width={W}
       height={H}
     />
+    {SHORT_COMPS.map(({short, id, Comp}) => (
+      <Composition
+        key={id}
+        id={id}
+        component={Comp}
+        durationInFrames={shortTotal(short)}
+        fps={FPS}
+        width={VW}
+        height={VH}
+      />
+    ))}
     {SCENES.map((s) => {
       const Scene = REGISTRY[s.id];
       const Wrapped: React.FC = () => (

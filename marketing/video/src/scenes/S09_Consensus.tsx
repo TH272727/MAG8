@@ -22,7 +22,7 @@ export const S09_Consensus: React.FC = () => {
   const beat = heartbeat(frame - 92, 34);
   return (
     <Void>
-      <LensScene color={T} chipLabel="LENS 03 · STREET CONSENSUS" headline={'Consensus\npolls the street.'} slideOutAt={140}>
+      <LensScene color={T} chipLabel="LENS 03 · STREET CONSENSUS" headline={'Consensus\npolls the street.'} slideOutAt={155}>
         <Instrument x={0} y={0} w={950} h={520} label="TARGET RANGES" appear={4}>
           <svg width={900} height={430} viewBox="0 0 900 500" style={{overflow: 'visible'}}>
             {/* baseline */}

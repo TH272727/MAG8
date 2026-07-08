@@ -134,7 +134,7 @@ const A2 = 110, C3 = 130.81, D3 = 146.83, E3 = 164.81, G3 = 196, A3 = 220,
 /* ============================ arrangement ============================ */
 
 // Chapter 1 — room tone + noise
-pad(f2t('S01_Search'), 15.5, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 3});
+pad(f2t('S01_Search'), 16, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 3});
 // typing implied; first pulse only in S2 as pops crowd in
 for (let i = 0; i < 12; i++) pop(f2t('S02_Noise', 12 + i * 8), 0.045 + i * 0.0035);
 for (let i = 0; i < 8; i++) pop(f2t('S02_Noise', 100 + i * 5.5), 0.028);
@@ -207,10 +207,10 @@ for (let i = 0; i < 8; i++) {
   kick(f2t('S14_Receipts', 62 + i * 8), 0.05, 150, 95, 0.09); // stamp presses
   tick(f2t('S14_Receipts', 62 + i * 8), 0.02, 2500);
 }
-pad(f2t('S12_Leaderboard'), 18, [D3, A3, D4], 0.045, {a: 2});
+pad(f2t('S12_Leaderboard'), 19, [D3, A3, D4], 0.045, {a: 2});
 
 // Chapter 5 — white: airy, no kick
-pad(f2t('S15_Blind'), 15, [A3, C4, E4, E5], 0.035, {a: 2.5, curve: 1.1});
+pad(f2t('S15_Blind'), 16.6, [A3, C4, E4, E5], 0.035, {a: 2.5, curve: 1.1});
 // three independent motifs that never sync
 [0, 1, 2].forEach((k) => {
   const base = [E4, G3 * 2, B3 * 2][k];

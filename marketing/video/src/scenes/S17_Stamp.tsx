@@ -22,7 +22,7 @@ export const S17_Stamp: React.FC = () => {
   const stamp = pop(frame, 74, 15, 0.5);
   const stampOp = lerp(frame, [74, 79], [0, 1]);
   const chipS = pop(frame, 46, 14, 0.5);
-  const toDark = lerp(frame, [138, 150], [0, 1]);
+  const toDark = lerp(frame, [153, 165], [0, 1]);
 
   return (
     <Void light>

@@ -6,8 +6,10 @@
   "scripts": {
     "studio": "remotion studio",
     "render": "remotion render TheSignal out/the-signal.mp4",
+    "render:shorts": "remotion render Short-Fundamentals out/short-fundamentals.mp4 && remotion render Short-Macro out/short-macro.mp4 && remotion render Short-Consensus out/short-consensus.mp4",
     "still": "remotion still TheSignal",
-    "gen:score": "node scripts/gen-score.ts"
+    "gen:score": "node scripts/gen-score.ts",
+    "gen:score:shorts": "node scripts/gen-score-shorts.ts"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
