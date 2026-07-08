@@ -24,6 +24,10 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 - `lib/run-manager.ts` single-active-run lock; `useRunStream` event-sourced reducer; `app/api/runs/*` POST
   (202/400/401/409/503 + `code`), snapshot GET, SSE; `app/lab` token-gated public focus console
 - `components/`: lens charts ALL null-safe (old rows render unchanged; error cells chartless); `HeroConfluence` WebGL (`?heroT=<s>` freeze)
+- Brand: `npm run gen:logo` regenerates `public/brand/*` + `app/{icon,apple-icon}.png` from `marketing/logo-source.png`
+  (favicons = black mark on light badge; `components/logo.tsx` + `.mark-glow` ink rim — never gold — carries it on
+  nav/footer/hero/404/admin); `app/opengraph-image.png` re-shoot = headless-Edge (`--headless=new`) over scratch HTML
+  with the vendored woff2 (satori/sharp can't render them); `metadataBase` ← `MAG8_SITE_URL`
 
 ## Invariants — do not break
 1. SSE plumbing: `next.config.ts` keeps `compress:false` (gzip would buffer SSE) + `serverExternalPackages`
@@ -103,6 +107,12 @@ two count=8 attempts died at the 5-hour plan limit (resets 9:30pm America/Denver
 messaging worked as designed); post-reset count=8 full run complete 2026-07-07 ($17.87, 13 min — VRT #1 at 49.1,
 zero confluence, 3 caution / 5 fail gates). 2026-07-07: all-time boards shipped on `/rankings` (canonical vs lab;
 verified via scratch-DB probe + real-DB readout + leak probe + 375px iframe probe scrollWidth=365/offenders=0);
-fonts vendored the same day after the DNS break killed builds. Open: (1) email capture stores but nothing sends;
+fonts vendored the same day after the DNS break killed builds; brand mark (black four-blade X) shipped across all
+public surfaces + favicon/manifest/OG the same evening (leak probe 0-hit, tab-scale sim clean); launch film shipped
+the same night — `marketing/video/` (standalone Remotion project, NOT part of the app) renders
+`marketing/video-prompts.md` natively → `out/the-signal.mp4` (113s 1080p30, real site shots in `public/shots/`
+reshoot-after-UI-changes, procedural score off `src/timeline.ts`, film-source leak grep 0-hit; Remotion needs
+system Chrome + `chrome-for-testing` mode + rendererPort≠3000 — Edge headless is hollow on this box, and the
+headless-shell download lives on blackholed storage.googleapis). Open: (1) email capture stores but nothing sends;
 (2) deploy target undecided — needs one long-lived instance (SSE bus + SQLite; Postgres port = rewrite `lib/db.ts` only).
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

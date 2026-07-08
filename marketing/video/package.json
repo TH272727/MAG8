@@ -1,0 +1,26 @@
+{
+  "name": "mag8-signal-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MAG8 — 'The Signal' launch film, rendered programmatically with Remotion.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render TheSignal out/the-signal.mp4",
+    "still": "remotion still TheSignal",
+    "gen:score": "node scripts/gen-score.ts"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/fonts": "^4.0.0",
+    "@remotion/noise": "^4.0.0",
+    "@remotion/paths": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
