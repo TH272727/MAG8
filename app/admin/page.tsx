@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { adminLogout } from "@/app/actions";
 import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import LoginForm from "@/components/admin/LoginForm";
+import LogoMark from "@/components/logo";
 import RunHistoryTable from "@/components/admin/RunHistoryTable";
 import { ADMIN_COOKIE, adminConfigured, tokenMatches } from "@/lib/auth";
 import { CONFIG, estimateRun } from "@/lib/config";
@@ -19,6 +20,7 @@ export default async function AdminPage() {
   if (!authed) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <LogoMark size={32} className="mb-5" />
         <p className="eyebrow">The desk</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Admin</h1>
         <p className="mt-3 max-w-md text-sm text-muted">

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
@@ -25,13 +25,31 @@ const jetbrainsMono = localFont({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "Four independent research lenses hunt the next generation of mega-cap stocks. When independent methods agree, that agreement is the signal.";
+
 export const metadata: Metadata = {
+  // Until a deploy domain exists, MAG8_SITE_URL (or localhost) anchors og/twitter URLs.
+  metadataBase: new URL(process.env.MAG8_SITE_URL ?? "http://localhost:3000"),
   title: {
     default: "Mag8 — the next trillion-dollar leaderboard",
     template: "%s · Mag8",
   },
-  description:
-    "Four independent research lenses hunt the next generation of mega-cap stocks. When independent methods agree, that agreement is the signal.",
+  description: DESCRIPTION,
+  applicationName: "Mag8",
+  openGraph: {
+    siteName: "Mag8",
+    type: "website",
+    title: "Mag8 — the next trillion-dollar leaderboard",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0d12",
 };
 
 export default function RootLayout({

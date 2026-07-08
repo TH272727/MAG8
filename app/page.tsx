@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HeroConfluence from "@/components/confluence/HeroConfluence";
 import EmailCapture from "@/components/landing/EmailCapture";
+import LogoMark from "@/components/logo";
 import { getActiveRun, latestCanonicalRun } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { sanitizeRankedStock } from "@/lib/public-view";
@@ -37,6 +38,7 @@ export default function HomePage() {
       {/* ---- Hero ---- */}
       <section className="hero-field relative overflow-hidden border-b border-hairline">
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-16 sm:px-6 sm:pt-20">
+          <LogoMark size={44} className="mb-6" />
           <p className="eyebrow">Four-lens research desk</p>
           <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
             Four lenses hunt the next trillion-dollar stocks.

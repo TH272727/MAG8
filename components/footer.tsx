@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LogoMark from "@/components/logo";
 
 /** §12 disclaimer — present in the footer of every page. */
 export default function Footer() {
@@ -18,8 +19,11 @@ export default function Footer() {
           <Link href="/methodology" className="text-[13px] text-muted underline underline-offset-2 hover:text-ink">
             How scoring works
           </Link>
-          <span className="font-mono text-[11px] tracking-[0.1em] text-dim">
-            MAG8 · FOUR LENSES · ONE SIGNAL
+          <span className="flex items-center gap-2">
+            <LogoMark size={14} />
+            <span className="font-mono text-[11px] tracking-[0.1em] text-dim">
+              MAG8 · FOUR LENSES · ONE SIGNAL
+            </span>
           </span>
         </div>
       </div>

@@ -82,6 +82,14 @@
 }
 
 @layer components {
+  /* Brand mark glow — the logo art is near-black, so on dark surfaces a faint
+   * ink-toned rim lifts the silhouette off the void. Never gold (reserved). */
+  .mark-glow {
+    filter: drop-shadow(0 0 1px rgba(231, 234, 238, 0.62))
+      drop-shadow(0 0 4px rgba(231, 234, 238, 0.26))
+      drop-shadow(0 0 12px rgba(231, 234, 238, 0.1));
+  }
+
   /* Silkscreen label — the mono eyebrow stamped on every instrument panel. */
   .eyebrow {
     font-family: var(--font-mono);
