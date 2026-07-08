@@ -6,6 +6,13 @@ import {loadAllFonts} from './lib/fonts';
 import {SHORT_IDS, VH, VW, shortScenes, shortTotal} from './shorts/timeline';
 import type {ShortId} from './shorts/timeline';
 import {ShortCtx} from './shorts/vlib';
+import {FUN_IDS, funScenes, funTotal} from './fun/timeline';
+import type {FunId} from './fun/timeline';
+
+import {E1_Ask, E2_Shake, E3_Toys, E4_Desk, E5_End} from './fun/scenes/eightball';
+import {G1_Chat, G2_Cut, G3_Line, G4_Desk, G5_End} from './fun/scenes/groupchat';
+import {B1_Queue, B2_Checks, B3_Line, B4_Board, B5_End} from './fun/scenes/gate';
+import {R1_Swipe1, R2_Swipe2, R3_Keeper, R4_Desk, R5_End} from './fun/scenes/redflags';
 
 import {V01_Hook} from './shorts/scenes/V01_Hook';
 import {V02_Intro} from './shorts/scenes/V02_Intro';
@@ -160,6 +167,56 @@ const SHORT_COMPS = SHORT_IDS.map((short) => ({
   Comp: makeShort(short),
 }));
 
+/* --------------------------- the fun campaign --------------------------- */
+
+const FUN_REGISTRY: Record<string, React.FC> = {
+  E1_Ask,
+  E2_Shake,
+  E3_Toys,
+  E4_Desk,
+  E5_End,
+  G1_Chat,
+  G2_Cut,
+  G3_Line,
+  G4_Desk,
+  G5_End,
+  B1_Queue,
+  B2_Checks,
+  B3_Line,
+  B4_Board,
+  B5_End,
+  R1_Swipe1,
+  R2_Swipe2,
+  R3_Keeper,
+  R4_Desk,
+  R5_End,
+};
+
+const makeFun = (id: FunId): React.FC => {
+  const TheFun: React.FC = () => (
+    <WithFonts>
+      <Series>
+        {funScenes(id).map((s) => {
+          const Scene = FUN_REGISTRY[s.id];
+          return (
+            <Series.Sequence key={s.id} durationInFrames={s.frames} name={s.id}>
+              <Scene />
+            </Series.Sequence>
+          );
+        })}
+      </Series>
+      <Audio src={staticFile(`audio/score-fun-${id}.wav`)} />
+    </WithFonts>
+  );
+  return TheFun;
+};
+
+const FUN_COMPS = FUN_IDS.map((id) => ({
+  id,
+  compId: `Fun-${id[0].toUpperCase()}${id.slice(1)}`,
+  Comp: makeFun(id),
+}));
+
 export const RemotionRoot: React.FC = () => (
   <>
     <Composition
@@ -176,6 +233,17 @@ export const RemotionRoot: React.FC = () => (
         id={id}
         component={Comp}
         durationInFrames={shortTotal(short)}
+        fps={FPS}
+        width={VW}
+        height={VH}
+      />
+    ))}
+    {FUN_COMPS.map(({id, compId, Comp}) => (
+      <Composition
+        key={compId}
+        id={compId}
+        component={Comp}
+        durationInFrames={funTotal(id)}
         fps={FPS}
         width={VW}
         height={VH}

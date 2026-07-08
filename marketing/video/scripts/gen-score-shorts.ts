@@ -128,6 +128,35 @@ const createTrack = (totalFrames: number) => {
     }
   };
 
+  /** Synth crowd ("walla") — voice-ish chirp clusters, crescendo + shouts. */
+  const walla = (t0: number, dur: number, peak: number) => {
+    const voices = Math.floor(dur * 24);
+    for (let i = 0; i < voices; i++) {
+      const u = Math.pow(rnd(), 0.6);
+      const tv = t0 + u * dur * 0.92;
+      const g = peak * (0.22 + 0.78 * u);
+      const f0 = 150 + rnd() * 210;
+      const pan = rnd() * 1.6 - 0.8;
+      let ts = tv;
+      const syll = 2 + Math.floor(rnd() * 3);
+      for (let s = 0; s < syll; s++) {
+        const d = 0.05 + rnd() * 0.09;
+        const drift = (rnd() - 0.5) * 0.5;
+        tone(ts, d, f0 * (1 + (rnd() - 0.5) * 0.24), g * 0.5, {a: 0.012, curve: 1.6}, pan, drift);
+        tone(ts, d, f0 * (3 + rnd() * 2.5), g * 0.3, {a: 0.012, curve: 2}, pan, drift);
+        tone(ts, d * 0.8, f0 * (6 + rnd() * 4), g * 0.12, {a: 0.008, curve: 2.4}, pan, drift);
+        ts += d * (0.8 + rnd() * 0.5);
+      }
+    }
+    for (let k = 0; k < Math.max(2, Math.floor(dur * 1.6)); k++) {
+      const tv = t0 + (0.35 + 0.62 * rnd()) * dur;
+      const f0 = 220 + rnd() * 260;
+      const pan = rnd() * 1.4 - 0.7;
+      tone(tv, 0.22 + rnd() * 0.18, f0, peak * 0.8, {a: 0.02, curve: 1.4}, pan, 0.35 + rnd() * 0.4);
+      tone(tv, 0.2, f0 * 2.8, peak * 0.32, {a: 0.02, curve: 2}, pan, 0.3);
+    }
+  };
+
   const finalize = (outPath: string) => {
     const fadeIn = Math.floor(0.35 * SR);
     const fadeOutStart = Math.floor((totalFrames / FPS - 1.1) * SR);
@@ -166,7 +195,7 @@ const createTrack = (totalFrames: number) => {
     return {mb: bytes.length / 1e6, dur: DUR, norm};
   };
 
-  return {tone, kick, tick, pop, impact, riser, pad, finalize, rnd};
+  return {tone, kick, tick, pop, impact, riser, pad, walla, finalize, rnd};
 };
 
 const A2 = 110, C3 = 130.81, D3 = 146.83, E3 = 164.81, G3 = 196, A3 = 220,
@@ -184,12 +213,17 @@ for (const short of SHORT_IDS as ShortId[]) {
   const sceneDur = (sceneId: string) => shortSceneFrames(short, sceneId) / FPS;
 
   /* ------------------------------ spine open ------------------------------ */
-  // V01 — room tone, hype pops piling up, clatter, thud, quiet under the thesis
-  pad(f2t('V01_Hook'), 5.5, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 1.6});
-  for (let i = 0; i < 14; i++) pop(f2t('V01_Hook', 8 + i * 4.2), 0.04 + i * 0.003);
-  for (let i = 0; i < 10; i++) tick(f2t('V01_Hook', 76 + i * 2.8), 0.02, 2600, trk.rnd() - 0.5);
-  kick(f2t('V01_Hook', 98), 0.22, 70, 40, 0.4);
-  pad(f2t('V01_Hook', 112), 2.6, [A2, E3], 0.045, {a: 1.0});
+  // V01 — the question POPS huge and holds; then the screaming flood, the
+  // clatter into the can, the thud, quiet under the thesis
+  pad(f2t('V01_Hook'), 7.5, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 1.6});
+  trk.riser(f2t('V01_Hook', 8), 1.4, 0.04);
+  kick(f2t('V01_Hook', 8), 0.2, 92, 40, 0.42); // the pop lands
+  tone(f2t('V01_Hook', 90), 0.55, 950, 0.026, {a: 0.04, curve: 1.8}, 0, -0.62); // shrink whoosh
+  for (let i = 0; i < 18; i++) pop(f2t('V01_Hook', 128 + i * 3.6), 0.036 + i * 0.0026);
+  trk.walla(f2t('V01_Hook', 128), 2.5, 0.05);
+  for (let i = 0; i < 10; i++) tick(f2t('V01_Hook', 196 + i * 2.8), 0.02, 2600, trk.rnd() - 0.5);
+  kick(f2t('V01_Hook', 218), 0.22, 70, 40, 0.4);
+  pad(f2t('V01_Hook', 232), 2.6, [A2, E3], 0.045, {a: 1.0});
 
   // V02 — warm swell landing as MAG8 racks in
   pad(f2t('V02_Intro', 8), 4.4, [A2, E3, B3, C4], 0.085, {a: 1.3, curve: 1.1});

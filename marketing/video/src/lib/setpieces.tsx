@@ -1,10 +1,53 @@
 import React from 'react';
 import {C, F} from '../theme';
-import {TypeOn} from './ui';
-import {blink, lerp} from './anim';
+import {Kinetic, TypeOn} from './ui';
+import {blink, easeInOut, lerp} from './anim';
 import {useCurrentFrame} from 'remotion';
 
 export const QUERY = 'the next trillion-dollar stock?';
+
+/**
+ * The oversized opening question: words pop in huge, the block looms while
+ * the viewer reads, then it shrinks down and hands off to the search pill
+ * (crossfade under motion+blur — the pill's `done` text takes over).
+ * Frame keys are scene-local so master and portrait pace it independently.
+ */
+export const BigQuestion: React.FC<{
+  lines: string[]; // QUERY re-broken for this stage
+  size: number;
+  popAt?: number;
+  growOver: [number, number]; // slow loom while it holds
+  shrinkOver: [number, number]; // collapse toward the pill text
+  target: {x: number; y: number; scale: number}; // landing offset + end scale
+  fadeOver: [number, number]; // crossfade out while the pill fades in
+  accents?: Record<number, string>;
+}> = ({lines, size, popAt = 6, growOver, shrinkOver, target, fadeOver, accents}) => {
+  const frame = useCurrentFrame();
+  const grow = lerp(frame, growOver, [1, 1.045]);
+  const t = lerp(frame, shrinkOver, [0, 1], easeInOut);
+  const scale = grow * (1 - t) + target.scale * t;
+  const op = lerp(frame, fadeOver, [1, 0]);
+  if (op <= 0) return null;
+  return (
+    <div
+      style={{
+        transform: `translate(${target.x * t}px, ${target.y * t}px) scale(${scale})`,
+        filter: t > 0 ? `blur(${t * 7}px)` : undefined,
+        opacity: op,
+      }}
+    >
+      <Kinetic
+        text={lines.join('\n')}
+        delay={popAt}
+        size={size}
+        weight={700}
+        stagger={4}
+        lineHeight={1.08}
+        accents={accents}
+      />
+    </div>
+  );
+};
 
 /**
  * The oversized pill search bar. `typeDelay` starts the typewriter; pass
@@ -115,6 +158,15 @@ export const BUBBLES: BubbleSpec[] = [
   {text: 'moon math', x: 1450, y: 760, rot: 6, size: 36, order: 15},
   {text: 'up only', x: 480, y: 770, rot: -5, size: 40, order: 16},
   {text: 'diamond hands', x: 985, y: 540, rot: 2.5, size: 42, order: 17},
+  // the screaming wave — conflicting voices shouting past each other
+  {text: 'SELL EVERYTHING', x: 430, y: 420, rot: -5, size: 40, order: 18},
+  {text: "it's over", x: 1180, y: 330, rot: 4, size: 36, order: 19},
+  {text: 'PUMP IT', x: 1580, y: 470, rot: -6, size: 44, order: 20},
+  {text: '10x by Friday', x: 250, y: 940, rot: 5, size: 36, order: 21},
+  {text: "you're all wrong", x: 1520, y: 1000, rot: -4, size: 36, order: 22},
+  {text: 'obvious scam', x: 830, y: 950, rot: 6, size: 38, order: 23},
+  {text: 'GET IN NOW', x: 1090, y: 665, rot: -3, size: 44, order: 24},
+  {text: 'told you so', x: 380, y: 235, rot: 7, size: 34, order: 25},
 ];
 
 export const Bubble: React.FC<{

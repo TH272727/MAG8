@@ -12,8 +12,10 @@ export type SceneDef = {
  * lines can actually be read (viewer feedback). Scene-internal beats keep
  * their absolute frames; only the tail holds grew — except S03/S07/S08/S09/
  * S17/S21, whose exit keyframes moved out by the same amount in their files. */
+/* 2026-07-08 intro pass: S01 carries the huge question (pop → 3.2s hold →
+ * shrink into the pill), so it grew +42f; S02 keys retuned in-scene. */
 export const SCENES: SceneDef[] = [
-  {id: 'S01_Search', frames: 150},
+  {id: 'S01_Search', frames: 192},
   {id: 'S02_Noise', frames: 150},
   {id: 'S03_Trash', frames: 180},
   {id: 'S04_Wordmark', frames: 165},

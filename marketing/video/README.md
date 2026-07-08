@@ -1,11 +1,17 @@
-# The Signal — MAG8 launch film + lens shorts
+# The Signal — MAG8 launch film + lens shorts + fun campaign
 
-A ~2:01 motion-design launch film for MAG8 plus three vertical short-form
-episodes, implemented programmatically with [Remotion](https://remotion.dev).
-The film executes the 21-scene storyboard in `marketing/video-prompts.md`
-("The Signal", aside-style) natively — exact design tokens from
-`app/globals.css`, the vendored brand fonts, the real four-blade mark, and
-real product screenshots — instead of gen-AI clips.
+A ~2:03 motion-design launch film for MAG8, three vertical lens episodes, and
+four fun meme-format campaign shorts, implemented programmatically with
+[Remotion](https://remotion.dev). The film executes the 21-scene storyboard in
+`marketing/video-prompts.md` ("The Signal", aside-style) natively — exact
+design tokens from `app/globals.css`, the vendored brand fonts, the real
+four-blade mark, and real product screenshots — instead of gen-AI clips.
+
+**Intro (2026-07-08 rework):** every film opens on the question popping HUGE
+(two lines @150px master, three lines @126px portrait, violet "stock?"),
+holding ~2.4–3.2s for read time, shrinking down into the search pill, and
+only THEN the screaming flood — conflicting hype/panic bubbles, screen shake,
+and a synthesized crowd ("walla") crescendo in the score.
 
 ## Output
 
@@ -30,14 +36,39 @@ Every short covers the whole pipeline (hook → wordmark → scout → blind
 lanes → its lens deep-dive → fusion → verdict board → real UI receipts →
 endcard); the middle chapter is what changes.
 
+### Fun campaign (meme-format, ~27–30s each, 1080×1920)
+
+Attention-catchers that hand off to the brand: a joke format up front, the
+deadpan instrument voice for the turn, the standard endcard close (gag chip +
+"RESEARCH, NOT INVESTMENT ADVICE"). Source in `src/fun/` (own timeline +
+`scripts/gen-score-fun.ts`, same single-source timing contract).
+
+- `out/fun-eightball.mp4` — **"Not a magic 8-ball."** The name pun: shake the
+  toy, get "REPLY HAZY" three times, trash it, meet the three-lens desk
+  (chips stamp ▲▲▲ → gold 90.3 + CONFLUENCE).
+- `out/fun-groupchat.mp4` — **"The group chat found a stock."** Eleven
+  escalating messages ("my uber driver owns it" → "DOESN'T MATTER"), hard cut
+  to black: "Your group chat has eight opinions." → "Enthusiasm isn't
+  evidence." → the desk answers.
+- `out/fun-gate.mp4` — **"The Gate."** Velvet rope + automatic vetoes: five
+  redacted tickers approach, scanner sweeps, two pass, three get stamped
+  (F-SCORE 2/9 · DISTRESS ZONE · SERIAL DILUTION). "The gate doesn't argue.
+  It checks." Passing only earns a scoring (73.9 / 69.5 rows).
+- `out/fun-redflags.mp4` — **"Red flags."** Dating-app format for value
+  traps: two horror profiles swiped left (NOPE), the boring-good one gets
+  "WORTH A LOOK" — then "One good profile isn't a verdict." and an honest
+  mixed read (▲ ─ ▲, 73.9, no confluence).
+
 ## Commands
 
 ```bash
 npm install
 npm run gen:score          # regenerate public/audio/score.wav from src/timeline.ts
 npm run gen:score:shorts   # regenerate public/audio/score-{fundamentals,macro,consensus}.wav
+npm run gen:score:fun      # regenerate public/audio/score-fun-{eightball,groupchat,gate,redflags}.wav
 npm run render             # render out/the-signal.mp4
-npm run render:shorts      # render all three vertical shorts
+npm run render:shorts      # render all three vertical lens shorts
+npm run render:fun         # render all four fun campaign shorts
 npm run studio             # open Remotion Studio (port 3334) to scrub/iterate
 npx remotion still Short-Macro out/f.png --frame=1200   # one frame of a short
 ```

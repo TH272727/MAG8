@@ -14,9 +14,11 @@ export type ShortId = 'fundamentals' | 'macro' | 'consensus';
 export const VW = 1080;
 export const VH = 1920;
 
-/** Shared opening spine: the problem, the name, the system. */
+/** Shared opening spine: the problem, the name, the system.
+ * 2026-07-08 intro pass: V01 grew +120f — the question now pops huge, holds
+ * ~2.4s, shrinks into the pill, and THEN the screaming flood starts. */
 const SPINE_OPEN: SceneDef[] = [
-  {id: 'V01_Hook', frames: 180},
+  {id: 'V01_Hook', frames: 300},
   {id: 'V02_Intro', frames: 150},
   {id: 'V03_Scout', frames: 150},
   {id: 'V04_Lanes', frames: 150},

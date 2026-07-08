@@ -7,9 +7,11 @@
     "studio": "remotion studio",
     "render": "remotion render TheSignal out/the-signal.mp4",
     "render:shorts": "remotion render Short-Fundamentals out/short-fundamentals.mp4 && remotion render Short-Macro out/short-macro.mp4 && remotion render Short-Consensus out/short-consensus.mp4",
+    "render:fun": "remotion render Fun-Eightball out/fun-eightball.mp4 && remotion render Fun-Groupchat out/fun-groupchat.mp4 && remotion render Fun-Gate out/fun-gate.mp4 && remotion render Fun-Redflags out/fun-redflags.mp4",
     "still": "remotion still TheSignal",
     "gen:score": "node scripts/gen-score.ts",
-    "gen:score:shorts": "node scripts/gen-score-shorts.ts"
+    "gen:score:shorts": "node scripts/gen-score-shorts.ts",
+    "gen:score:fun": "node scripts/gen-score-fun.ts"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",

@@ -117,7 +117,14 @@ system Chrome + `chrome-for-testing` mode + rendererPort≠3000 — Edge headles
 headless-shell download lives on blackholed storage.googleapis). 2026-07-08: three vertical lens shorts —
 `out/short-{fundamentals,macro,consensus}.mp4` (1080×1920@30, ~73/78/73s; shared spine + per-lens deep chapter,
 GT short = full player-map/M×E×C/21-path-tree/horizons/falsifier; `src/shorts/` timelines drive film AND
-`gen-score-shorts.ts`; stills-reviewed, leak grep 0-hit; HANDOFF-2026-07-08-lens-shorts.md).
+`gen-score-shorts.ts`; stills-reviewed, leak grep 0-hit; HANDOFF-2026-07-08-lens-shorts.md). 2026-07-08 evening:
+intro rework on all 4 films (the question now pops HUGE — 150px/126px, violet "stock?" — holds ~3s, shrinks into
+the pill via `BigQuestion` in `lib/setpieces.tsx`, THEN the flood: +8/+4 conflicting scream-bubbles, shake, and a
+`walla()` synth-crowd crescendo in all score scripts; S01 150→192f total 3684f, V01 180→300f) + FOUR fun
+meme-format shorts `out/fun-{eightball,groupchat,gate,redflags}.mp4` (~27–30s 1080×1920: magic-8-ball name pun,
+group-chat meltdown, bouncer/auto-veto gate, dating-app value traps; `src/fun/` timeline+flib(DeskStamps/
+FunEndcard)+scenes + `gen-score-fun.ts`, `render:fun`/`gen:score:fun`; stills-reviewed, leak grep 0-hit;
+HANDOFF-2026-07-08-creative-shorts.md; speedrun + tier-list scoped as next episodes).
 Open: (1) email capture stores but nothing sends;
 (2) deploy target undecided — needs one long-lived instance (SSE bus + SQLite; Postgres port = rewrite `lib/db.ts` only).
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

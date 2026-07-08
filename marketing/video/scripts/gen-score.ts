@@ -119,6 +119,39 @@ const riser = (tEnd: number, dur = 2.4, amp = 0.05) => {
   }
 };
 
+/**
+ * Synth crowd ("walla") — overlapping voice-ish chirp clusters (fundamental +
+ * formant partials, random pitch contours), density and level ramping up, a
+ * few shouts cutting through. Reads as a crowd screaming past itself.
+ */
+const walla = (t0: number, dur: number, peak: number) => {
+  const voices = Math.floor(dur * 24);
+  for (let i = 0; i < voices; i++) {
+    const u = Math.pow(rnd(), 0.6); // bias late — crescendo
+    const tv = t0 + u * dur * 0.92;
+    const g = peak * (0.22 + 0.78 * u);
+    const f0 = 150 + rnd() * 210;
+    const pan = rnd() * 1.6 - 0.8;
+    let ts = tv;
+    const syll = 2 + Math.floor(rnd() * 3);
+    for (let s = 0; s < syll; s++) {
+      const d = 0.05 + rnd() * 0.09;
+      const drift = (rnd() - 0.5) * 0.5;
+      tone(ts, d, f0 * (1 + (rnd() - 0.5) * 0.24), g * 0.5, {a: 0.012, curve: 1.6}, pan, drift);
+      tone(ts, d, f0 * (3 + rnd() * 2.5), g * 0.3, {a: 0.012, curve: 2}, pan, drift);
+      tone(ts, d * 0.8, f0 * (6 + rnd() * 4), g * 0.12, {a: 0.008, curve: 2.4}, pan, drift);
+      ts += d * (0.8 + rnd() * 0.5);
+    }
+  }
+  for (let k = 0; k < Math.max(2, Math.floor(dur * 1.6)); k++) {
+    const tv = t0 + (0.35 + 0.62 * rnd()) * dur;
+    const f0 = 220 + rnd() * 260;
+    const pan = rnd() * 1.4 - 0.7;
+    tone(tv, 0.22 + rnd() * 0.18, f0, peak * 0.8, {a: 0.02, curve: 1.4}, pan, 0.35 + rnd() * 0.4);
+    tone(tv, 0.2, f0 * 2.8, peak * 0.32, {a: 0.02, curve: 2}, pan, 0.3);
+  }
+};
+
 /** Sustained pad chord: detuned partials, wide. */
 const pad = (t0: number, dur: number, freqs: number[], amp: number, env: Env = {}) => {
   for (const f of freqs) {
@@ -133,11 +166,16 @@ const A2 = 110, C3 = 130.81, D3 = 146.83, E3 = 164.81, G3 = 196, A3 = 220,
 
 /* ============================ arrangement ============================ */
 
-// Chapter 1 — room tone + noise
-pad(f2t('S01_Search'), 16, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 3});
-// typing implied; first pulse only in S2 as pops crowd in
-for (let i = 0; i < 12; i++) pop(f2t('S02_Noise', 12 + i * 8), 0.045 + i * 0.0035);
-for (let i = 0; i < 8; i++) pop(f2t('S02_Noise', 100 + i * 5.5), 0.028);
+// Chapter 1 — the question POPS huge, holds, shrinks; then the crowd screams
+pad(f2t('S01_Search'), 17, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 3});
+riser(f2t('S01_Search', 8), 1.6, 0.045);
+kick(f2t('S01_Search', 8), 0.2, 92, 40, 0.42); // the pop lands
+for (let k = 0; k < 6; k++) tick(f2t('S01_Search', 8) + rnd() * 0.12, 0.02, 2400 + rnd() * 1800, rnd() - 0.5);
+tone(f2t('S01_Search', 118), 0.6, 950, 0.028, {a: 0.04, curve: 1.8}, 0, -0.62); // shrink whoosh
+// the flood: notification pops crowd in over a rising synth crowd
+for (let i = 0; i < 16; i++) pop(f2t('S02_Noise', 8 + i * 6), 0.04 + i * 0.003);
+for (let i = 0; i < 8; i++) pop(f2t('S02_Noise', 108 + i * 5), 0.03);
+walla(f2t('S02_Noise', 24), 4.2, 0.055);
 // bubbles clatter into the can — muffled thud when the can swallows
 for (let i = 0; i < 12; i++) tick(f2t('S03_Trash', 18 + i * 3.4), 0.02, 2600, rnd() - 0.5);
 kick(f2t('S03_Trash', 60), 0.22, 70, 40, 0.4);
