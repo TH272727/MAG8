@@ -751,3 +751,14 @@ export function insertSignup(email: string): boolean {
     .run(email.trim());
   return info.changes > 0;
 }
+
+export function countSignups(): number {
+  const row = getDb().prepare(`SELECT COUNT(*) AS n FROM email_signups`).get() as { n: number };
+  return row.n;
+}
+
+export function listSignups(): { email: string; createdAt: string }[] {
+  return getDb()
+    .prepare(`SELECT email, created_at AS createdAt FROM email_signups ORDER BY created_at DESC, email`)
+    .all() as { email: string; createdAt: string }[];
+}

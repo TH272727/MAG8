@@ -1,4 +1,4 @@
-# Mag8 — agent notes, state 2026-07-07. README = user-facing; this file = authoritative. One commit per phase (`git log`).
+# Mag8 — agent notes, state 2026-07-09. README = user-facing; this file = authoritative. One commit per phase (`git log`).
 Three-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S1 `new-gen-stock`
 discovers N candidates (4–12, default 8; prompt carries the date, recent-coverage anti-repetition, optional
 focus modifier) → S2 `stock-scanner`/`gt-predictor`/`institutional-forecast` per candidate, independently
@@ -67,13 +67,16 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
     2026-07). Flags join compiler Known-gaps AND report `gapsNoted` deterministically, PUBLIC lens labels only.
     Stance (also on /methodology): sampling can't be seeded; determinism = TS re-verify + weekly cache + checks.
 12. LAUNCH CURTAIN: `launchMode()` (`MAG8_SITE_MODE=launch|full`; prod defaults launch, dev full) 404s every
-    page/API except `/` ALONE (+ the waitlist action) — guard sits at the TOP of each hidden page (incl.
-    /methodology), all 3 run API routes (admin token does NOT bypass; flip to full to operate), and every
-    link branch (nav + footer carry no page links; 404 → Home only). The launch homepage is DB-FREE and
-    link-free: static MOCKUP LEADERBOARD (bold title, $-redact ticker bars, fictional scores) replaces the
+    page/API except `/`, the waitlist action, and token-gated `GET /api/waitlist` — the ONE launch-exempt API
+    (owner signup readout: `x-admin-token` header OR `?token=` for phone browsers; missing/wrong token → 404
+    NOT 401 so it stays invisible; no ADMIN_TOKEN in prod = locked closed). Guard sits at the TOP of each
+    hidden page (incl. /methodology) and all 3 run API routes (admin token does NOT bypass; flip to full to
+    operate), and every link branch (nav + footer carry no page links; 404 → Home only). Launch homepage is
+    DB-FREE and link-free: static MOCKUP LEADERBOARD ($-redact ticker bars, fictional scores) replaces the
     real top-3 — real tickers/dates/links render only in full mode. Any NEW public page or API must add the
-    guard. Build and run with the SAME mode (`not-found.tsx` bakes its variant at build; everything else
-    checks per request). DEPLOY.md = runbook (host: Railway — 1 replica, sleeping off, no mid-run pushes).
+    guard (launch-exempt additions are owner-call-only). Build and run with the SAME mode (`not-found.tsx`
+    bakes its variant at build; the rest checks per request). DEPLOY.md = runbook (Railway: 1 replica,
+    sleeping off, no mid-run pushes).
 
 ## Windows/env quirks (each cost real time)
 - Headless Edge renders `--window-size=375` at ~476px — use the iframe probe: temp page `app/probe375/`
@@ -91,6 +94,7 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   2026-07-07) → fonts are VENDORED `app/fonts/*.woff2` via next/font/local (OFL latin subsets, weight ranges
   pinned in `app/layout.tsx`) so `next build` needs no font network. Fetching from google infra: curl needs
   `--ssl-revoke-best-effort` (schannel CRYPT_E_REVOCATION_OFFLINE) + `--resolve <host>:443:<v4-IP>`.
+- Remotion (`marketing/video/`): system Chrome + `chrome-for-testing` + rendererPort≠3000 (Edge headless renders hollow here; headless-shell download lives on blackholed storage.googleapis).
 - SDK transcripts `~/.claude/projects/C--Users-nocap-Mag8/<sessionId>.jsonl`: replaying final text through extract+zod
   reproduces cell outcomes EXACTLY; corrective retries append to the same file. SQLite is WAL — read-only side
   connections are safe mid-run, but NEVER import `lib/db.ts` from a side process during a live run (boot reconciliation
@@ -110,105 +114,36 @@ ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any publ
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
 
-## State & open items
-W28 went live clean: 2026-07-06 count=4 focus run (defense/dual-use autonomy) complete ($8.70 notional, 10 min);
-two count=8 attempts died at the 5-hour plan limit (resets 9:30pm America/Denver; fast-abort + week-cache
-messaging worked as designed); post-reset count=8 full run complete 2026-07-07 ($17.87, 13 min — VRT #1 at 49.1,
-zero confluence, 3 caution / 5 fail gates). 2026-07-07: all-time boards shipped on `/rankings` (canonical vs lab;
-verified via scratch-DB probe + real-DB readout + leak probe + 375px iframe probe scrollWidth=365/offenders=0);
-fonts vendored the same day after the DNS break killed builds; brand mark (black four-blade X) shipped across all
-public surfaces + favicon/manifest/OG the same evening (leak probe 0-hit, tab-scale sim clean); launch film shipped
-the same night — `marketing/video/` (standalone Remotion project, NOT part of the app; agent process
-rules in `marketing/video/CLAUDE.md`) renders
-`marketing/video-prompts.md` natively → `out/the-signal.mp4` (122s 1080p30 after 2026-07-08 pacing pass — text
-scenes +15–21f, exit keys shifted in S03/S07-09/S17/S21, score regenerated; real site shots in `public/shots/`
-reshoot-after-UI-changes, procedural score off `src/timeline.ts`, film-source leak grep 0-hit; Remotion needs
-system Chrome + `chrome-for-testing` mode + rendererPort≠3000 — Edge headless is hollow on this box, and the
-headless-shell download lives on blackholed storage.googleapis). 2026-07-08: three vertical lens shorts —
-`out/short-{fundamentals,macro,consensus}.mp4` (1080×1920@30, ~73/78/73s; shared spine + per-lens deep chapter,
-GT short = full player-map/M×E×C/21-path-tree/horizons/falsifier; `src/shorts/` timelines drive film AND
-`gen-score-shorts.ts`; stills-reviewed, leak grep 0-hit; HANDOFF-2026-07-08-lens-shorts.md). 2026-07-08 evening:
-intro rework on all 4 films (the question now pops HUGE — 150px/126px, violet "stock?" — holds ~3s, shrinks into
-the pill via `BigQuestion` in `lib/setpieces.tsx`, THEN the flood: +8/+4 conflicting scream-bubbles, shake, and a
-`walla()` synth-crowd crescendo in all score scripts; S01 150→192f total 3684f, V01 180→300f) + FOUR fun
-meme-format shorts `out/fun-{eightball,groupchat,gate,redflags}.mp4` (~27–30s 1080×1920: magic-8-ball name pun,
-group-chat meltdown, bouncer/auto-veto gate, dating-app value traps; `src/fun/` timeline+flib(DeskStamps/
-FunEndcard)+scenes + `gen-score-fun.ts`, `render:fun`/`gen:score:fun`; stills-reviewed, leak grep 0-hit;
-HANDOFF-2026-07-08-creative-shorts.md; speedrun + tier-list scoped as next episodes). 2026-07-08 late: fun-short
-hooks reworked to read "stocks" in second one — real mega-cap cashtags in safe framings only (eightball chip cycles
-$NVDA→$TSLA→$-redact; chat opens "missed $NVDA. missed $TSLA"; gate line 'Everyone in line is "the next NVDA."';
-redflags "STOCK RED FLAGS" + 'CALLS ITSELF "THE NEXT TSLA"'; `Redact cash` $-prefix wherever redacts mean tickers) —
-zero timeline changes, candidates stay redacted, real names NEVER scored/vetoed (handoff §6). Same night:
-graded text-size pass on ALL 8 films (≤32:+6 33-44:+5 45-68:+4 ≥69:0; 241 codemod rewrites + Eyebrow/Chip/Roll
-defaults) + container retunes (S12 dock realign, S13 wire columns, VF2 Roll nowrap, VM4 label anchor, BigQuestion
-targets for 41px pill; handoff §7) — 35-still sweep verified; Kinetic ghost-word fix (invalid negative blur
-sticking in reused video-render DOM — clamp in ui.tsx; encode-frame checks are the only way to catch it).
-2026-07-08 latest: video process hardened — `marketing/video/CLAUDE.md` is now the agent rulebook
-(frame-determinism, encode-path DOM-reuse check, tokens/type-floors/SAFE zones, workflow gates, package
-inventory + deliberate non-adoptions); official `remotion-best-practices` skill installed to `.claude/skills/`
-(`npx skills add remotion-dev/skills`, pipeline skills untouched, `skills-lock.json` at root);
-+`@remotion/{transitions,motion-blur,animation-utils,shapes}@4.0.486` (+bundler/renderer dev);
-`npm run stills -- <Comp> [f1,f2|seq a-b]` bundles once → fresh-DOM stills OR encode-path sequences
-(concurrency 1 — catches ghost-word-class bugs); `npm run check:leak` = self-contained src/ white-label gate
-(54 files, 0-hit); `theme.ts` gained SAFE zones (portrait 150/170/60). Verified: 3 stills + 16-frame seq
-rendered clean, tsc clean.
-2026-07-08 night: fun campaign wave 2 — FOUR new episodes `out/fun-{naturedoc,speedrun,replay,coldcase}.mp4`
-(~30s 1080×1920: Attenborough herd-off-a-cliff (Trail-blurred candle-critter stampede, freeze-frame
-"Magnificent./Devastating."); any% speedrun HUD (7 splits, SKIPPED filings, 0:31.07 PB slam, PORTFOLIO: REKT,
-"CATEGORY: 100%" desk); sports broadcast + 0.25× telestrator instant replay (evolvePath price line, BUY planted
-at the exact apex, scorebug flips MARKET 4); true-crime cold case (manila file, polaroid board + red-string
-evolvePath draw-on, filing twist, the campaign's FIRST FAIL desk ▼─▼ 19.3 + "WOULD HAVE FAILED THE GATE" chip
-via new DeskStamps chip prop)) — taste-weighted per owner (dialogue/format-parody > procedural); only real
-ticker = naturedoc's safe herd line 'chasing "the next $NVDA."'. Waitlist CTA on EVERY endcard: `WaitlistCta`
-(ui.tsx; "Join the email waitlist!", ink+violet, 64px portrait / 56 master, underline sweep + glow pulse) —
-fun endcard scenes 150→168f (all 8), V13 165→183f (shorts totals 2382/2532/2403), S21 unchanged; fun+shorts
-scores regenerated (endcard chime), master WAV untouched. Gates passed: tsc, leak 0-hit (58 files), ~40 stills
-read (fixed: N2 herd density+linear pacing, RP3 banner exit 1300→1740, K3 ink-on-paper redact, CTA 56→64),
-encode-path seqs clean (speedrun slam + coldcase Kinetic). 12-render queue (8 fun + 3 shorts + master; shorts
-+ master pick up the Kinetic ghost-word fix) completed 20:46. HANDOFF-2026-07-08-fun-wave2.md.
-2026-07-08 latest-night: GT lens RENAMED **"Game Theory"** (was Macro Asymmetry; owner call — the two flagship
-engines also felt hidden) + two-engine explainers. Display-only rename: `PUBLIC_LENS_META`/`LENS_META` labels
-(ids/keys/copper/`GT` unchanged — prompts pin future report titles from LENS_META), public-view EXACT_TOKENS
-retro-translate 3 case variants of the old name so cached W28/demo rows render renamed (page grep: 0 residue);
-rubric line, citations group title, compiler naming line (now lists data keys), fixtures gt title + OKLO
-verdictLine, HeroConfluence label. Explainers: home hero DNA line + "two engines" panels (trait/instrument
-chips, flex-wrap) → `/methodology#discovery-dna` + `#game-theory` deep panels (Bessembinder premise + 6-trait
-DNA grid; 6-step GT cell anatomy + Tetlock/Green graded-not-trusted note); `PUBLIC_LENS_META` gained `tagline`
-(dim mono line under LensCard headers). Videos: label swap in vlib/flib/braid/vbraid/S06/S08 (headline "Game
-theory maps the board.")/VM1 (strap "PLAYERS · MOVES · PAYOFFS"); ZERO timeline changes → scores untouched;
-video-prompts.md + READMEs updated. Gates: app tsc 0, seed EXACT, gen:bib no-drift, video tsc + leak 0-hit,
-9 stills + S08 encode seq read clean, site leak probe 0-hit (6 pages + snapshot + SSE), 375 iframe probe
-home+methodology 363/0 (probe deleted). 12-render re-queue running at write time.
-HANDOFF-2026-07-08-gametheory-rename.md.
-2026-07-09: DEPLOY PREP (launch curtain) — `MAG8_SITE_MODE=launch|full` in `lib/config.ts` (prod defaults
-launch): only `/` + `/methodology` respond; rankings/lab/admin/runs/stocks pages + all `/api/runs*` 404
-(guards at top of each; admin token does not bypass — flip to full to operate a deploy); nav/home/404/
-methodology links fold to waitlist + methodology; home preview cards de-link ("full board opens at launch");
-`#waitlist` anchor is the launch primary CTA. Homepage additions (BOTH modes; owner-approved "agents"
-disclosure): hero chips `26 AGENTS PER RUN` / `3 LENSES, FULLY BLIND` / `32 ACADEMIC WORKS CITED` (count
-computed from `CITATION_GROUPS`, no drift) + "the scale is real" para (1 scout + 3 lenses × 8 candidates +
-1 compiler = 26, matching `estimateRun`'s 1+3N+1; links `/methodology#refs-h`). Waitlist E2E-verified against
-a prod build in launch mode via no-JS action POST (new → stored, dupe → idempotent, invalid → rejected; row
-seen in `email_signups`, probe row deleted). Deploy fixes: root tsconfig now EXCLUDES `marketing/` (the video
-subproject's `.ts`-extension imports failed root tsc and would have failed `next build`); `outputFileTracingRoot`
-pinned (stray `~/package-lock.json` mis-rooted tracing); `.env.example` +MAG8_SITE_MODE and Stooq→Yahoo comment
-fix; `DEPLOY.md` = env table + runbook + gate record. Gates: tsc 0, build clean, 10-route launch matrix exact
-(200/200 + eight 404s incl. authorized POST), leak probe 0-hit on both public pages (agents exception noted),
-375 iframe probe on `/` in both modes 365/0 (probe deleted), full-mode spot-check all-200 with links restored.
-Same day, later (owner calls): launch tightened to HOMEPAGE-ONLY — /methodology 404s too; every methodology
-link on `/` gated (hero button dropped, HOW + works-cited links unlinked, engine-panel arrows gone, nav/footer
-bare, 404 → Home only); preview replaced by static MOCKUP LEADERBOARD (bold `eyebrow font-bold text-ink`
-title, $-prefix redact bars for tickers, fictional 88.6/74.2/61.9 + process-copy verdict lines, `MOCKUP_BOARD`
-const, zero DB reads in launch — empty first deploy renders identically; real board/date/links only in full).
-HOST CHOSEN: Railway (owner pick over Fly/Hetzner/Render) — SSE 15-min proxy cap + 5-min idle cap absorbed by
-15s heartbeats + Last-Event-ID replay; keep 1 replica, App Sleeping off, no pushes mid-run (auto-deploy);
-on-server full-mode runs are the board-update path (no fly-sftp equivalent). Re-verified post-tightening:
-tsc 0, build clean, matrix `/` 200 + nine 404s, homepage 0 internal hrefs + 0 real tickers + leak 0-hit,
-full-mode restore exact. GitHub pushed same day (origin TH272727/MAG8): film+app domain commits.
-Open: (1) email capture stores (E2E-verified 2026-07-09) but nothing sends;
-(2) LIVE on Railway free trial since 2026-07-09 ($5 one-time credit, ~$2–4/mo burn → upgrade to Hobby) —
-volume `/data` + `MAG8_DB_PATH` was instructed but is UNVERIFIED: confirm before any push to main
-(auto-deploy restarts the container; un-volumed signups are wiped); `DEPLOY.md` §Railway has the specifics;
-(3) NEXT TASK: token-gated GET `/api/waitlist` (launch-exempt, `?token=` for phone browsers, 404 on bad token,
-SQL added to lib/db.ts) — full spec §6 of `HANDOFF-2026-07-09-railway-launch.md`; prereq: set ADMIN_TOKEN on Railway.
+## State & open items (deep detail: `HANDOFF-*.md`; video rulebook: `marketing/video/CLAUDE.md`)
+W28 live clean: 2026-07-06 count=4 focus run (defense/dual-use autonomy; $8.70 notional, 10 min) + post-reset
+count=8 full run 2026-07-07 ($17.87, 13 min — VRT #1 at 49.1, zero confluence, 3 caution / 5 fail gates); two
+count=8 attempts died at the 5-hour plan limit (resets 9:30pm America/Denver; fast-abort worked as designed).
+2026-07-07: all-time boards on `/rankings` (canonical vs lab); fonts VENDORED after the DNS break; brand mark
+(black four-blade X) across all public surfaces + favicon/manifest/OG.
+Films (07-07→08, `marketing/video/` — standalone Remotion project, NOT part of the app; four handoffs
+HANDOFF-2026-07-08-*.md): master `out/the-signal.mp4` (122s 1080p30; real site shots `public/shots/`
+reshoot-after-UI-changes), three lens shorts `out/short-{fundamentals,macro,consensus}.mp4`, EIGHT fun meme
+shorts `out/fun-{eightball,groupchat,gate,redflags,naturedoc,speedrun,replay,coldcase}.mp4` (~30s 1080×1920) —
+real mega-cap cashtags in safe framings ONLY (candidates stay $-redacted; real names NEVER scored/vetoed);
+WaitlistCta on every endcard; BigQuestion intro + graded type pass on all 8; Kinetic ghost-word clamp in ui.tsx
+(DOM-reuse bugs only surface in encode-path frames — `npm run stills` seq mode catches them); `npm run
+check:leak` = video white-label gate; remotion-best-practices skill installed (`skills-lock.json` at root).
+2026-07-08: GT lens RENAMED "Game Theory" (display-only: LENS_META/PUBLIC_LENS_META labels + taglines; ids/
+keys/copper/`GT` unchanged; public-view EXACT_TOKENS retro-translates 3 case variants of "Macro Asymmetry" so
+cached rows render renamed) + two-engine explainers: home panels → `/methodology#discovery-dna` + `#game-theory`
+(Bessembinder premise, 6-step GT cell anatomy, Tetlock/Green graded-not-trusted note).
+2026-07-09 DEPLOY (HANDOFF-2026-07-09-railway-launch.md): launch curtain per invariant 12; homepage disclosure
+chips 26 AGENTS PER RUN / 3 LENSES FULLY BLIND / 32 ACADEMIC WORKS CITED (computed from CITATION_GROUPS,
+matches `estimateRun`'s 1+3N+1); waitlist E2E-verified on a prod build (stores; NOTHING SENDS yet); root
+tsconfig EXCLUDES `marketing/` (its .ts-extension imports fail root tsc/next build); `outputFileTracingRoot`
+pinned. LIVE on Railway free trial (owner pick; $5 one-time credit, ~$2–4/mo burn → upgrade to Hobby):
+1 replica, App Sleeping OFF, never push main mid-run (auto-deploy restart interrupts it); SSE proxy caps
+(15 min + 5 idle) absorbed by 15s heartbeats + Last-Event-ID replay; on-server full-mode runs = the
+board-update path. Volume `/data` + `MAG8_DB_PATH` instructed but UNVERIFIED — confirm before ANY push to
+main (a redeploy wipes un-volumed signups). Same day: token-gated `GET /api/waitlist` SHIPPED (launch-exempt
+owner readout per invariant 12; `countSignups()`/`listSignups()` in lib/db.ts; `{count,signups[]}` newest
+first, `?count=1` count-only; verified: launch matrix, both modes, locked-closed no-token prod, JSON leak
+probe 0-hit). Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out;
+(3) confirm the volume; (4) set ADMIN_TOKEN on Railway (Variables — prereq for the endpoint), then phone-check
+`https://<domain>.up.railway.app/api/waitlist?token=<ADMIN_TOKEN>`.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

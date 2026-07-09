@@ -18,8 +18,9 @@ npm start            # NODE_ENV=production → launch mode by default
 
 `MAG8_SITE_MODE=launch|full` (`siteMode()` in `lib/config.ts`).
 
-- **launch** (the production default): **only `/` responds.** `/methodology`,
-  `/rankings`, `/lab`, `/admin`, `/runs/*`, `/stocks/*`, and **all** `/api/runs*` routes
+- **launch** (the production default): **only `/` responds** (plus the token-gated
+  `GET /api/waitlist` — see the waitlist section). `/methodology`, `/rankings`, `/lab`,
+  `/admin`, `/runs/*`, `/stocks/*`, and **all** `/api/runs*` routes
   return 404 — even with a valid admin token. The homepage renders zero outbound links
   (nav and footer carry no page links; the waitlist anchor is the only action), and the
   board preview is a static **MOCKUP LEADERBOARD** — bold title, `$`-redacted ticker
@@ -38,7 +39,7 @@ build time (every other gated surface is checked per request).
 
 | Var | Required | Notes |
 | --- | --- | --- |
-| `ADMIN_TOKEN` | for full-mode ops | Admin desk + `POST /api/runs` auth. Unset in production = desk locked. |
+| `ADMIN_TOKEN` | for `/api/waitlist` + full-mode ops | Admin desk, `POST /api/runs`, and `GET /api/waitlist` auth. Unset in production = all locked (waitlist endpoint always 404s). |
 | `MAG8_SITE_URL` | recommended | Absolute base URL for OG/Twitter metadata (`metadataBase`). |
 | `MAG8_SITE_MODE` | no | See above. |
 | `MAG8_DB_PATH` | no | Default `./db/mag8.db` — point it at the persistent volume. |
@@ -63,10 +64,33 @@ build time (every other gated surface is checked per request).
 - Verified against a production build in launch mode: new address stored, duplicate
   answered idempotently ("Already on the list"), invalid input rejected server-side.
   Works in **both** site modes.
-- Nothing **sends** yet (known open item — capture only). Export addresses:
+- Nothing **sends** yet (known open item — capture only).
+
+### Checking signups: `GET /api/waitlist` (added 2026-07-09)
+
+The one API that stays up behind the launch curtain, so the owner can check from a
+phone browser against the live site:
+
+```
+https://<domain>.up.railway.app/api/waitlist?token=<ADMIN_TOKEN>
+```
+
+- Returns `{ count, signups: [{ email, createdAt }] }`, newest first; `?count=1` for
+  count-only. The `x-admin-token` header (or an unlocked admin cookie) also works —
+  `?token=` exists because phone browsers can't set headers.
+- Missing/wrong token → **404** (not 401): the endpoint is invisible, consistent with
+  the curtain. No `ADMIN_TOKEN` set in production → locked closed (always 404), so
+  **set `ADMIN_TOKEN` on Railway (Variables, long random value) before using it.**
+- Trade-off, accepted: query-string tokens can land in host/proxy logs. Owner-only
+  endpoint reading owner-owned data; rotate `ADMIN_TOKEN` if ever in doubt.
+- Token-gated in **both** site modes. Verified 2026-07-09 on a production build:
+  launch matrix (no/bad token → 404, valid query + header → 200, curtain intact),
+  no-token prod locked closed, full-mode spot-check, leak probe on the JSON 0-hit.
+
+Server-side export fallback (`railway ssh`):
 
 ```bash
-node -e "const db=require('better-sqlite3')('db/mag8.db',{readonly:true});console.log(db.prepare('SELECT email, created_at FROM email_signups ORDER BY created_at').all());db.close()"
+node -e "const db=require('better-sqlite3')(process.env.MAG8_DB_PATH||'db/mag8.db',{readonly:true});console.log(db.prepare('SELECT email, created_at FROM email_signups ORDER BY created_at').all());db.close()"
 ```
 
 - No rate limit beyond dedupe — fine for launch; add one if it gets abused.
