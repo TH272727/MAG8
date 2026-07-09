@@ -14,17 +14,19 @@ export default function NotFound() {
       </p>
       <div className="mt-6 flex gap-3">
         {launchMode() ? (
-          <Link href="/methodology" className="btn btn-primary">
-            How Mag8 works
+          <Link href="/" className="btn btn-primary">
+            Home
           </Link>
         ) : (
-          <Link href="/rankings" className="btn btn-primary">
-            Current rankings
-          </Link>
+          <>
+            <Link href="/rankings" className="btn btn-primary">
+              Current rankings
+            </Link>
+            <Link href="/" className="btn">
+              Home
+            </Link>
+          </>
         )}
-        <Link href="/" className="btn">
-          Home
-        </Link>
       </div>
     </main>
   );

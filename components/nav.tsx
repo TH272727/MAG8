@@ -4,7 +4,7 @@ import { launchMode } from "@/lib/config";
 import { getActiveRun } from "@/lib/db";
 
 export default async function Nav() {
-  // Pre-launch curtain: only Methodology survives in the nav (the hidden pages 404).
+  // Pre-launch curtain: no nav links at all — the homepage is the whole site.
   const launch = launchMode();
   const active = launch ? null : getActiveRun();
   return (
@@ -35,9 +35,11 @@ export default async function Nav() {
               Lab
             </Link>
           )}
-          <Link href="/methodology" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
-            Methodology
-          </Link>
+          {!launch && (
+            <Link href="/methodology" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
+              Methodology
+            </Link>
+          )}
           {!launch && (
             <Link href="/admin" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
               Admin

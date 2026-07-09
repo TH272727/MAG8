@@ -67,10 +67,13 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
     2026-07). Flags join compiler Known-gaps AND report `gapsNoted` deterministically, PUBLIC lens labels only.
     Stance (also on /methodology): sampling can't be seeded; determinism = TS re-verify + weekly cache + checks.
 12. LAUNCH CURTAIN: `launchMode()` (`MAG8_SITE_MODE=launch|full`; prod defaults launch, dev full) 404s every
-    page/API except `/` + `/methodology` (+ the waitlist action) — guard sits at the TOP of each hidden page,
-    all 3 run API routes (admin token does NOT bypass; flip to full to operate), and the nav/home/404/methodology
-    link branches. Any NEW public page or API must add the guard. Build and run with the SAME mode
-    (`not-found.tsx` bakes its variant at build; everything else checks per request). DEPLOY.md = runbook.
+    page/API except `/` ALONE (+ the waitlist action) — guard sits at the TOP of each hidden page (incl.
+    /methodology), all 3 run API routes (admin token does NOT bypass; flip to full to operate), and every
+    link branch (nav + footer carry no page links; 404 → Home only). The launch homepage is DB-FREE and
+    link-free: static MOCKUP LEADERBOARD (bold title, $-redact ticker bars, fictional scores) replaces the
+    real top-3 — real tickers/dates/links render only in full mode. Any NEW public page or API must add the
+    guard. Build and run with the SAME mode (`not-found.tsx` bakes its variant at build; everything else
+    checks per request). DEPLOY.md = runbook (host: Railway — 1 replica, sleeping off, no mid-run pushes).
 
 ## Windows/env quirks (each cost real time)
 - Headless Edge renders `--window-size=375` at ~476px — use the iframe probe: temp page `app/probe375/`
@@ -192,6 +195,16 @@ pinned (stray `~/package-lock.json` mis-rooted tracing); `.env.example` +MAG8_SI
 fix; `DEPLOY.md` = env table + runbook + gate record. Gates: tsc 0, build clean, 10-route launch matrix exact
 (200/200 + eight 404s incl. authorized POST), leak probe 0-hit on both public pages (agents exception noted),
 375 iframe probe on `/` in both modes 365/0 (probe deleted), full-mode spot-check all-200 with links restored.
+Same day, later (owner calls): launch tightened to HOMEPAGE-ONLY — /methodology 404s too; every methodology
+link on `/` gated (hero button dropped, HOW + works-cited links unlinked, engine-panel arrows gone, nav/footer
+bare, 404 → Home only); preview replaced by static MOCKUP LEADERBOARD (bold `eyebrow font-bold text-ink`
+title, $-prefix redact bars for tickers, fictional 88.6/74.2/61.9 + process-copy verdict lines, `MOCKUP_BOARD`
+const, zero DB reads in launch — empty first deploy renders identically; real board/date/links only in full).
+HOST CHOSEN: Railway (owner pick over Fly/Hetzner/Render) — SSE 15-min proxy cap + 5-min idle cap absorbed by
+15s heartbeats + Last-Event-ID replay; keep 1 replica, App Sleeping off, no pushes mid-run (auto-deploy);
+on-server full-mode runs are the board-update path (no fly-sftp equivalent). Re-verified post-tightening:
+tsc 0, build clean, matrix `/` 200 + nine 404s, homepage 0 internal hrefs + 0 real tickers + leak 0-hit,
+full-mode restore exact. GitHub pushed same day (origin TH272727/MAG8): film+app domain commits.
 Open: (1) email capture stores (E2E-verified 2026-07-09) but nothing sends;
-(2) deploy target undecided — needs one long-lived instance (SSE bus + SQLite; Postgres port = rewrite `lib/db.ts` only); `DEPLOY.md` is the runbook.
+(2) Railway chosen but not yet provisioned — one long-lived instance (SSE bus + SQLite; Postgres port = rewrite `lib/db.ts` only); `DEPLOY.md` §Railway has the specifics.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

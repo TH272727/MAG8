@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CITATION_GROUPS, groundingShorts } from "@/lib/citations";
@@ -73,6 +74,9 @@ const ACCENT_BORDER: Record<string, string> = {
 };
 
 export default function MethodologyPage() {
+  // Pre-launch curtain: hidden like every other page — the homepage stands alone.
+  if (launchMode()) notFound();
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <p className="eyebrow">Methodology</p>
@@ -339,15 +343,9 @@ export default function MethodologyPage() {
       </section>
 
       <div className="mt-10">
-        {launchMode() ? (
-          <Link href="/#waitlist" className="btn">
-            Join the waitlist
-          </Link>
-        ) : (
-          <Link href="/rankings" className="btn">
-            See the current leaderboard
-          </Link>
-        )}
+        <Link href="/rankings" className="btn">
+          See the current leaderboard
+        </Link>
       </div>
     </main>
   );

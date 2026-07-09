@@ -13,6 +13,13 @@ export const dynamic = "force-dynamic";
 /** Live count from the same registry that renders /methodology's evidence base. */
 const WORKS_CITED = CITATION_GROUPS.reduce((n, g) => n + g.works.length, 0);
 
+/** Pre-launch board stand-in: fictional scores, redacted tickers, zero real data. */
+const MOCKUP_BOARD = [
+  { rank: 1, score: "88.6", line: "Fundamentals, game theory, and street consensus each file a blind verdict." },
+  { rank: 2, score: "74.2", line: "Where independent methods converge, the score climbs — agreement is the signal." },
+  { rank: 3, score: "61.9", line: "Value-trap gates veto weak stories before they ever reach the board." },
+] as const;
+
 const HOW = [
   {
     n: "01",
@@ -32,12 +39,13 @@ const HOW = [
 ];
 
 export default function HomePage() {
-  // Pre-launch curtain: the homepage stays up, but every path into a hidden
-  // page (nav CTA, preview cards, board links) folds into waitlist/methodology.
+  // Pre-launch curtain: the homepage is the whole site — no outbound links at
+  // all, a static mockup board instead of real data, and no DB reads (a fresh
+  // deploy with an empty volume renders identically).
   const launch = launchMode();
   // Canonical only — a focused lab run never swaps the home preview, and the
   // public-view boundary sanitizes legacy report rows before they reach props.
-  const latest = latestCanonicalRun();
+  const latest = launch ? null : latestCanonicalRun();
   const active = launch ? null : getActiveRun();
   const top3 = (latest?.report?.rankings.slice(0, 3) ?? []).map(sanitizeRankedStock);
 
@@ -67,14 +75,9 @@ export default function HomePage() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {launch ? (
-              <>
-                <a href="#waitlist" className="btn btn-primary">
-                  Join the waitlist
-                </a>
-                <Link href="/methodology" className="btn">
-                  How it works
-                </Link>
-              </>
+              <a href="#waitlist" className="btn btn-primary">
+                Join the waitlist
+              </a>
             ) : active ? (
               <Link href={`/runs/${active.id}`} className="btn btn-primary">
                 <span className="live-dot" aria-hidden="true" />
@@ -119,18 +122,27 @@ export default function HomePage() {
         <p className="mt-4 max-w-2xl text-sm text-muted">
           Why blind lenses? Any one method can talk itself into a story. Independent methods agreeing is
           harder to fake — that agreement, the <span className="text-confluence">confluence</span>, is
-          what gets scored.{" "}
-          <Link href="/methodology" className="underline underline-offset-2 hover:text-ink">
-            Read the full methodology.
-          </Link>
+          what gets scored.
+          {!launch && (
+            <>
+              {" "}
+              <Link href="/methodology" className="underline underline-offset-2 hover:text-ink">
+                Read the full methodology.
+              </Link>
+            </>
+          )}
         </p>
         <p className="mt-3 max-w-2xl text-sm text-muted">
           The scale is real: a full run fields <span className="text-ink">26 agents</span> — one
           discovery scout, three lens analysts on each of eight candidates, and one compiler. And none
           of it is improvised: every lens works from methods published in academic research,{" "}
-          <Link href="/methodology#refs-h" className="underline underline-offset-2 hover:text-ink">
-            all {WORKS_CITED} works cited
-          </Link>
+          {launch ? (
+            <>all {WORKS_CITED} works cited</>
+          ) : (
+            <Link href="/methodology#refs-h" className="underline underline-offset-2 hover:text-ink">
+              all {WORKS_CITED} works cited
+            </Link>
+          )}
           .
         </p>
       </section>
@@ -168,12 +180,14 @@ export default function HomePage() {
               Discovery opens the case — it names the traits matched and the wave underneath. It
               never scores its own picks; the three lenses attack the thesis blind.
             </p>
-            <Link
-              href="/methodology#discovery-dna"
-              className="mt-4 inline-block font-mono text-[12px] text-muted underline underline-offset-2 hover:text-ink"
-            >
-              how the DNA screen works →
-            </Link>
+            {!launch && (
+              <Link
+                href="/methodology#discovery-dna"
+                className="mt-4 inline-block font-mono text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+              >
+                how the DNA screen works →
+              </Link>
+            )}
           </div>
 
           {/* Game theory */}
@@ -202,35 +216,66 @@ export default function HomePage() {
               Every read ends with a number and a kill switch: an Asymmetry Score for the mispricing,
               and the observable condition that would prove the whole thesis wrong.
             </p>
-            <Link
-              href="/methodology#game-theory"
-              className="mt-4 inline-block font-mono text-[12px] text-muted underline underline-offset-2 hover:text-ink"
-            >
-              inside the game-theory lens →
-            </Link>
+            {!launch && (
+              <Link
+                href="/methodology#game-theory"
+                className="mt-4 inline-block font-mono text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+              >
+                inside the game-theory lens →
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
-      {/* ---- Latest leaderboard preview ---- */}
-      {top3.length > 0 && latest && (
+      {/* ---- Board preview: static MOCKUP pre-launch, real top-3 in full mode ---- */}
+      {launch ? (
         <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6" aria-labelledby="latest-h">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 id="latest-h" className="eyebrow">
-              Latest leaderboard — {fmtDate(latest.finishedAt ?? latest.createdAt)}
+            <h2 id="latest-h" className="eyebrow font-bold text-ink">
+              MOCKUP LEADERBOARD
             </h2>
-            {launch ? (
-              <span className="font-mono text-[12px] text-dim">full board opens at launch</span>
-            ) : (
+            <span className="font-mono text-[12px] text-dim">full board opens at launch</span>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+            {MOCKUP_BOARD.map((s) => (
+              <div key={s.rank} className="bg-panel p-5">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-mono text-[11px] tracking-[0.14em] text-dim">#{s.rank}</span>
+                  <span className="tabular font-mono text-xl font-bold text-confluence">{s.score}</span>
+                </div>
+                <div
+                  className="mt-1 flex items-center gap-1.5 font-mono text-2xl font-bold tracking-wide"
+                  aria-label="Ticker hidden until launch"
+                >
+                  <span className="text-dim">$</span>
+                  <span className="inline-block h-[0.85em] w-20 rounded-sm bg-ink/25" aria-hidden="true" />
+                </div>
+                <div className="text-sm text-muted">Revealed at launch</div>
+                <p className="mt-2 line-clamp-2 text-[13px] text-muted">{s.line}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        top3.length > 0 &&
+        latest && (
+          <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6" aria-labelledby="latest-h">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 id="latest-h" className="eyebrow">
+                Latest leaderboard — {fmtDate(latest.finishedAt ?? latest.createdAt)}
+              </h2>
               <Link href="/rankings" className="font-mono text-[12px] text-muted underline underline-offset-2 hover:text-ink">
                 full board →
               </Link>
-            )}
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
-            {top3.map((s) => {
-              const card = (
-                <>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+              {top3.map((s) => (
+                <Link
+                  key={s.ticker}
+                  href={`/stocks/${s.ticker}`}
+                  className="group bg-panel p-5 transition-colors hover:bg-panel2"
+                >
                   <div className="flex items-baseline justify-between">
                     <span className="font-mono text-[11px] tracking-[0.14em] text-dim">#{s.rank}</span>
                     <span className="tabular font-mono text-xl font-bold text-confluence">{s.finalScore.toFixed(1)}</span>
@@ -238,25 +283,11 @@ export default function HomePage() {
                   <div className="mt-1 font-mono text-2xl font-bold tracking-wide group-hover:text-ink">{s.ticker}</div>
                   <div className="text-sm text-muted">{s.companyName}</div>
                   <p className="mt-2 line-clamp-2 text-[13px] text-muted">{s.verdictLine}</p>
-                </>
-              );
-              // Launch mode: the dossier behind the card is dark, so no link affordance.
-              return launch ? (
-                <div key={s.ticker} className="bg-panel p-5">
-                  {card}
-                </div>
-              ) : (
-                <Link
-                  key={s.ticker}
-                  href={`/stocks/${s.ticker}`}
-                  className="group bg-panel p-5 transition-colors hover:bg-panel2"
-                >
-                  {card}
                 </Link>
-              );
-            })}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )
       )}
 
       {/* ---- Email capture ---- */}

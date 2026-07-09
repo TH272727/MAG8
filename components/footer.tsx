@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LogoMark from "@/components/logo";
+import { launchMode } from "@/lib/config";
 
 /** §12 disclaimer — present in the footer of every page. */
 export default function Footer() {
@@ -16,9 +17,11 @@ export default function Footer() {
           consider consulting a licensed financial professional before making any investment decision.
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
-          <Link href="/methodology" className="text-[13px] text-muted underline underline-offset-2 hover:text-ink">
-            How scoring works
-          </Link>
+          {!launchMode() && (
+            <Link href="/methodology" className="text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+              How scoring works
+            </Link>
+          )}
           <span className="flex items-center gap-2">
             <LogoMark size={14} />
             <span className="font-mono text-[11px] tracking-[0.1em] text-dim">

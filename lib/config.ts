@@ -151,8 +151,9 @@ export const CONFIG = {
 export type SiteMode = "launch" | "full";
 
 /**
- * "launch" leaves only the homepage and /methodology viewable — rankings, lab,
- * admin, run replays, stock dossiers, and the run APIs all 404. Pages are
+ * "launch" leaves ONLY the homepage viewable — methodology, rankings, lab,
+ * admin, run replays, stock dossiers, and the run APIs all 404, and the home
+ * page renders zero outbound links (waitlist is the only action). Pages are
  * hidden, never deleted; email capture stays live in both modes. Defaults:
  * production → "launch" (a fresh deploy exposes nothing by accident),
  * development → "full". Override either way with MAG8_SITE_MODE=launch|full.
