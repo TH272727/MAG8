@@ -207,15 +207,16 @@ for (const id of FUN_IDS as FunId[]) {
   const f2t = (sceneId: string, frame = 0) => (funSceneStart(id, sceneId) + frame) / FPS;
   const sceneDur = (sceneId: string) => funSceneFrames(id, sceneId) / FPS;
 
-  /** The three lens chips stamp in, then the verdict lands. */
-  const deskCues = (sc: string, at: number, stag: number, verdictAt: number, big = 0.6) => {
+  /** The three lens chips stamp in, then the verdict lands.
+   * `dark` flips the resolve chord minor — for desks that FAIL the candidate. */
+  const deskCues = (sc: string, at: number, stag: number, verdictAt: number, big = 0.6, dark = false) => {
     [0, 1, 2].forEach((i) => {
       kick(f2t(sc, at + i * stag), 0.07, 140, 85, 0.1);
       tick(f2t(sc, at + i * stag), 0.024, 2400 + i * 300);
     });
     riser(f2t(sc, verdictAt), 1.6, 0.045);
     impact(f2t(sc, verdictAt), big);
-    pad(f2t(sc, verdictAt + 2), 3.2, [A2, E3, A3, CS4], 0.055, {a: 0.3, curve: 1.4});
+    pad(f2t(sc, verdictAt + 2), 3.2, dark ? [A2, C3, E3, A3] : [A2, E3, A3, CS4], 0.055, {a: 0.3, curve: 1.4});
     // a light groove carries from the verdict to the end of the film
     for (let t = f2t(sc, verdictAt), b = 0; t < total / FPS - 1.4; t += BEAT, b++) {
       kick(t, 0.1);
@@ -223,19 +224,24 @@ for (const id of FUN_IDS as FunId[]) {
     }
   };
 
-  /** Shared endcard resolve (same musical shape as the other endcards). */
+  /** Shared endcard resolve (168f since the waitlist CTA landed). */
   const endcard = (sc: string) => {
     pad(f2t(sc, 12), 5.0, [A2, E3, A3, CS4, E4], 0.075, {a: 1.0, curve: 1.2});
     kick(f2t(sc, 56), 0.13, 70, 44, 0.35);
     kick(f2t(sc, 68), 0.07, 64, 42, 0.3);
+    tick(f2t(sc, 86), 0.02, 3200); // the waitlist CTA lands
+    pad(f2t(sc, 88), 2.4, [E3, A3, E4], 0.04, {a: 0.3, curve: 1.4});
     kick(f2t(sc, 124), 0.14, 70, 44, 0.4);
     pad(f2t(sc, 84), 3.0, [A2 / 2, A2], 0.045, {a: 0.9});
+    kick(f2t(sc, 150), 0.1, 70, 44, 0.35);
   };
 
   if (id === 'eightball') {
     // E1 — room tone, the chip, the toy thuds in
     pad(f2t('E1_Ask'), 6.5, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 1.6});
     pop(f2t('E1_Ask', 10), 0.05);
+    tick(f2t('E1_Ask', 42), 0.022, 2600); // ticker swap $NVDA → $TSLA
+    tick(f2t('E1_Ask', 72), 0.02, 2200); // → the redacted "next one"
     kick(f2t('E1_Ask', 62), 0.24, 60, 34, 0.5); // rubber thud
     tick(f2t('E1_Ask', 62), 0.02, 1400);
     tick(f2t('E1_Ask', 98), 0.02, 3000);
@@ -291,7 +297,7 @@ for (const id of FUN_IDS as FunId[]) {
     }
     pad(f2t('B1_Queue'), sceneDur('B1_Queue') + sceneDur('B2_Checks'), [A2 * 0.5], 0.035, {a: 2});
     tick(f2t('B1_Queue', 12), 0.025, 2600);
-    [44, 53, 62, 71, 80].forEach((f) => pop(f2t('B1_Queue', f), 0.035));
+    [18, 25, 32, 39, 46].forEach((f) => pop(f2t('B1_Queue', f), 0.035));
     // B2 — five checks
     [0, 1, 2, 3, 4].forEach((i) => {
       const s = 16 + i * 62;
@@ -359,6 +365,139 @@ for (const id of FUN_IDS as FunId[]) {
     deskCues('R4_Desk', 56, 18, 132, 0.45);
     tick(f2t('R4_Desk', 166), 0.02, 3000);
     endcard('R5_End');
+  }
+
+  if (id === 'naturedoc') {
+    // N1 — night air: a low drone and crickets
+    pad(f2t('N1_Field'), sceneDur('N1_Field') + 1, [A2 * 0.5, A2 * 0.5 * 1.004], 0.035, {a: 2});
+    for (let i = 0; i < 12; i++) {
+      tick(f2t('N1_Field', 8 + i * 11 + trk.rnd() * 6), 0.008 + trk.rnd() * 0.006, 5200 + trk.rnd() * 1800, trk.rnd() - 0.5);
+    }
+    tick(f2t('N1_Field', 26), 0.02, 3000); // caption 1
+    tone(f2t('N1_Field', 94), 0.8, 110, 0.03, {a: 0.1, curve: 1.4}); // "the chart is red"
+    // N2 — the stampede builds under the narrator
+    pad(f2t('N2_Herd'), sceneDur('N2_Herd'), [A2 * 0.5, E3 * 0.5], 0.03, {a: 1.5});
+    for (let i = 0; i < 26; i++) {
+      const u = i / 26;
+      kick(f2t('N2_Herd', 24 + u * u * 150 + i * 2), 0.05 + u * 0.07, 120 - u * 30, 60, 0.16);
+    }
+    walla(f2t('N2_Herd', 120), 3.4, 0.035); // the herd, roaring faintly
+    tick(f2t('N2_Herd', 152), 0.022, 2600); // "the next $NVDA"
+    // N3 — over the edge: hooves stop, glissandi fall, the freeze
+    for (let i = 0; i < 6; i++) {
+      tone(f2t('N3_Cliff', 30 + i * 15), 0.7, 640 - i * 40, 0.02, {a: 0.02, curve: 1.6}, trk.rnd() - 0.5, -0.72);
+    }
+    kick(f2t('N3_Cliff', 118), 0.16, 96, 40, 0.3); // freeze-frame
+    tone(f2t('N3_Cliff', 118), 0.14, 1600, 0.03, {a: 0.002, curve: 3}, 0, -0.85); // scratch
+    pad(f2t('N3_Cliff', 124), 1.6, [G3 / 2, D4 / 2], 0.035, {a: 0.2}); // "Magnificent."
+    pad(f2t('N3_Cliff', 148), 1.8, [E3 / 2, B3 / 2], 0.04, {a: 0.2}); // "Devastating."
+    deskCues('N4_Desk', 54, 18, 136);
+    tick(f2t('N4_Desk', 172), 0.02, 3000);
+    endcard('N5_End');
+  }
+
+  if (id === 'speedrun') {
+    // SP1 — chip-tune arps, the countdown, GO
+    pad(f2t('SP1_Title'), 4.5, [A2 * 0.5], 0.03, {a: 1.2});
+    for (let i = 0; i < 14; i++) {
+      tone(f2t('SP1_Title', 8 + i * 7), 0.09, [E3, A3, CS4, E4][i % 4] * 2, 0.016, {a: 0.004, curve: 2.6}, (i % 2) * 0.8 - 0.4);
+    }
+    [78, 92, 106].forEach((f) => tick(f2t('SP1_Title', f), 0.03, 2200));
+    tone(f2t('SP1_Title', 118), 0.3, 1046.5, 0.04, {a: 0.004, curve: 2.2}); // GO
+    // SP2 — driving eighths under the clock; dings, the skip, the slam
+    const runEnd = f2t('SP2_Run', 298);
+    for (let t = f2t('SP2_Run'), b = 0; t < runEnd; t += BEAT / 2, b++) {
+      if (b % 2 === 0) kick(t, 0.09, 110, 60, 0.14);
+      else tick(t, 0.01, 6400, b % 4 > 1 ? 0.3 : -0.3);
+    }
+    [14, 40, 76, 141].forEach((f) => {
+      tone(f2t('SP2_Run', f), 0.4, 1240, 0.028, {a: 0.004, curve: 3}, 0.2);
+      tick(f2t('SP2_Run', f), 0.025, 3600);
+    });
+    tone(f2t('SP2_Run', 108), 0.4, 108, 0.05, {a: 0.004, curve: 1.2}); // SKIPPED buzz
+    tone(f2t('SP2_Run', 108), 0.4, 162, 0.03, {a: 0.004, curve: 1.2});
+    kick(f2t('SP2_Run', 110), 0.12, 130, 60, 0.2);
+    [0, 1, 2].forEach((k) => tone(f2t('SP2_Run', 145 + k * 3), 0.2, [659.25, 783.99, 987.77][k], 0.02, {a: 0.004, curve: 2.6})); // best segment
+    [206, 269].forEach((f) => {
+      tone(f2t('SP2_Run', f), 0.35, 330, 0.024, {a: 0.006, curve: 2});
+      tone(f2t('SP2_Run', f), 0.35, 349, 0.024, {a: 0.006, curve: 2}); // sour diffs
+    });
+    riser(f2t('SP2_Run', 300), 1.4, 0.04);
+    impact(f2t('SP2_Run', 300), 0.7); // the slam
+    tone(f2t('SP2_Run', 306), 0.5, 392, 0.03, {a: 0.02, curve: 1.6}); // sad wah
+    tone(f2t('SP2_Run', 314), 0.7, 311, 0.028, {a: 0.02, curve: 1.6});
+    for (let k = 0; k < 10; k++) {
+      tick(f2t('SP2_Run', 308) + trk.rnd() * 0.8, 0.012, 3000 + trk.rnd() * 3000, trk.rnd() - 0.5); // confetti
+    }
+    pad(f2t('SP3_Line', 6), 3.4, [A3, D4, E4], 0.032, {a: 1.2});
+    tick(f2t('SP3_Line', 48), 0.02, 2800);
+    deskCues('SP4_Desk', 48, 16, 118);
+    tick(f2t('SP4_Desk', 148), 0.02, 3000);
+    endcard('SP5_End');
+  }
+
+  if (id === 'replay') {
+    // RP1 — the stadium: crowd bed + broadcast sting
+    walla(f2t('RP1_Live', 4), 4.2, 0.028);
+    pad(f2t('RP1_Live'), sceneDur('RP1_Live'), [A2 * 0.5], 0.03, {a: 1.4});
+    [0, 1, 2].forEach((k) => tone(f2t('RP1_Live', 8 + k * 4), 0.24, [A3, CS4, E4][k] * 2, 0.02, {a: 0.006, curve: 2.2}));
+    tick(f2t('RP1_Live', 36), 0.02, 2800);
+    // RP2 — the play: crowd swells, the top, the drop, the buzzer
+    walla(f2t('RP2_Play'), 4.6, 0.05);
+    for (let i = 0; i < 18; i++) {
+      const u = i / 18;
+      kick(f2t('RP2_Play', 8 + u * u * 116 + i * 1.5), 0.05 + u * 0.06, 120, 62, 0.15);
+    }
+    tick(f2t('RP2_Play', 126), 0.03, 1600); // BUY stamp
+    kick(f2t('RP2_Play', 128), 0.14, 130, 60, 0.22);
+    tone(f2t('RP2_Play', 136), 1.3, 520, 0.026, {a: 0.02, curve: 1.5}, 0, -0.62); // the drop
+    walla(f2t('RP2_Play', 140), 2.2, 0.045); // the "ohhh"
+    tone(f2t('RP2_Play', 196), 0.7, 196, 0.06, {a: 0.006, curve: 1.1}); // buzzer
+    tone(f2t('RP2_Play', 196), 0.7, 247, 0.045, {a: 0.006, curve: 1.1});
+    tick(f2t('RP2_Play', 202), 0.025, 2200); // scorebug flips
+    // RP3 — the replay jingle over a slowed world
+    [0, 1, 2, 0, 1, 2].forEach((k, i) => {
+      tone(f2t('RP3_Replay', 4 + i * 6), 0.3, [E4, CS4, A3][k], 0.022, {a: 0.01, curve: 2}, (i % 2) * 0.7 - 0.35);
+    });
+    pad(f2t('RP3_Replay', 20), sceneDur('RP3_Replay') / 1.4, [A2 * 0.5, E3 * 0.5], 0.035, {a: 1.6});
+    [66, 102].forEach((f) => tone(f2t('RP3_Replay', f), 0.8, 480, 0.018, {a: 0.05, curve: 1.5}, 0.2, 0.5)); // telestrator
+    tick(f2t('RP3_Replay', 132), 0.02, 2800);
+    tick(f2t('RP3_Replay', 172), 0.02, 3200); // "Frame it."
+    deskCues('RP4_Desk', 46, 16, 118);
+    tick(f2t('RP4_Desk', 148), 0.02, 3000);
+    endcard('RP5_End');
+  }
+
+  if (id === 'coldcase') {
+    // K1 — noir: dark drone, the folder slap, the typewriter, the stamp
+    pad(f2t('K1_File'), sceneDur('K1_File') + 1, [A2 * 0.5, C3 * 0.5, E3 * 0.5], 0.035, {a: 1.8});
+    kick(f2t('K1_File', 12), 0.2, 70, 36, 0.4); // the folder lands
+    for (let i = 0; i < 11; i++) tick(f2t('K1_File', 30 + i * 2.6), 0.014, 2400 + trk.rnd() * 800, 0.3);
+    impact(f2t('K1_File', 78), 0.32); // CONFIDENTIAL
+    tick(f2t('K1_File', 100), 0.018, 3000);
+    // K2 — heartbeat, pins, the string stings, narration typing
+    pad(f2t('K2_Board'), sceneDur('K2_Board'), [A2 * 0.5, C3 * 0.5], 0.032, {a: 2});
+    for (let b = 0; b < 8; b++) {
+      const t = f2t('K2_Board', 14 + b * 32);
+      kick(t, 0.08, 88, 46, 0.16);
+      kick(t + 0.32, 0.05, 80, 44, 0.14);
+    }
+    [18, 62, 106, 150].forEach((f) => pop(f2t('K2_Board', f), 0.04)); // pins
+    [44, 88, 132].forEach((f) => tone(f2t('K2_Board', f), 0.8, 660, 0.02, {a: 0.03, curve: 1.6}, 0.2, 0.4)); // string
+    for (let i = 0; i < 22; i++) tick(f2t('K2_Board', 172 + i * 1.6), 0.012, 2400 + trk.rnd() * 800, -0.2);
+    for (let i = 0; i < 26; i++) tick(f2t('K2_Board', 216 + i * 1.5), 0.012, 2400 + trk.rnd() * 800, -0.2);
+    // K3 — the twist: flashlight rise, sour rows, the reveal hit
+    pad(f2t('K3_Twist'), 3.5, [A2 * 0.5, C3, E3], 0.04, {a: 1});
+    tone(f2t('K3_Twist', 22), 1.6, 300, 0.02, {a: 0.2, curve: 1.4}, 0, 1.2);
+    [34, 48, 62].forEach((f) => {
+      tone(f2t('K3_Twist', f), 0.4, 330, 0.024, {a: 0.006, curve: 2});
+      tone(f2t('K3_Twist', f), 0.4, 349, 0.02, {a: 0.006, curve: 2});
+    });
+    riser(f2t('K3_Twist', 86), 1.6, 0.04);
+    kick(f2t('K3_Twist', 86), 0.16, 90, 42, 0.3); // "the evidence was public"
+    deskCues('K4_Desk', 48, 16, 120, 0.6, true); // minor — this one fails
+    tick(f2t('K4_Desk', 152), 0.02, 3000);
+    endcard('K5_End');
   }
 
   const out = join(here, '..', 'public', 'audio', `score-fun-${id}.wav`);

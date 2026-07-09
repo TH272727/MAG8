@@ -13,6 +13,10 @@ import {E1_Ask, E2_Shake, E3_Toys, E4_Desk, E5_End} from './fun/scenes/eightball
 import {G1_Chat, G2_Cut, G3_Line, G4_Desk, G5_End} from './fun/scenes/groupchat';
 import {B1_Queue, B2_Checks, B3_Line, B4_Board, B5_End} from './fun/scenes/gate';
 import {R1_Swipe1, R2_Swipe2, R3_Keeper, R4_Desk, R5_End} from './fun/scenes/redflags';
+import {N1_Field, N2_Herd, N3_Cliff, N4_Desk, N5_End} from './fun/scenes/naturedoc';
+import {SP1_Title, SP2_Run, SP3_Line, SP4_Desk, SP5_End} from './fun/scenes/speedrun';
+import {RP1_Live, RP2_Play, RP3_Replay, RP4_Desk, RP5_End} from './fun/scenes/replay';
+import {K1_File, K2_Board, K3_Twist, K4_Desk, K5_End} from './fun/scenes/coldcase';
 
 import {V01_Hook} from './shorts/scenes/V01_Hook';
 import {V02_Intro} from './shorts/scenes/V02_Intro';
@@ -190,6 +194,26 @@ const FUN_REGISTRY: Record<string, React.FC> = {
   R3_Keeper,
   R4_Desk,
   R5_End,
+  N1_Field,
+  N2_Herd,
+  N3_Cliff,
+  N4_Desk,
+  N5_End,
+  SP1_Title,
+  SP2_Run,
+  SP3_Line,
+  SP4_Desk,
+  SP5_End,
+  RP1_Live,
+  RP2_Play,
+  RP3_Replay,
+  RP4_Desk,
+  RP5_End,
+  K1_File,
+  K2_Board,
+  K3_Twist,
+  K4_Desk,
+  K5_End,
 };
 
 const makeFun = (id: FunId): React.FC => {

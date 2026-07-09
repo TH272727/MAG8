@@ -389,12 +389,15 @@ for (const short of SHORT_IDS as ShortId[]) {
     tick(f2t('V12_Receipts', 62 + i * 9), 0.018, 2500);
   }
 
-  // V13 — resolve and decay
+  // V13 — resolve and decay (183f since the waitlist CTA landed)
   pad(f2t('V13_Endcard', 12), 5.2, [A2, E3, A3, CS4, E4], 0.075, {a: 1.0, curve: 1.2});
   kick(f2t('V13_Endcard', 56), 0.13, 70, 44, 0.35);
   kick(f2t('V13_Endcard', 68), 0.07, 64, 42, 0.3);
+  tick(f2t('V13_Endcard', 90), 0.02, 3200); // the waitlist CTA lands
+  pad(f2t('V13_Endcard', 92), 2.4, [E3, A3, E4], 0.04, {a: 0.3, curve: 1.4});
   kick(f2t('V13_Endcard', 132), 0.14, 70, 44, 0.4);
   pad(f2t('V13_Endcard', 84), 3.2, [A2 / 2, A2], 0.045, {a: 0.9});
+  kick(f2t('V13_Endcard', 166), 0.1, 70, 44, 0.35);
 
   const out = join(here, '..', 'public', 'audio', `score-${short}.wav`);
   const res = trk.finalize(out);

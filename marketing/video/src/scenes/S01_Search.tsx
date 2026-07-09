@@ -17,9 +17,9 @@ export const S01_Search: React.FC = () => (
         popAt={6}
         growOver={[26, 112]}
         shrinkOver={[116, 146]}
-        // land on the pill's text line (left-aligned, 36px) — dx pulls the
+        // land on the pill's text line (left-aligned, 41px) — dx pulls the
         // block center toward the query's resting center inside the pill
-        target={{x: -174, y: 0, scale: 36 / 150}}
+        target={{x: -134, y: 0, scale: 41 / 150}}
         fadeOver={[132, 148]}
         accents={{3: C.discovery}}
       />

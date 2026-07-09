@@ -42,10 +42,10 @@ export const S13_Mission: React.FC = () => {
         {/* the wire */}
         <Panel style={{position: 'absolute', left: 1252, top: 110, width: 548, height: 636, padding: 26, boxSizing: 'border-box'}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20}}>
-            <span style={{fontFamily: F.mono, fontSize: 17, letterSpacing: '0.14em', color: C.muted}}>
+            <span style={{fontFamily: F.mono, fontSize: 23, letterSpacing: '0.14em', color: C.muted}}>
               ACTIVITY WIRE
             </span>
-            <Chip size={15} color={C.fundamentals} border={`${C.fundamentals}66`} bg={`${C.fundamentals}10`}>
+            <Chip size={21} color={C.fundamentals} border={`${C.fundamentals}66`} bg={`${C.fundamentals}10`}>
               <span
                 style={{
                   display: 'inline-block',
@@ -61,7 +61,7 @@ export const S13_Mission: React.FC = () => {
             </Chip>
           </div>
           <div style={{display: 'flex', flexDirection: 'column', gap: 13}}>
-            {shown.slice(-11).map((l, i) => {
+            {shown.slice(-7).map((l, i) => {
               const idx = FEED.indexOf(l);
               const at = 26 + idx * 13;
               const op = lerp(frame, [at, at + 8], [0, 1]);
@@ -74,13 +74,13 @@ export const S13_Mission: React.FC = () => {
                     gap: 12,
                     alignItems: 'baseline',
                     fontFamily: F.mono,
-                    fontSize: 17.5,
+                    fontSize: 23,
                     opacity: op,
                     transform: `translateY(${rise}px)`,
                   }}
                 >
                   <span style={{color: C.dim}}>{l.t}</span>
-                  <span style={{color: l.tagColor, minWidth: 150}}>{l.tag}</span>
+                  <span style={{color: l.tagColor, minWidth: 180}}>{l.tag}</span>
                   <span style={{color: C.muted}}>{l.msg}</span>
                 </div>
               );
@@ -90,11 +90,11 @@ export const S13_Mission: React.FC = () => {
 
         {/* matrix note */}
         <div style={{position: 'absolute', left: 1252, top: 782, opacity: lerp(frame, [60, 74], [0, 1])}}>
-          <Chip size={16}>MATRIX 8 × 3 · EVERY CELL INDEPENDENT</Chip>
+          <Chip size={22}>MATRIX 8 × 3 · EVERY CELL INDEPENDENT</Chip>
         </div>
 
         <div style={{position: 'absolute', left: 1252, top: 856}}>
-          <Kinetic text={'Watch every\nrun live.'} delay={96} size={62} align="left" />
+          <Kinetic text={'Watch every\nrun live.'} delay={96} size={66} align="left" />
         </div>
       </AbsoluteFill>
     </Void>

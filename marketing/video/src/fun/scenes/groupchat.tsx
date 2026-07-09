@@ -13,6 +13,7 @@ import {DeskStamps, FunEndcard, Redact} from '../flib';
 type Msg = {
   text?: string;
   ticker?: boolean; // render the redacted ticker + rockets
+  pre?: string; // lead-in text inside the ticker bubble
   side: 'L' | 'R';
   at: number;
   who: number; // avatar tint index for L side
@@ -20,9 +21,9 @@ type Msg = {
 };
 
 const MSGS: Msg[] = [
-  {text: 'yo', side: 'L', at: 12, who: 0},
-  {text: 'drop the ticker', side: 'L', at: 30, who: 1},
-  {ticker: true, side: 'R', at: 54, who: 0},
+  {text: 'missed $NVDA. missed $TSLA 😭', side: 'L', at: 12, who: 0},
+  {text: 'NOT missing the next one.', side: 'L', at: 30, who: 1},
+  {ticker: true, pre: 'found it:', side: 'R', at: 54, who: 0},
   {text: 'my uber driver owns it', side: 'L', at: 78, who: 2, react: '🔥'},
   {text: 'so it’s definitely going up', side: 'L', at: 100, who: 0},
   {text: 'chart looks bullish i think', side: 'R', at: 122, who: 0},
@@ -107,11 +108,11 @@ export const G1_Chat: React.FC = () => {
               />
             ))}
           </div>
-          <span style={{fontFamily: F.body, fontSize: 32, fontWeight: 700, color: C.ink}}>
+          <span style={{fontFamily: F.body, fontSize: 38, fontWeight: 700, color: C.ink}}>
             the boys 📈
           </span>
           <div style={{flex: 1}} />
-          <span style={{fontFamily: F.mono, fontSize: 18, letterSpacing: '0.1em', color: C.dim}}>
+          <span style={{fontFamily: F.mono, fontSize: 24, letterSpacing: '0.1em', color: C.dim}}>
             8 ONLINE
           </span>
         </div>
@@ -162,7 +163,7 @@ export const G1_Chat: React.FC = () => {
                 <div
                   style={{
                     position: 'relative',
-                    maxWidth: 660,
+                    maxWidth: 750,
                     padding: '22px 30px',
                     borderRadius: 24,
                     borderBottomLeftRadius: isR ? 24 : 8,
@@ -174,14 +175,27 @@ export const G1_Chat: React.FC = () => {
                 >
                   {m.ticker ? (
                     <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-                      <Redact scale={1.05} />
-                      <span style={{fontFamily: F.body, fontSize: 34}}>🚀🚀🚀</span>
+                      {m.pre && (
+                        <span
+                          style={{
+                            fontFamily: F.body,
+                            fontSize: 39,
+                            fontWeight: 600,
+                            color: C.ink,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {m.pre}
+                        </span>
+                      )}
+                      <Redact cash scale={1.05} />
+                      <span style={{fontFamily: F.body, fontSize: 39}}>🚀🚀🚀</span>
                     </div>
                   ) : (
                     <span
                       style={{
                         fontFamily: F.body,
-                        fontSize: 34,
+                        fontSize: 39,
                         fontWeight: 600,
                         color: C.ink,
                         whiteSpace: 'nowrap',
@@ -196,7 +210,7 @@ export const G1_Chat: React.FC = () => {
                         position: 'absolute',
                         right: -16,
                         top: -22,
-                        fontSize: 30,
+                        fontSize: 36,
                         transform: `scale(${reactIn})`,
                         filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))',
                       }}
@@ -218,7 +232,7 @@ export const G1_Chat: React.FC = () => {
 export const G2_Cut: React.FC = () => (
   <Void>
     <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-      <Kinetic text={'Your group chat\nhas eight opinions.'} delay={10} size={64} />
+      <Kinetic text={'Your group chat\nhas eight opinions.'} delay={10} size={68} />
     </AbsoluteFill>
   </Void>
 );
@@ -230,7 +244,7 @@ export const G3_Line: React.FC = () => (
       <Kinetic
         text={'Enthusiasm isn’t evidence.'}
         delay={8}
-        size={62}
+        size={66}
         accents={{2: C.discovery}}
         maxWidth={940}
       />
@@ -243,7 +257,7 @@ export const G4_Desk: React.FC = () => (
   <Void depth>
     <AbsoluteFill style={{alignItems: 'center'}}>
       <div style={{marginTop: 300}}>
-        <Kinetic text={'Three lenses.\nZero group chats.'} delay={8} size={64} />
+        <Kinetic text={'Three lenses.\nZero group chats.'} delay={8} size={68} />
       </div>
     </AbsoluteFill>
     <DeskStamps

@@ -1,18 +1,19 @@
 import React from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame} from 'remotion';
-import {Chip, Void} from '../../lib/ui';
+import {Chip, Void, WaitlistCta} from '../../lib/ui';
 import {lerp, pop, pulse01} from '../../lib/anim';
 import {C, F} from '../../theme';
 import {LENS, useShort} from '../vlib';
 
-/** V13 — endcard: mark, wordmark, this short's lens tag, the disclaimer. */
+/** V13 — endcard (183f): mark, wordmark, this short's lens tag, the waitlist
+ * CTA in big type, the disclaimer. */
 export const V13_Endcard: React.FC = () => {
   const frame = useCurrentFrame();
   const short = useShort();
   const meta = LENS[short];
   const markIn = pop(frame, 6, 14, 1);
   const beat = Math.max(pulse01((frame - 56) / 26), pulse01((frame - 132) / 26));
-  const fadeOut = lerp(frame, [152, 165], [0, 1]);
+  const fadeOut = lerp(frame, [170, 183], [0, 1]);
   return (
     <Void depth>
       <AbsoluteFill style={{alignItems: 'center'}}>
@@ -66,7 +67,7 @@ export const V13_Endcard: React.FC = () => {
           style={{
             marginTop: 32,
             fontFamily: F.body,
-            fontSize: 33,
+            fontSize: 38,
             fontWeight: 400,
             color: C.muted,
             opacity: lerp(frame, [42, 58], [0, 1]),
@@ -76,9 +77,13 @@ export const V13_Endcard: React.FC = () => {
         </div>
 
         <div style={{marginTop: 46, opacity: lerp(frame, [68, 84], [0, 1])}}>
-          <Chip color={meta.color} border={`${meta.color}55`} bg={`${meta.color}0e`} size={17}>
+          <Chip color={meta.color} border={`${meta.color}55`} bg={`${meta.color}0e`} size={23}>
             THIS EPISODE · {meta.chip}
           </Chip>
+        </div>
+
+        <div style={{marginTop: 96}}>
+          <WaitlistCta at={90} />
         </div>
 
         <div
@@ -86,10 +91,10 @@ export const V13_Endcard: React.FC = () => {
             position: 'absolute',
             bottom: 190,
             fontFamily: F.mono,
-            fontSize: 16,
+            fontSize: 22,
             letterSpacing: '0.16em',
             color: C.dim,
-            opacity: lerp(frame, [92, 108], [0, 1]),
+            opacity: lerp(frame, [108, 124], [0, 1]),
           }}
         >
           RESEARCH, NOT INVESTMENT ADVICE

@@ -20,8 +20,8 @@ and a synthesized crowd ("walla") crescendo in the score.
   a deep chapter on the Fundamentals lens (ledger/tape/quality gauge,
   Piotroski F with the ≤3 auto-veto, Altman-Z zones, the value-trap mesh,
   reverse-DCF expectations gap, bear/base/bull scenario ladder + sources).
-- `out/short-macro.mp4` — 1080×1920 @ 30fps, ~78s. Full story + the Macro
-  Asymmetry game-theory chapter: player cards scored M×E×C
+- `out/short-macro.mp4` — 1080×1920 @ 30fps, ~78s. Full story + the Game
+  Theory chapter: player cards scored M×E×C
   (Mass · Energy · Coordination) with the weighted formula, the
   Mass×Coordination player map (dot size = Energy — the product's own
   instrument), the full 21-branch path tree with per-leaf probabilities and
@@ -58,6 +58,30 @@ deadpan instrument voice for the turn, the standard endcard close (gag chip +
   traps: two horror profiles swiped left (NOPE), the boring-good one gets
   "WORTH A LOOK" — then "One good profile isn't a verdict." and an honest
   mixed read (▲ ─ ▲, 73.9, no confluence).
+- `out/fun-naturedoc.mp4` — **"A stock picker's nature documentary."**
+  Attenborough narration over the retail investor in his habitat; a herd of
+  candle-critters stampedes past chasing "the next $NVDA" — straight off a
+  cliff (freeze-frame: "Magnificent. Devastating."). Turn: "Herds aren't
+  research." → ▲▲▲ 90.3 CONFLUENCE.
+- `out/fun-speedrun.mp4` — **"Stock picking — any% speedrun."** Gaming HUD:
+  seven splits (CHECK THE FILINGS — SKIPPED), a 0:31.07 personal best,
+  sarcastic confetti, "PORTFOLIO: REKT". Turn: "Research isn't a race." →
+  the 100% category, 13 minutes, every check.
+- `out/fun-replay.mp4` — **"Friday night stocks."** Sports broadcast:
+  play-by-play + color commentary call a guy buying the exact top (BUY flag
+  plants at the apex, scorebug flips MARKET 4), then the INSTANT REPLAY at
+  0.25× with a telestrator circle + arrow. Turn: "The pros study the tape."
+- `out/fun-coldcase.mp4` — **"A stock-market cold case."** True-crime: manila
+  case file, polaroid evidence board joined by red string (TIP → CHART → BUY
+  → BAG −84%), the twist ("The evidence was public the whole time." — F-Score
+  2/9, going concern, serial dilution) → the desk's first on-screen FAIL:
+  ▼ ─ ▼, 19.3, "WOULD HAVE FAILED THE GATE", case closed in 13 minutes.
+
+**Every endcard** (all 8 fun shorts, the 3 lens shorts' V13, the master's
+S21) now closes with the big **"Join the email waitlist!"** CTA — violet
+accent, underline sweep, glow pulse (`WaitlistCta` in `src/lib/ui.tsx`). Fun
+endcards and V13 grew +18f for its read time; the master's length is
+unchanged.
 
 ## Commands
 
@@ -68,8 +92,12 @@ npm run gen:score:shorts   # regenerate public/audio/score-{fundamentals,macro,c
 npm run gen:score:fun      # regenerate public/audio/score-fun-{eightball,groupchat,gate,redflags}.wav
 npm run render             # render out/the-signal.mp4
 npm run render:shorts      # render all three vertical lens shorts
-npm run render:fun         # render all four fun campaign shorts
+npm run render:fun         # render all EIGHT fun campaign shorts
 npm run studio             # open Remotion Studio (port 3334) to scrub/iterate
+npm run stills -- Fun-Gate               # 12 evenly spaced review stills → out/stills/Fun-Gate/
+npm run stills -- Fun-Gate 30,300,800    # exact frames
+npm run stills -- Fun-Gate seq 100-160   # sequential frames through the encode path (DOM-reuse check)
+npm run check:leak         # white-label gate over src/ (zero hits required)
 npx remotion still Short-Macro out/f.png --frame=1200   # one frame of a short
 ```
 

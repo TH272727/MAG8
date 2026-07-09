@@ -18,7 +18,7 @@ export type LensInfo = {
 
 export const LENS: Record<ShortId, LensInfo> = {
   fundamentals: {color: C.fundamentals, label: 'FUNDAMENTALS', chip: 'LENS 01 · FUNDAMENTALS', ord: 1},
-  macro: {color: C.macro, label: 'MACRO ASYMMETRY', chip: 'LENS 02 · MACRO ASYMMETRY', ord: 2},
+  macro: {color: C.macro, label: 'GAME THEORY', chip: 'LENS 02 · GAME THEORY', ord: 2},
   consensus: {color: C.consensus, label: 'STREET CONSENSUS', chip: 'LENS 03 · STREET CONSENSUS', ord: 3},
 };
 
@@ -44,7 +44,7 @@ export const VHead: React.FC<{
   delay?: number;
   size?: number;
   top?: number;
-}> = ({title, color, chip, strap, delay = 6, size = 64, top = 210}) => {
+}> = ({title, color, chip, strap, delay = 6, size = 68, top = 210}) => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{alignItems: 'center'}}>
@@ -60,7 +60,7 @@ export const VHead: React.FC<{
         <Kinetic text={title} delay={delay} size={size} maxWidth={950} />
         {chip && (
           <div style={{opacity: lerp(frame, [delay + 26, delay + 38], [0, 1])}}>
-            <Chip color={color} border={`${color}55`} bg={`${color}0e`} size={18}>
+            <Chip color={color} border={`${color}55`} bg={`${color}0e`} size={24}>
               {chip}
             </Chip>
           </div>
@@ -69,7 +69,7 @@ export const VHead: React.FC<{
           <div
             style={{
               fontFamily: F.mono,
-              fontSize: 19,
+              fontSize: 25,
               letterSpacing: '0.12em',
               color: C.dim,
               opacity: lerp(frame, [delay + 44, delay + 58], [0, 1]),
@@ -96,7 +96,7 @@ export const VFoot: React.FC<{children: React.ReactNode; at: number; bottom?: nu
         style={{
           marginBottom: bottom,
           fontFamily: F.mono,
-          fontSize: 18,
+          fontSize: 24,
           letterSpacing: '0.12em',
           color: C.dim,
           textAlign: 'center',

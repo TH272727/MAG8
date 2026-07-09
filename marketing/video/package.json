@@ -7,22 +7,30 @@
     "studio": "remotion studio",
     "render": "remotion render TheSignal out/the-signal.mp4",
     "render:shorts": "remotion render Short-Fundamentals out/short-fundamentals.mp4 && remotion render Short-Macro out/short-macro.mp4 && remotion render Short-Consensus out/short-consensus.mp4",
-    "render:fun": "remotion render Fun-Eightball out/fun-eightball.mp4 && remotion render Fun-Groupchat out/fun-groupchat.mp4 && remotion render Fun-Gate out/fun-gate.mp4 && remotion render Fun-Redflags out/fun-redflags.mp4",
+    "render:fun": "remotion render Fun-Eightball out/fun-eightball.mp4 && remotion render Fun-Groupchat out/fun-groupchat.mp4 && remotion render Fun-Gate out/fun-gate.mp4 && remotion render Fun-Redflags out/fun-redflags.mp4 && remotion render Fun-Naturedoc out/fun-naturedoc.mp4 && remotion render Fun-Speedrun out/fun-speedrun.mp4 && remotion render Fun-Replay out/fun-replay.mp4 && remotion render Fun-Coldcase out/fun-coldcase.mp4",
     "still": "remotion still TheSignal",
+    "stills": "node scripts/stills.ts",
+    "check:leak": "node scripts/check-leak.ts",
     "gen:score": "node scripts/gen-score.ts",
     "gen:score:shorts": "node scripts/gen-score-shorts.ts",
     "gen:score:fun": "node scripts/gen-score-fun.ts"
   },
   "dependencies": {
+    "@remotion/animation-utils": "^4.0.486",
     "@remotion/cli": "^4.0.0",
     "@remotion/fonts": "^4.0.0",
+    "@remotion/motion-blur": "^4.0.486",
     "@remotion/noise": "^4.0.0",
     "@remotion/paths": "^4.0.0",
+    "@remotion/shapes": "^4.0.486",
+    "@remotion/transitions": "^4.0.486",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remotion": "^4.0.0"
   },
   "devDependencies": {
+    "@remotion/bundler": "^4.0.486",
+    "@remotion/renderer": "^4.0.486",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.7.0"

@@ -33,14 +33,14 @@ const ARCS = [
   'M 60 260 Q 500 40 960 250',
 ];
 
-/** S8 — Lens two: Macro maps the board. */
+/** S8 — Lens two: Game theory maps the board. */
 export const S08_Macro: React.FC = () => {
   const frame = useCurrentFrame();
   const brightDraw = evolvePath(lerp(frame, [50, 82], [0, 1], easeInOut), BRIGHT);
   const brightPulse = 0.75 + 0.25 * Math.sin(frame * 0.22);
   return (
     <Void>
-      <LensScene color={O} chipLabel="LENS 02 · MACRO ASYMMETRY" headline={'Macro\nmaps the board.'} slideOutAt={155}>
+      <LensScene color={O} chipLabel="LENS 02 · GAME THEORY" headline={'Game theory\nmaps the board.'} slideOutAt={155}>
         <Instrument x={0} y={0} w={950} h={520} label="GAME TREE" appear={4}>
           <svg width={900} height={430} viewBox="0 0 920 660" style={{overflow: 'visible'}}>
             {/* great-circle arcs behind */}

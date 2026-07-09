@@ -7,7 +7,7 @@ import {C, F} from '../theme';
 
 const LANES = [
   {cx: 480, label: 'FUNDAMENTALS', color: C.fundamentals},
-  {cx: 960, label: 'MACRO ASYMMETRY', color: C.macro},
+  {cx: 960, label: 'GAME THEORY', color: C.macro},
   {cx: 1440, label: 'STREET CONSENSUS', color: C.consensus},
 ];
 const WALL_X = [240, 720, 1200, 1680];
@@ -210,7 +210,7 @@ export const S06_Lanes: React.FC = () => {
           style={{
             marginBottom: 120,
             fontFamily: F.mono,
-            fontSize: 19,
+            fontSize: 25,
             letterSpacing: '0.1em',
             color: C.dim,
             opacity: lerp(frame, [112, 126], [0, 1]),

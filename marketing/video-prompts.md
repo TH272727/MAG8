@@ -163,7 +163,7 @@ with a soft violet edge. The chip duplicates into three identical copies, which 
 three tall isolated lanes divided by thin hairline walls, clearly separated.
 2.5–6.0s: Three colored probes of light begin inspecting the three copies independently —
 green #5fbf7a in lane one, copper #e0854a in lane two, teal #3fd1c9 in lane three. Mono
-uppercase labels fade in at each lane top: "FUNDAMENTALS", "MACRO ASYMMETRY",
+uppercase labels fade in at each lane top: "FUNDAMENTALS", "GAME THEORY",
 "STREET CONSENSUS". The walls between lanes stay visibly solid.
 6.0–8.0s: Type, centered above the lanes, bold white: "Three lenses. Working blind."
 Hold the three-lane composition.
@@ -187,7 +187,7 @@ LAST FRAME: the green instrument panel at rest, chip and headline visible.
 AUDIO: ticking, precise clicks, an abacus-like rhythm inside the groove.
 ```
 
-### S8 — Lens two: Macro Asymmetry
+### S8 — Lens two: Game Theory
 
 ```text
 FIRST FRAME: the green instrument panel at rest (match previous scene). It slides off left
@@ -198,8 +198,8 @@ fork like moves on a game board; most branches stay dim, one path lights up brig
 pulses as probability beads travel along it. Behind it, faint great-circle arcs sweep
 across a subtle dotted world map, suggesting global forces. A small fan of probability
 bands opens and narrows.
-6.0–8.0s: Type, bold white: "Macro maps the board." Mono chip: "LENS 02 · MACRO
-ASYMMETRY". The lit path holds.
+6.0–8.0s: Type, bold white: "Game theory maps the board." Mono chip: "LENS 02 · GAME
+THEORY". The lit path holds.
 LAST FRAME: the copper decision tree with one bright path, chip and headline visible.
 AUDIO: deeper pulse, a low strategic heartbeat under the groove.
 ```
@@ -231,7 +231,7 @@ FIRST FRAME: the teal chart dissolves in the first 0.5s to the wide ink-navy voi
 height — violet #8b7cff, green #5fbf7a, copper #e0854a, teal #3fd1c9 — each extending
 rightward as a thin organic thread of light that wanders like a live signal (gentle noise
 displacement, tapered width, soft additive glow). Tiny mono labels beside each:
-"DISCOVERY SCOUT", "FUNDAMENTALS", "MACRO ASYMMETRY", "STREET CONSENSUS".
+"DISCOVERY SCOUT", "FUNDAMENTALS", "GAME THEORY", "STREET CONSENSUS".
 2.0–5.0s: Type, top center: "When independent methods agree —". The four threads bend
 toward a single convergence point at 62% width, mid-height; their wandering calms and
 straightens as they approach. Bright packets of light run down each thread into the node.

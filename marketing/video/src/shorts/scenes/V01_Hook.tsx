@@ -15,26 +15,26 @@ const CAN_X = 540;
 
 /* Hand-placed in 1080×1920 space to crowd the frame and bury the bar. */
 const VBUBBLES: BubbleSpec[] = [
-  {text: '🚀 100x trust me', x: 330, y: 360, rot: -6, size: 38, order: 0},
-  {text: 'BUY NOW', x: 800, y: 300, rot: 5, size: 44, order: 1},
-  {text: "can't miss", x: 250, y: 1060, rot: 4, size: 38, order: 2},
-  {text: 'the next big thing', x: 700, y: 1210, rot: -4, size: 34, order: 3},
-  {text: 'all in', x: 850, y: 950, rot: 7, size: 44, order: 4},
-  {text: "I'm never wrong", x: 380, y: 1370, rot: -5, size: 34, order: 5},
-  {text: 'to the moon', x: 780, y: 1500, rot: 6, size: 34, order: 6},
-  {text: 'free money', x: 260, y: 520, rot: 7, size: 36, order: 7},
-  {text: 'guaranteed', x: 760, y: 480, rot: -3, size: 38, order: 8},
-  {text: 'no brainer', x: 320, y: 850, rot: -7, size: 40, order: 9},
-  {text: 'everyone knows', x: 620, y: 1080, rot: 3, size: 38, order: 10},
+  {text: '🚀 100x trust me', x: 330, y: 360, rot: -6, size: 43, order: 0},
+  {text: 'BUY NOW', x: 800, y: 300, rot: 5, size: 49, order: 1},
+  {text: "can't miss", x: 250, y: 1060, rot: 4, size: 43, order: 2},
+  {text: 'the next big thing', x: 700, y: 1210, rot: -4, size: 39, order: 3},
+  {text: 'all in', x: 850, y: 950, rot: 7, size: 49, order: 4},
+  {text: "I'm never wrong", x: 380, y: 1370, rot: -5, size: 39, order: 5},
+  {text: 'to the moon', x: 780, y: 1500, rot: 6, size: 39, order: 6},
+  {text: 'free money', x: 260, y: 520, rot: 7, size: 41, order: 7},
+  {text: 'guaranteed', x: 760, y: 480, rot: -3, size: 43, order: 8},
+  {text: 'no brainer', x: 320, y: 850, rot: -7, size: 45, order: 9},
+  {text: 'everyone knows', x: 620, y: 1080, rot: 3, size: 43, order: 10},
   // the late wave lands ON the bar
-  {text: 'YOLO', x: 400, y: 665, rot: -6, size: 46, order: 11},
-  {text: 'diamond hands', x: 620, y: 705, rot: 2.5, size: 40, order: 12},
-  {text: 'up only', x: 500, y: 745, rot: -5, size: 40, order: 13},
+  {text: 'YOLO', x: 400, y: 665, rot: -6, size: 50, order: 11},
+  {text: 'diamond hands', x: 620, y: 705, rot: 2.5, size: 45, order: 12},
+  {text: 'up only', x: 500, y: 745, rot: -5, size: 45, order: 13},
   // the screaming wave — conflicting voices
-  {text: "IT'S OVER", x: 250, y: 1210, rot: -5, size: 40, order: 14},
-  {text: 'PUMP IT', x: 850, y: 1110, rot: 6, size: 42, order: 15},
-  {text: 'obvious scam', x: 230, y: 620, rot: 4, size: 34, order: 16},
-  {text: 'GET IN NOW', x: 590, y: 615, rot: -3, size: 42, order: 17},
+  {text: "IT'S OVER", x: 250, y: 1210, rot: -5, size: 45, order: 14},
+  {text: 'PUMP IT', x: 850, y: 1110, rot: 6, size: 47, order: 15},
+  {text: 'obvious scam', x: 230, y: 620, rot: 4, size: 39, order: 16},
+  {text: 'GET IN NOW', x: 590, y: 615, rot: -3, size: 47, order: 17},
 ];
 
 export const V01_Hook: React.FC = () => {
@@ -64,7 +64,7 @@ export const V01_Hook: React.FC = () => {
             popAt={4}
             growOver={[24, 84]}
             shrinkOver={[88, 114]}
-            target={{x: -142, y: BAR_Y - 960, scale: (36 * 0.82) / 126}}
+            target={{x: -110, y: BAR_Y - 960, scale: (41 * 0.82) / 126}}
             fadeOver={[104, 116]}
             accents={{3: C.discovery}}
           />
@@ -115,7 +115,7 @@ export const V01_Hook: React.FC = () => {
             delay={232}
             seed="v1"
             base={0.8}
-            size={66}
+            size={70}
             weight={700}
             tint={C.discovery}
           />

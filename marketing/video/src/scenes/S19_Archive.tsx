@@ -40,7 +40,7 @@ export const S19_Archive: React.FC = () => {
               borderColor: glow > 0.15 ? `${C.confluence}44` : undefined,
             }}
           >
-            <span style={{fontFamily: F.mono, fontSize: 21, letterSpacing: '0.14em', color: C.muted}}>
+            <span style={{fontFamily: F.mono, fontSize: 27, letterSpacing: '0.14em', color: C.muted}}>
               {w.label}
             </span>
             <div style={{flex: 1, margin: '0 34px', display: 'flex', gap: 8}}>
@@ -51,7 +51,7 @@ export const S19_Archive: React.FC = () => {
             <span
               style={{
                 fontFamily: F.mono,
-                fontSize: 30,
+                fontSize: 36,
                 fontWeight: 700,
                 color: C.confluence,
                 opacity: 0.35 + w.dim * 0.65,
@@ -74,7 +74,7 @@ export const S19_Archive: React.FC = () => {
           top: 902,
           textAlign: 'center',
           fontFamily: F.mono,
-          fontSize: 19,
+          fontSize: 25,
           letterSpacing: '0.13em',
           color: C.dim,
           opacity: lerp(frame, [90, 104], [0, 1]),

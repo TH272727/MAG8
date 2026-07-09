@@ -63,7 +63,7 @@ export const S09_Consensus: React.FC = () => {
               right: 8,
               top: 128,
               fontFamily: F.mono,
-              fontSize: 26,
+              fontSize: 32,
               fontWeight: 600,
               color: T,
               opacity: merge,

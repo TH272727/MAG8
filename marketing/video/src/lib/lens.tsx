@@ -91,7 +91,7 @@ export const Instrument: React.FC<{
         boxSizing: 'border-box',
       }}
     >
-      <Eyebrow size={16} style={{marginBottom: 12}}>
+      <Eyebrow size={22} style={{marginBottom: 12}}>
         {label}
       </Eyebrow>
       <div style={{position: 'relative', width: '100%', height: h - 66}}>{children}</div>
@@ -109,7 +109,7 @@ export const Roll: React.FC<{
   duration?: number;
   size?: number;
   color?: string;
-}> = ({target, decimals = 1, prefix = '', suffix = '', delay = 12, duration = 26, size = 30, color = C.ink}) => {
+}> = ({target, decimals = 1, prefix = '', suffix = '', delay = 12, duration = 26, size = 36, color = C.ink}) => {
   const frame = useCurrentFrame();
   const t = lerp(frame, [delay, delay + duration], [0, 1], easeOut);
   const v = target * t;
@@ -121,6 +121,7 @@ export const Roll: React.FC<{
         fontWeight: 600,
         color,
         fontVariantNumeric: 'tabular-nums',
+        whiteSpace: 'nowrap',
       }}
     >
       {prefix}
@@ -147,7 +148,7 @@ export const ReadoutRow: React.FC<{
         marginBottom: 10,
       }}
     >
-      <span style={{fontFamily: F.mono, fontSize: 18, letterSpacing: '0.08em', color: C.muted}}>
+      <span style={{fontFamily: F.mono, fontSize: 24, letterSpacing: '0.08em', color: C.muted}}>
         {label}
       </span>
       {children}

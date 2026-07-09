@@ -47,19 +47,19 @@ export const VF1_Books: React.FC = () => {
       <Instrument x={570} y={640} w={440} h={430} label="TAPE" appear={38}>
         <div style={{paddingTop: 8}}>
           <ReadoutRow label="GROSS MARGIN" delay={46}>
-            <Roll target={61.4} delay={48} suffix="%" size={32} />
+            <Roll target={61.4} delay={48} suffix="%" size={38} />
           </ReadoutRow>
           <ReadoutRow label="FCF YIELD" delay={54}>
-            <Roll target={3.8} delay={56} suffix="%" size={32} />
+            <Roll target={3.8} delay={56} suffix="%" size={38} />
           </ReadoutRow>
           <ReadoutRow label="NET CASH" delay={62}>
-            <Roll target={2.4} delay={64} prefix="$" suffix="B" size={32} />
+            <Roll target={2.4} delay={64} prefix="$" suffix="B" size={38} />
           </ReadoutRow>
           <ReadoutRow label="REV CAGR 3Y" delay={70}>
-            <Roll target={38.2} delay={72} suffix="%" size={32} />
+            <Roll target={38.2} delay={72} suffix="%" size={38} />
           </ReadoutRow>
           <ReadoutRow label="DILUTION" delay={78}>
-            <Roll target={1.9} delay={80} suffix="%" size={32} />
+            <Roll target={1.9} delay={80} suffix="%" size={38} />
           </ReadoutRow>
         </div>
       </Instrument>
@@ -85,7 +85,7 @@ export const VF1_Books: React.FC = () => {
           <circle cx={280} cy={290} r={12} fill={C.panel2} stroke={C.hairline2} strokeWidth={2} />
         </svg>
         <div style={{position: 'absolute', right: 34, top: 30}}>
-          <Roll target={8.6} delay={72} size={44} color={G} suffix=" / 10" />
+          <Roll target={8.6} delay={72} size={49} color={G} suffix=" / 10" />
         </div>
       </Instrument>
     </Void>
@@ -129,29 +129,31 @@ export const VF2_Quality: React.FC = () => {
                   }}
                 >
                   {frame >= at && (
-                    <span style={{fontFamily: F.mono, fontSize: 34, fontWeight: 700, color: on ? G : C.dim}}>
+                    <span style={{fontFamily: F.mono, fontSize: 39, fontWeight: 700, color: on ? G : C.dim}}>
                       {lit ? '✓' : '·'}
                     </span>
                   )}
                 </div>
-                <span style={{fontFamily: F.mono, fontSize: 14, color: C.dim}}>{i + 1}</span>
+                <span style={{fontFamily: F.mono, fontSize: 20, color: C.dim}}>{i + 1}</span>
               </div>
             );
           })}
         </div>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 30}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, marginTop: 24}}>
           <span
             style={{
               fontFamily: F.mono,
-              fontSize: 17,
+              fontSize: 23,
               letterSpacing: '0.1em',
+              lineHeight: 1.45,
               color: C.dim,
+              maxWidth: 620,
               opacity: lerp(frame, [100, 112], [0, 1]),
             }}
           >
             F ≤ 3 IS AN AUTOMATIC VETO — NO STORY OVERRIDES IT
           </span>
-          <Roll target={8} decimals={0} delay={92} size={44} color={G} suffix=" / 9" />
+          <Roll target={8} decimals={0} delay={92} size={49} color={G} suffix=" / 9" />
         </div>
       </Instrument>
 
@@ -185,7 +187,7 @@ export const VF2_Quality: React.FC = () => {
                   top: 52,
                   transform: 'translateX(-50%)',
                   fontFamily: F.mono,
-                  fontSize: 15,
+                  fontSize: 21,
                   letterSpacing: '0.12em',
                   color: z.color,
                   opacity: 0.8 * lerp(frame, [84, 96], [0, 1]),
@@ -214,7 +216,7 @@ export const VF2_Quality: React.FC = () => {
           <span
             style={{
               fontFamily: F.mono,
-              fontSize: 17,
+              fontSize: 23,
               letterSpacing: '0.1em',
               color: C.dim,
               opacity: lerp(frame, [126, 140], [0, 1]),
@@ -222,7 +224,7 @@ export const VF2_Quality: React.FC = () => {
           >
             BANKRUPTCY MATH BEFORE BULL MATH
           </span>
-          <Roll target={4.2} delay={100} size={44} color={G} prefix="Z " />
+          <Roll target={4.2} delay={100} size={49} color={G} prefix="Z " />
         </div>
       </Instrument>
     </Void>
@@ -276,7 +278,7 @@ export const VF3_Traps: React.FC = () => {
           left: 90,
           top: MESH_Y + 24,
           fontFamily: F.mono,
-          fontSize: 15,
+          fontSize: 21,
           letterSpacing: '0.13em',
           color: `${G}bb`,
           opacity: lerp(frame, [26, 38], [0, 1]),
@@ -323,7 +325,7 @@ export const VF3_Traps: React.FC = () => {
                   top: y - 62,
                   transform: `translate(-50%, 0) scale(${Math.min(markS, 1)})`,
                   fontFamily: F.mono,
-                  fontSize: 17,
+                  fontSize: 23,
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   color: f.trap ? C.danger : G,
@@ -342,13 +344,13 @@ export const VF3_Traps: React.FC = () => {
       <Instrument x={70} y={1330} w={940} h={180} label="SCREEN RESULT" appear={100}>
         <div style={{display: 'flex', gap: 54, alignItems: 'baseline', marginTop: 4}}>
           <ReadoutRow label="SCREENED" delay={106}>
-            <Roll target={5} decimals={0} delay={108} size={32} />
+            <Roll target={5} decimals={0} delay={108} size={38} />
           </ReadoutRow>
           <ReadoutRow label="TRAPS CUT" delay={112}>
-            <Roll target={2} decimals={0} delay={114} size={32} color={C.danger} />
+            <Roll target={2} decimals={0} delay={114} size={38} color={C.danger} />
           </ReadoutRow>
           <ReadoutRow label="ADVANCE" delay={118}>
-            <Roll target={3} decimals={0} delay={120} size={32} color={G} />
+            <Roll target={3} decimals={0} delay={120} size={38} color={G} />
           </ReadoutRow>
         </div>
       </Instrument>
@@ -373,7 +375,7 @@ export const VF4_PricedIn: React.FC = () => {
           left: 0,
           top: y - 34,
           fontFamily: F.mono,
-          fontSize: 17,
+          fontSize: 23,
           letterSpacing: '0.11em',
           color: C.muted,
           opacity: lerp(frame, [at - 8, at], [0, 1]),
@@ -400,7 +402,7 @@ export const VF4_PricedIn: React.FC = () => {
           left: toX(v) + 18,
           top: y + 2,
           fontFamily: F.mono,
-          fontSize: 26,
+          fontSize: 32,
           fontWeight: 700,
           color,
           fontVariantNumeric: 'tabular-nums',
@@ -432,7 +434,7 @@ export const VF4_PricedIn: React.FC = () => {
               top: 356,
               transform: 'translateX(-50%)',
               fontFamily: F.mono,
-              fontSize: 21,
+              fontSize: 27,
               fontWeight: 700,
               letterSpacing: '0.08em',
               color: G,
@@ -477,7 +479,7 @@ export const VF5_Scenarios: React.FC = () => {
             const y = i * 96;
             return (
               <div key={s.key} style={{position: 'relative', height: 96, opacity: on}}>
-                <span style={{position: 'absolute', left: 0, top: 18, fontFamily: F.mono, fontSize: 19, letterSpacing: '0.1em', color: C.dim, width: 70}}>
+                <span style={{position: 'absolute', left: 0, top: 18, fontFamily: F.mono, fontSize: 25, letterSpacing: '0.1em', color: C.dim, width: 70}}>
                   {s.key}
                 </span>
                 <div style={{position: 'absolute', left: 90, right: 130, top: 26, height: 1.5, background: C.hairline}} />
@@ -502,7 +504,7 @@ export const VF5_Scenarios: React.FC = () => {
                     left: 90 + toX(s.price) + 22,
                     top: 12,
                     fontFamily: F.mono,
-                    fontSize: 24,
+                    fontSize: 30,
                     fontWeight: 700,
                     color: C.ink,
                     fontVariantNumeric: 'tabular-nums',
@@ -510,18 +512,18 @@ export const VF5_Scenarios: React.FC = () => {
                 >
                   ${s.price}
                 </span>
-                <span style={{position: 'absolute', right: 0, top: 14, fontFamily: F.mono, fontSize: 22, color: C.muted}}>
+                <span style={{position: 'absolute', right: 0, top: 14, fontFamily: F.mono, fontSize: 28, color: C.muted}}>
                   {s.prob}%
                 </span>
               </div>
             );
           })}
           <div style={{marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 22, opacity: lerp(frame, [80, 92], [0, 1])}}>
-            <span style={{fontFamily: F.mono, fontSize: 18, letterSpacing: '0.1em', color: C.muted}}>
+            <span style={{fontFamily: F.mono, fontSize: 24, letterSpacing: '0.1em', color: C.muted}}>
               PROBABILITY-WEIGHTED
             </span>
-            <Roll target={40.5} delay={84} prefix="$" size={38} color={G} />
-            <span style={{fontFamily: F.mono, fontSize: 20, color: C.dim}}>vs spot $27</span>
+            <Roll target={40.5} delay={84} prefix="$" size={43} color={G} />
+            <span style={{fontFamily: F.mono, fontSize: 26, color: C.dim}}>vs spot $27</span>
           </div>
         </div>
       </Instrument>
@@ -545,7 +547,7 @@ export const VF5_Scenarios: React.FC = () => {
                   background: C.panel2,
                   width: 'fit-content',
                   fontFamily: F.mono,
-                  fontSize: 17,
+                  fontSize: 23,
                   letterSpacing: '0.08em',
                   color: C.ink,
                   opacity: lerp(frame, [at, at + 6], [0, 1]),
@@ -553,7 +555,7 @@ export const VF5_Scenarios: React.FC = () => {
                   transformOrigin: 'left center',
                 }}
               >
-                <span style={{color: G, fontSize: 19}}>↗</span>
+                <span style={{color: G, fontSize: 25}}>↗</span>
                 {s}
               </div>
             );

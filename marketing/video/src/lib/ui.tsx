@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {C, F} from '../theme';
-import {blink, lerp, pop, rndIn} from './anim';
+import {blink, lerp, pop, pulse01, rndIn} from './anim';
 
 /* Film grain — same SVG turbulence the site uses (hero-field::after). */
 const GRAIN_URI =
@@ -71,7 +71,7 @@ export const Eyebrow: React.FC<{
   color?: string;
   size?: number;
   style?: React.CSSProperties;
-}> = ({children, color = C.muted, size = 20, style}) => (
+}> = ({children, color = C.muted, size = 26, style}) => (
   <div
     style={{
       fontFamily: F.mono,
@@ -95,7 +95,7 @@ export const Chip: React.FC<{
   bg?: string;
   size?: number;
   style?: React.CSSProperties;
-}> = ({children, color = C.muted, border = C.hairline, bg = 'transparent', size = 19, style}) => (
+}> = ({children, color = C.muted, border = C.hairline, bg = 'transparent', size = 25, style}) => (
   <div
     style={{
       display: 'inline-flex',
@@ -198,7 +198,10 @@ export const Kinetic: React.FC<{
                   color: accents[idx] ?? color,
                   opacity: op,
                   transform: `translateY(${(1 - s) * 34}px)`,
-                  filter: `blur(${(1 - s) * 5}px)`,
+                  // clamp: spring overshoot (s>1) would emit a negative blur —
+                  // invalid CSS that the video renderer's reused DOM keeps as a
+                  // stale big blur (ghost words in the encode; stills unaffected)
+                  filter: `blur(${Math.max(0, 1 - s) * 5}px)`,
                 }}
               >
                 {word}
@@ -329,6 +332,58 @@ export const TypeOn: React.FC<{
           </div>
         );
       })}
+    </div>
+  );
+};
+
+/**
+ * Big endcard call-to-action — the one ask on every film. Ink + violet only
+ * (gold stays reserved for verdicts), springs in, underline sweeps, then a
+ * soft recurring glow pulse so it keeps breathing until the fade.
+ */
+export const WaitlistCta: React.FC<{at: number; size?: number}> = ({at, size = 64}) => {
+  const frame = useCurrentFrame();
+  const s = pop(frame, at, 12, 0.85);
+  const op = lerp(frame, [at, at + 8], [0, 1]);
+  const sweep = lerp(frame, [at + 6, at + 24], [0, 1]);
+  const glow = frame > at + 26 ? pulse01(((frame - at - 26) % 64) / 40) : 0;
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 20,
+        opacity: op,
+        transform: `translateY(${(1 - s) * 34}px) scale(${0.92 + Math.min(s, 1) * 0.08})`,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: F.display,
+          fontSize: size,
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          lineHeight: 1,
+          color: C.ink,
+          whiteSpace: 'nowrap',
+          textShadow: `0 0 ${18 + glow * 26}px rgba(139,124,255,${0.22 + glow * 0.3})`,
+        }}
+      >
+        Join the{' '}
+        <span style={{color: C.discovery, textShadow: '0 0 24px rgba(139,124,255,0.5)'}}>
+          email waitlist!
+        </span>
+      </div>
+      <div
+        style={{
+          height: 6,
+          width: 430 * sweep,
+          borderRadius: 99,
+          background: `linear-gradient(90deg, transparent, ${C.discovery} 30%, ${C.discovery} 70%, transparent)`,
+          boxShadow: sweep > 0.05 ? '0 0 18px rgba(139,124,255,0.4)' : undefined,
+        }}
+      />
     </div>
   );
 };

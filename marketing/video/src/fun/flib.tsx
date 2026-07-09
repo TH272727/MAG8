@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame} from 'remotion';
-import {Chip, Void} from '../lib/ui';
+import {Chip, Void, WaitlistCta} from '../lib/ui';
 import {lerp, pop, pulse01} from '../lib/anim';
 import {C, F} from '../theme';
 
@@ -11,7 +11,7 @@ import {C, F} from '../theme';
 
 export const LENS_ROWS: Array<{label: string; color: string}> = [
   {label: 'FUNDAMENTALS', color: C.fundamentals},
-  {label: 'MACRO ASYMMETRY', color: C.macro},
+  {label: 'GAME THEORY', color: C.macro},
   {label: 'STREET CONSENSUS', color: C.consensus},
 ];
 
@@ -26,6 +26,9 @@ export const DeskStamps: React.FC<{
   glyphs?: [string, string, string];
   score?: string;
   confluence?: boolean;
+  /** Custom verdict chip (renders in the confluence slot when confluence=false). */
+  chip?: string;
+  chipColor?: string;
   foot?: string;
   footAt?: number;
   top?: number;
@@ -36,6 +39,8 @@ export const DeskStamps: React.FC<{
   glyphs = ['▲', '▲', '▲'],
   score = '90.3',
   confluence = true,
+  chip,
+  chipColor = C.danger,
   foot,
   footAt,
   top = 640,
@@ -65,13 +70,13 @@ export const DeskStamps: React.FC<{
                 boxShadow: '0 18px 50px rgba(0,0,0,0.4)',
               }}
             >
-              <Chip color={l.color} border={`${l.color}55`} bg={`${l.color}0e`} size={20}>
+              <Chip color={l.color} border={`${l.color}55`} bg={`${l.color}0e`} size={26}>
                 {l.label}
               </Chip>
               <span
                 style={{
                   fontFamily: F.mono,
-                  fontSize: 44,
+                  fontSize: 49,
                   fontWeight: 700,
                   color: l.color,
                   lineHeight: 1,
@@ -110,13 +115,24 @@ export const DeskStamps: React.FC<{
         </div>
         {confluence && (
           <Chip
-            size={17}
+            size={23}
             color={C.confluence}
             border={`${C.confluence}88`}
             bg={`${C.confluence}10`}
             style={{boxShadow: `0 0 14px ${C.confluence}22`, opacity: lerp(frame, [verdictAt + 14, verdictAt + 26], [0, 1])}}
           >
             CONFLUENCE — ALL THREE AGREE
+          </Chip>
+        )}
+        {!confluence && chip && (
+          <Chip
+            size={23}
+            color={chipColor}
+            border={`${chipColor}88`}
+            bg={`${chipColor}10`}
+            style={{boxShadow: `0 0 14px ${chipColor}22`, opacity: lerp(frame, [verdictAt + 14, verdictAt + 26], [0, 1])}}
+          >
+            {chip}
           </Chip>
         )}
       </div>
@@ -127,7 +143,7 @@ export const DeskStamps: React.FC<{
             position: 'absolute',
             bottom: 240,
             fontFamily: F.mono,
-            fontSize: 18,
+            fontSize: 24,
             letterSpacing: '0.12em',
             color: C.dim,
             textAlign: 'center',
@@ -171,10 +187,10 @@ export const MiniRow: React.FC<{
         transform: `translateY(${(1 - s) * 30}px)`,
       }}
     >
-      <span style={{fontFamily: F.mono, fontSize: 24, color: C.dim}}>{rank}</span>
-      <Redact />
+      <span style={{fontFamily: F.mono, fontSize: 30, color: C.dim}}>{rank}</span>
+      <Redact cash />
       {note && (
-        <Chip size={14} color={C.muted} border={C.hairline}>
+        <Chip size={20} color={C.muted} border={C.hairline}>
           {note}
         </Chip>
       )}
@@ -182,7 +198,7 @@ export const MiniRow: React.FC<{
       <span
         style={{
           fontFamily: F.mono,
-          fontSize: 36,
+          fontSize: 41,
           fontWeight: 700,
           color: 'rgba(242,199,92,0.6)',
           fontVariantNumeric: 'tabular-nums',
@@ -194,9 +210,28 @@ export const MiniRow: React.FC<{
   );
 };
 
-/** Redacted ticker glyph (local copy — the shorts never name the candidate). */
-export const Redact: React.FC<{dim?: boolean; scale?: number}> = ({dim, scale = 1}) => (
+/** Redacted ticker glyph (local copy — the shorts never name the candidate).
+ * `cash` prefixes a $ so the bars read as a stock ticker at first glance. */
+export const Redact: React.FC<{dim?: boolean; scale?: number; cash?: boolean}> = ({
+  dim,
+  scale = 1,
+  cash,
+}) => (
   <div style={{display: 'flex', gap: 7 * scale, alignItems: 'center'}}>
+    {cash && (
+      <span
+        style={{
+          fontFamily: F.mono,
+          fontSize: 30 * scale,
+          fontWeight: 700,
+          lineHeight: 1,
+          color: dim ? 'rgba(231,234,238,0.4)' : 'rgba(231,234,238,0.75)',
+          textShadow: dim ? undefined : '0 0 8px rgba(231,234,238,0.35)',
+        }}
+      >
+        $
+      </span>
+    )}
     {[24, 16, 20, 13, 18].map((w, i) => (
       <div
         key={i}
@@ -212,12 +247,13 @@ export const Redact: React.FC<{dim?: boolean; scale?: number}> = ({dim, scale = 
   </div>
 );
 
-/** Endcard for the fun campaign: mark, wordmark, gag chip, the disclaimer. */
+/** Endcard for the fun campaign (168f): mark, wordmark, gag chip, the
+ * waitlist CTA in big type, the disclaimer. */
 export const FunEndcard: React.FC<{gag: string}> = ({gag}) => {
   const frame = useCurrentFrame();
   const markIn = pop(frame, 6, 14, 1);
   const beat = Math.max(pulse01((frame - 56) / 26), pulse01((frame - 118) / 26));
-  const fadeOut = lerp(frame, [137, 150], [0, 1]);
+  const fadeOut = lerp(frame, [155, 168], [0, 1]);
   return (
     <Void depth>
       <AbsoluteFill style={{alignItems: 'center'}}>
@@ -271,7 +307,7 @@ export const FunEndcard: React.FC<{gag: string}> = ({gag}) => {
           style={{
             marginTop: 32,
             fontFamily: F.body,
-            fontSize: 33,
+            fontSize: 38,
             fontWeight: 400,
             color: C.muted,
             opacity: lerp(frame, [42, 58], [0, 1]),
@@ -281,9 +317,13 @@ export const FunEndcard: React.FC<{gag: string}> = ({gag}) => {
         </div>
 
         <div style={{marginTop: 46, opacity: lerp(frame, [66, 82], [0, 1])}}>
-          <Chip color={C.ink} border={C.hairline2} bg={C.panel} size={17}>
+          <Chip color={C.ink} border={C.hairline2} bg={C.panel} size={23}>
             {gag}
           </Chip>
+        </div>
+
+        <div style={{marginTop: 96}}>
+          <WaitlistCta at={86} />
         </div>
 
         <div
@@ -291,10 +331,10 @@ export const FunEndcard: React.FC<{gag: string}> = ({gag}) => {
             position: 'absolute',
             bottom: 190,
             fontFamily: F.mono,
-            fontSize: 16,
+            fontSize: 22,
             letterSpacing: '0.16em',
             color: C.dim,
-            opacity: lerp(frame, [90, 106], [0, 1]),
+            opacity: lerp(frame, [104, 120], [0, 1]),
           }}
         >
           RESEARCH, NOT INVESTMENT ADVICE

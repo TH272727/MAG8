@@ -25,8 +25,8 @@ export const VM1_Board: React.FC = () => {
       <VHead
         title={'Lens two\nmaps the board.'}
         color={O}
-        chip="LENS 02 · MACRO ASYMMETRY"
-        strap="GAME THEORY, PLAYED IN THE OPEN"
+        chip="LENS 02 · GAME THEORY"
+        strap="PLAYERS · MOVES · PAYOFFS"
       />
       {/* great-circle arcs over a faint node field — the board itself */}
       <svg width={1080} height={1920} style={{position: 'absolute', inset: 0}}>
@@ -74,7 +74,7 @@ export const VM1_Board: React.FC = () => {
             delay={84}
             seed="vm1"
             base={0.7}
-            size={52}
+            size={56}
             tint={O}
             cursor={false}
           />
@@ -103,7 +103,7 @@ const MeterRow: React.FC<{tag: string; v: number; at: number}> = ({tag, v, at}) 
   const t = lerp(frame, [at, at + 20], [0, 1], easeOut);
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 9}}>
-      <span style={{fontFamily: F.mono, fontSize: 15, color: C.dim, width: 14}}>{tag}</span>
+      <span style={{fontFamily: F.mono, fontSize: 21, color: C.dim, width: 20}}>{tag}</span>
       <div style={{position: 'relative', flex: 1, height: 9, borderRadius: 5, background: `${O}14`, border: `1px solid ${O}30`}}>
         <div
           style={{
@@ -118,7 +118,7 @@ const MeterRow: React.FC<{tag: string; v: number; at: number}> = ({tag, v, at}) 
           }}
         />
       </div>
-      <span style={{fontFamily: F.mono, fontSize: 16, color: C.muted, width: 24, textAlign: 'right'}}>
+      <span style={{fontFamily: F.mono, fontSize: 22, color: C.muted, width: 34, textAlign: 'right'}}>
         {Math.round(v * t)}
       </span>
     </div>
@@ -172,11 +172,11 @@ export const VM2_Players: React.FC = () => {
               }}
             >
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
-                <span style={{fontFamily: F.mono, fontSize: 20, fontWeight: 700, letterSpacing: '0.06em', color: C.ink}}>
+                <span style={{fontFamily: F.mono, fontSize: 26, fontWeight: 700, letterSpacing: '0.06em', color: C.ink}}>
                   <span style={{color: O}}>{i + 1}</span> {p.name}
                 </span>
               </div>
-              <div style={{fontFamily: F.mono, fontSize: 14, color: C.dim, marginTop: 6, letterSpacing: '0.04em'}}>
+              <div style={{fontFamily: F.mono, fontSize: 20, color: C.dim, marginTop: 6, letterSpacing: '0.04em'}}>
                 {p.role}
               </div>
               <div style={{marginTop: 14}}>
@@ -188,7 +188,7 @@ export const VM2_Players: React.FC = () => {
                 style={{
                   marginTop: 14,
                   fontFamily: F.mono,
-                  fontSize: 15,
+                  fontSize: 21,
                   letterSpacing: '0.09em',
                   color: `${O}dd`,
                   opacity: lerp(frame, [at + 26, at + 36], [0, 1]),
@@ -207,7 +207,7 @@ export const VM2_Players: React.FC = () => {
             bottom: 168,
             textAlign: 'center',
             fontFamily: F.mono,
-            fontSize: 18,
+            fontSize: 24,
             letterSpacing: '0.12em',
             color: C.dim,
             opacity: lerp(frame, [96, 110], [0, 1]),
@@ -241,15 +241,15 @@ export const VM2_Players: React.FC = () => {
           ))}
           {[0, 5, 10].map((v) => (
             <React.Fragment key={v}>
-              <text x={px(v)} y={PLOT.y + PLOT.h + 34} textAnchor="middle" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 15}}>
+              <text x={px(v)} y={PLOT.y + PLOT.h + 34} textAnchor="middle" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
                 {v}
               </text>
-              <text x={PLOT.x - 26} y={py(v) + 5} textAnchor="end" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 15}}>
+              <text x={PLOT.x - 26} y={py(v) + 5} textAnchor="end" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
                 {v}
               </text>
             </React.Fragment>
           ))}
-          <text x={PLOT.x + PLOT.w / 2} y={PLOT.y + PLOT.h + 66} textAnchor="middle" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 16, letterSpacing: '0.14em'}}>
+          <text x={PLOT.x + PLOT.w / 2} y={PLOT.y + PLOT.h + 66} textAnchor="middle" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 22, letterSpacing: '0.14em'}}>
             MASS →
           </text>
           <text
@@ -258,7 +258,7 @@ export const VM2_Players: React.FC = () => {
             textAnchor="middle"
             fill={C.muted}
             transform={`rotate(-90 ${PLOT.x - 62} ${PLOT.y + PLOT.h / 2})`}
-            style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 16, letterSpacing: '0.14em'}}
+            style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 22, letterSpacing: '0.14em'}}
           >
             COORDINATION →
           </text>
@@ -271,7 +271,7 @@ export const VM2_Players: React.FC = () => {
               <g key={p.name} opacity={lerp(frame, [at, at + 6], [0, 1])}>
                 <circle cx={px(p.m)} cy={py(p.c)} r={r} fill={`${O}2e`} stroke={O} strokeWidth={2} />
                 <circle cx={px(p.m)} cy={py(p.c)} r={3} fill={O} />
-                <text x={px(p.m)} y={py(p.c) - r - 10} textAnchor="middle" fill={C.ink} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 17, fontWeight: 700}}>
+                <text x={px(p.m)} y={py(p.c) - r - 10} textAnchor="middle" fill={C.ink} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 23, fontWeight: 700}}>
                   {i + 1}
                 </text>
               </g>
@@ -284,7 +284,7 @@ export const VM2_Players: React.FC = () => {
             left: 106,
             top: 1352,
             fontFamily: F.mono,
-            fontSize: 15,
+            fontSize: 21,
             letterSpacing: '0.13em',
             color: C.dim,
             opacity: lerp(frame, [MAP_AT + 44, MAP_AT + 56], [0, 1]),
@@ -306,7 +306,7 @@ export const VM2_Players: React.FC = () => {
           }}
         >
           {PLAYERS.map((p, i) => (
-            <span key={p.name} style={{fontFamily: F.mono, fontSize: 15.5, color: C.muted}}>
+            <span key={p.name} style={{fontFamily: F.mono, fontSize: 22, color: C.muted}}>
               <span style={{color: C.ink}}>{i + 1}</span> {p.name}
               <span style={{color: C.dim}}> · M{p.m} E{p.e} C{p.c}</span>
             </span>
@@ -320,7 +320,7 @@ export const VM2_Players: React.FC = () => {
             bottom: 168,
             textAlign: 'center',
             fontFamily: F.mono,
-            fontSize: 18,
+            fontSize: 24,
             letterSpacing: '0.12em',
             color: C.dim,
             opacity: lerp(frame, [MAP_AT + 56, MAP_AT + 70], [0, 1]),
@@ -440,7 +440,7 @@ export const VM3_Paths: React.FC = () => {
       </svg>
       {/* root chip + move labels */}
       <div style={{position: 'absolute', left: T0.x, top: T0.y - 64, transform: 'translateX(-50%)', opacity: lerp(frame, [8, 20], [0, 1])}}>
-        <Chip size={16} color={C.muted}>TODAY</Chip>
+        <Chip size={22} color={C.muted}>TODAY</Chip>
       </div>
       {T1.map((n, i) => (
         <div
@@ -451,7 +451,7 @@ export const VM3_Paths: React.FC = () => {
             top: n.y + 24,
             transform: 'translateX(-50%)',
             fontFamily: F.mono,
-            fontSize: 16,
+            fontSize: 22,
             letterSpacing: '0.1em',
             color: frame > IGNITE && i !== 1 ? C.dim : O,
             opacity: lerp(frame, [44 + i * 6, 56 + i * 6], [0, 1]),
@@ -470,7 +470,7 @@ export const VM3_Paths: React.FC = () => {
             top: n.y + 22,
             transform: 'translateX(-50%)',
             fontFamily: F.mono,
-            fontSize: 15,
+            fontSize: 21,
             color: frame > IGNITE && i !== 7 ? C.dim : C.muted,
             fontWeight: i === 7 ? 700 : 400,
             opacity: lerp(frame, [92 + i * 3, 102 + i * 3], [0, 1]),
@@ -483,13 +483,13 @@ export const VM3_Paths: React.FC = () => {
       <Instrument x={70} y={1560} w={940} h={150} label="PATH ENGINE" appear={IGNITE - 22}>
         <div style={{display: 'flex', gap: 52, alignItems: 'baseline', marginTop: 2}}>
           <ReadoutRow label="PATHS" delay={IGNITE - 14}>
-            <Roll target={21} decimals={0} delay={IGNITE - 12} size={30} />
+            <Roll target={21} decimals={0} delay={IGNITE - 12} size={36} />
           </ReadoutRow>
           <ReadoutRow label="PRUNED" delay={IGNITE - 8}>
-            <Roll target={16} decimals={0} delay={IGNITE - 6} size={30} />
+            <Roll target={16} decimals={0} delay={IGNITE - 6} size={36} />
           </ReadoutRow>
           <ReadoutRow label="EQUILIBRIUM" delay={IGNITE + 26}>
-            <Roll target={0.62} decimals={2} delay={IGNITE + 28} prefix="P=" size={30} color={O} />
+            <Roll target={0.62} decimals={2} delay={IGNITE + 28} prefix="P=" size={36} color={O} />
           </ReadoutRow>
         </div>
       </Instrument>
@@ -541,7 +541,7 @@ export const VM4_Horizons: React.FC = () => {
         {[0, 25, 50, 75, 100].map((p) => (
           <React.Fragment key={p}>
             <line x1={PLOT.x} x2={PLOT.x + PLOT.w} y1={hy(p)} y2={hy(p)} stroke={C.hairline} strokeWidth={1} opacity={0.7} />
-            <text x={PLOT.x - 24} y={hy(p) + 5} textAnchor="end" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 15}}>
+            <text x={PLOT.x - 24} y={hy(p) + 5} textAnchor="end" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
               {p}
             </text>
           </React.Fragment>
@@ -562,10 +562,11 @@ export const VM4_Horizons: React.FC = () => {
           return (
             <g key={h.label} opacity={lerp(frame, [at, at + 6], [0, 1])}>
               <circle cx={hx(i)} cy={hy(h.p)} r={8 * Math.min(s, 1)} fill={O} stroke={C.panel} strokeWidth={3} />
-              <text x={hx(i)} y={hy(h.p) - 22} textAnchor="middle" fill={C.ink} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21, fontWeight: 700}}>
+              {/* first label anchors right of its point so it clears the y-axis ticks */}
+              <text x={i === 0 ? hx(i) + 16 : hx(i)} y={hy(h.p) - 22} textAnchor={i === 0 ? 'start' : 'middle'} fill={C.ink} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 27, fontWeight: 700}}>
                 {h.p}%
               </text>
-              <text x={hx(i)} y={PLOT.y + PLOT.h + 38} textAnchor="middle" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 17, letterSpacing: '0.1em'}}>
+              <text x={hx(i)} y={PLOT.y + PLOT.h + 38} textAnchor="middle" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 23, letterSpacing: '0.1em'}}>
                 {h.label}
               </text>
             </g>
@@ -580,7 +581,7 @@ export const VM4_Horizons: React.FC = () => {
           display: 'flex',
           gap: 34,
           fontFamily: F.mono,
-          fontSize: 15.5,
+          fontSize: 22,
           letterSpacing: '0.1em',
           opacity: lerp(frame, [104, 118], [0, 1]),
         }}
@@ -631,23 +632,23 @@ export const VM5_Asymmetry: React.FC = () => {
       {/* entry window */}
       <Instrument x={570} y={600} w={440} h={430} label="ENTRY WINDOW" appear={30}>
         <div style={{marginTop: 16, opacity: lerp(frame, [52, 64], [0, 1])}}>
-          <Chip size={18} color={O} border={`${O}66`} bg={`${O}10`}>
+          <Chip size={24} color={O} border={`${O}66`} bg={`${O}10`}>
             OPEN · PRE-CATALYST
           </Chip>
         </div>
         <div style={{marginTop: 30}}>
           <ReadoutRow label="SETUP SCORE" delay={68}>
-            <Roll target={7} decimals={0} delay={70} size={30} suffix=" / 10" />
+            <Roll target={7} decimals={0} delay={70} size={36} suffix=" / 10" />
           </ReadoutRow>
           <ReadoutRow label="LEAST PRICED IN" delay={78}>
-            <Roll target={62} decimals={0} delay={80} size={30} color={O} suffix="%" />
+            <Roll target={62} decimals={0} delay={80} size={36} color={O} suffix="%" />
           </ReadoutRow>
         </div>
         <div
           style={{
             marginTop: 22,
             fontFamily: F.mono,
-            fontSize: 14.5,
+            fontSize: 21,
             lineHeight: 1.6,
             letterSpacing: '0.06em',
             color: C.dim,
@@ -665,7 +666,7 @@ export const VM5_Asymmetry: React.FC = () => {
             delay={112}
             seed="vm5"
             base={0.55}
-            size={30}
+            size={36}
             font="mono"
             weight={600}
             color={C.ink}
@@ -688,7 +689,7 @@ export const VM5_Asymmetry: React.FC = () => {
             borderRadius: 10,
             border: `3px solid ${C.danger}`,
             fontFamily: F.mono,
-            fontSize: 19,
+            fontSize: 25,
             fontWeight: 700,
             letterSpacing: '0.12em',
             color: C.danger,

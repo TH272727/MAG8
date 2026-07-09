@@ -13,7 +13,7 @@ const ROW_H = 92;
 const ROW_X = (1080 - ROW_W) / 2;
 
 const Arrows: React.FC<{glyphs: [string, string, string]; dim?: boolean}> = ({glyphs, dim}) => (
-  <div style={{display: 'flex', gap: 10, fontFamily: F.mono, fontSize: 21, opacity: dim ? 0.65 : 1}}>
+  <div style={{display: 'flex', gap: 10, fontFamily: F.mono, fontSize: 27, opacity: dim ? 0.65 : 1}}>
     <span style={{color: C.fundamentals}}>{glyphs[0]}</span>
     <span style={{color: C.macro}}>{glyphs[1]}</span>
     <span style={{color: C.consensus}}>{glyphs[2]}</span>
@@ -63,11 +63,11 @@ const Row: React.FC<{
           opacity: cOp * (dim ? 0.6 : 1),
         }}
       >
-        <span style={{fontFamily: F.mono, fontSize: 23, color: C.dim}}>{rank}</span>
+        <span style={{fontFamily: F.mono, fontSize: 29, color: C.dim}}>{rank}</span>
         <Redacted dim={dim} scale={0.92} />
         <div style={{flex: 1}} />
         {confluence && (
-          <Chip size={14} color={C.confluence} border={`${C.confluence}88`} bg={`${C.confluence}10`}
+          <Chip size={20} color={C.confluence} border={`${C.confluence}88`} bg={`${C.confluence}10`}
             style={{boxShadow: `0 0 14px ${C.confluence}22`}}>
             CONFLUENCE
           </Chip>
@@ -76,7 +76,7 @@ const Row: React.FC<{
         <span
           style={{
             fontFamily: F.mono,
-            fontSize: 34,
+            fontSize: 39,
             fontWeight: 700,
             color: scoreColor,
             fontVariantNumeric: 'tabular-nums',
@@ -198,7 +198,7 @@ export const V11_Verdict: React.FC = () => {
             left: ROW_X,
             top: ROW1_Y + 380,
             fontFamily: F.mono,
-            fontSize: 18,
+            fontSize: 24,
             letterSpacing: '0.12em',
             color: C.dim,
             opacity: lerp(frame, [126, 140], [0, 1]),

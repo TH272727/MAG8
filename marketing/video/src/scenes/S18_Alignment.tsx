@@ -73,7 +73,7 @@ export const S18_Alignment: React.FC = () => {
         }}
       >
         <Chip
-          size={26}
+          size={32}
           color={C.confluence}
           border={`${C.confluence}aa`}
           bg={`${C.confluence}14`}

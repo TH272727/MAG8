@@ -140,7 +140,7 @@ export const V04_Lanes: React.FC = () => {
                 opacity: lerp(frame, [52 + i * 6, 60 + i * 6], [0, 1]) * roomDim,
               }}
             >
-              <Chip color={meta.color} border={`${meta.color}55`} bg={`${meta.color}10`} size={17}>
+              <Chip color={meta.color} border={`${meta.color}55`} bg={`${meta.color}10`} size={23}>
                 {meta.chip}
               </Chip>
             </div>
@@ -203,7 +203,7 @@ export const V04_Lanes: React.FC = () => {
       {/* headline */}
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 214}}>
-          <Kinetic text={'Three lenses.\nWorking blind.'} delay={66} size={64} />
+          <Kinetic text={'Three lenses.\nWorking blind.'} delay={66} size={68} />
         </div>
       </AbsoluteFill>
 
@@ -213,7 +213,7 @@ export const V04_Lanes: React.FC = () => {
           style={{
             marginBottom: 190,
             fontFamily: F.mono,
-            fontSize: 18,
+            fontSize: 24,
             letterSpacing: '0.1em',
             color: focusT > 0.4 ? LENS[short].color : C.dim,
             opacity: lerp(frame, [92, 106], [0, 1]),

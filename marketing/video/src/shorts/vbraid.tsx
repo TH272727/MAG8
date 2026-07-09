@@ -15,7 +15,7 @@ export const VBRAID_END = 1450;
 export const VTHREADS = [
   {color: C.discovery, x0: 216, label: 'SCOUT', seed: 71},
   {color: C.fundamentals, x0: 432, label: 'FUNDAMENTALS', seed: 137},
-  {color: C.macro, x0: 648, label: 'MACRO', seed: 211},
+  {color: C.macro, x0: 648, label: 'GAME THEORY', seed: 211},
   {color: C.consensus, x0: 864, label: 'CONSENSUS', seed: 307},
 ];
 
@@ -94,7 +94,7 @@ export const VThreads: React.FC<{
             textAnchor="middle"
             fill={th.color}
             opacity={labelOp}
-            style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 16, letterSpacing: '0.13em'}}
+            style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 22, letterSpacing: '0.13em'}}
           >
             {th.label}
           </text>

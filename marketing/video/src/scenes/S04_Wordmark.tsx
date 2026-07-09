@@ -26,12 +26,12 @@ export const S04_Wordmark: React.FC = () => {
           }}
         >
           <div style={{opacity: lerp(frame, [6, 18], [0, 1])}}>
-            <Chip size={20}>FOUR-LENS RESEARCH DESK</Chip>
+            <Chip size={26}>FOUR-LENS RESEARCH DESK</Chip>
           </div>
           <div
             style={{
               fontFamily: F.body,
-              fontSize: 36,
+              fontSize: 41,
               fontWeight: 400,
               color: C.muted,
               opacity: introOp * introDim,

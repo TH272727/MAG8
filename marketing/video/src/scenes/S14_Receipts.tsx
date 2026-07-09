@@ -35,7 +35,7 @@ export const S14_Receipts: React.FC = () => {
 
       {/* confidence pips */}
       <div style={{position: 'absolute', left: 1250, top: 130, opacity: lerp(frame, [24, 36], [0, 1])}}>
-        <Eyebrow size={17}>CONFIDENCE</Eyebrow>
+        <Eyebrow size={23}>CONFIDENCE</Eyebrow>
         <div style={{display: 'flex', gap: 10, marginTop: 14}}>
           {Array.from({length: 5}).map((_, i) => {
             const lit = i < 4;
@@ -62,7 +62,7 @@ export const S14_Receipts: React.FC = () => {
       {/* sources stamping in */}
       <div style={{position: 'absolute', left: 1250, top: 250}}>
         <div style={{opacity: lerp(frame, [50, 62], [0, 1])}}>
-          <Eyebrow size={17}>SOURCES · CITED IN THE REPORT</Eyebrow>
+          <Eyebrow size={23}>SOURCES · CITED IN THE REPORT</Eyebrow>
         </div>
         <div style={{display: 'flex', flexDirection: 'column', gap: 15, marginTop: 20}}>
           {SOURCES.map((s, i) => {
@@ -82,7 +82,7 @@ export const S14_Receipts: React.FC = () => {
                   background: C.panel,
                   width: 'fit-content',
                   fontFamily: F.mono,
-                  fontSize: 17,
+                  fontSize: 23,
                   letterSpacing: '0.08em',
                   color: C.ink,
                   opacity: op,
@@ -90,7 +90,7 @@ export const S14_Receipts: React.FC = () => {
                   transformOrigin: 'left center',
                 }}
               >
-                <span style={{color: C.consensus, fontSize: 19}}>↗</span>
+                <span style={{color: C.consensus, fontSize: 25}}>↗</span>
                 {s}
               </div>
             );
@@ -99,7 +99,7 @@ export const S14_Receipts: React.FC = () => {
       </div>
 
       <div style={{position: 'absolute', left: 1250, top: 836}}>
-        <Kinetic text={'Every verdict\nshows its work.'} delay={110} size={58} align="left" />
+        <Kinetic text={'Every verdict\nshows its work.'} delay={110} size={62} align="left" />
       </div>
     </Void>
   );

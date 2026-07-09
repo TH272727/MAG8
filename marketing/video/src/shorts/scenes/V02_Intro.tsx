@@ -24,7 +24,7 @@ export const V02_Intro: React.FC = () => {
           }}
         >
           <div style={{opacity: lerp(frame, [6, 18], [0, 1])}}>
-            <Chip size={19}>FOUR-LENS RESEARCH DESK</Chip>
+            <Chip size={25}>FOUR-LENS RESEARCH DESK</Chip>
           </div>
           <div style={{display: 'flex', letterSpacing: '0.08em'}}>
             {['M', 'A', 'G', '8'].map((ch, i) => {
@@ -68,7 +68,7 @@ export const V02_Intro: React.FC = () => {
             <Kinetic
               text={'One scout. Three lenses.\nOne verdict.'}
               delay={80}
-              size={46}
+              size={50}
               weight={500}
               color={C.muted}
               lineHeight={1.35}

@@ -30,7 +30,7 @@ export const V10_Fusion: React.FC = () => {
           <Kinetic
             text={'When independent\nmethods agree —'}
             delay={34}
-            size={60}
+            size={64}
             out={V_FUSE_AT + 4}
           />
         </div>
@@ -40,7 +40,7 @@ export const V10_Fusion: React.FC = () => {
           <Kinetic
             text="— agreement is the signal."
             delay={V_FUSE_AT + 12}
-            size={54}
+            size={58}
             accents={{4: C.confluence}}
             maxWidth={960}
           />

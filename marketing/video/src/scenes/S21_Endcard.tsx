@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Img, staticFile, useCurrentFrame} from 'remotion';
-import {Void} from '../lib/ui';
+import {Void, WaitlistCta} from '../lib/ui';
 import {lerp, pop, pulse01} from '../lib/anim';
 import {C, F} from '../theme';
 
@@ -65,7 +65,7 @@ export const S21_Endcard: React.FC = () => {
           style={{
             marginTop: 34,
             fontFamily: F.body,
-            fontSize: 37,
+            fontSize: 42,
             fontWeight: 400,
             color: C.muted,
             opacity: lerp(frame, [48, 66], [0, 1]),
@@ -74,15 +74,19 @@ export const S21_Endcard: React.FC = () => {
           The next trillion-dollar leaderboard.
         </div>
 
+        <div style={{marginTop: 62}}>
+          <WaitlistCta at={92} size={56} />
+        </div>
+
         <div
           style={{
             position: 'absolute',
             bottom: 96,
             fontFamily: F.mono,
-            fontSize: 16,
+            fontSize: 22,
             letterSpacing: '0.16em',
             color: C.dim,
-            opacity: lerp(frame, [76, 92], [0, 1]),
+            opacity: lerp(frame, [108, 124], [0, 1]),
           }}
         >
           RESEARCH, NOT INVESTMENT ADVICE

@@ -27,7 +27,7 @@ const Redacted: React.FC<{dim?: boolean}> = ({dim}) => (
 );
 
 const Arrows: React.FC<{glyphs: [string, string, string]; dim?: boolean}> = ({glyphs, dim}) => (
-  <div style={{display: 'flex', gap: 14, fontFamily: F.mono, fontSize: 24, opacity: dim ? 0.65 : 1}}>
+  <div style={{display: 'flex', gap: 14, fontFamily: F.mono, fontSize: 30, opacity: dim ? 0.65 : 1}}>
     <span style={{color: C.fundamentals}}>{glyphs[0]}</span>
     <span style={{color: C.macro}}>{glyphs[1]}</span>
     <span style={{color: C.consensus}}>{glyphs[2]}</span>
@@ -81,11 +81,11 @@ const Row: React.FC<{
           opacity: cOp * (dim ? 0.6 : 1),
         }}
       >
-        <span style={{fontFamily: F.mono, fontSize: 26, color: C.dim}}>{rank}</span>
+        <span style={{fontFamily: F.mono, fontSize: 32, color: C.dim}}>{rank}</span>
         <Redacted dim={dim} />
         <div style={{flex: 1}} />
         <Chip
-          size={16}
+          size={22}
           color={gate === 'pass' ? C.fundamentals : C.macro}
           border={gate === 'pass' ? `${C.fundamentals}66` : `${C.macro}66`}
           bg={gate === 'pass' ? `${C.fundamentals}12` : `${C.macro}12`}
@@ -95,7 +95,7 @@ const Row: React.FC<{
         {confluence && (
           <div style={{position: 'relative'}}>
             <Chip
-              size={16}
+              size={22}
               color={C.confluence}
               border={`${C.confluence}88`}
               bg={`${C.confluence}${glintT > 0.4 ? '2a' : '10'}`}
@@ -111,7 +111,7 @@ const Row: React.FC<{
         <span
           style={{
             fontFamily: F.mono,
-            fontSize: 40,
+            fontSize: 45,
             fontWeight: 700,
             color: scoreColor,
             fontVariantNumeric: 'tabular-nums',
@@ -132,10 +132,11 @@ export const S12_Leaderboard: React.FC = () => {
   const frame = useCurrentFrame();
 
   // 90.3 docking: starts huge & centered (matching S11's end), shrinks into row one.
+  // Lands right-aligned with the other rows' scores (36px row padding, 45px size).
   const dock = lerp(frame, [4, 34], [0, 1], easeInOut);
-  const numX = 960 + (ROW_X + ROW_W - 96 - 960) * dock;
+  const numX = 960 + (ROW_X + ROW_W - 36 - 960) * dock;
   const numY = 540 + (206 + ROW_H / 2 - 540) * dock;
-  const numScale = 1 - dock * (1 - 40 / 236);
+  const numScale = 1 - dock * (1 - 45 / 236);
 
   const nativeOp = lerp(frame, [96, 122], [1, 0]);
   const realOp = lerp(frame, [100, 124], [0, 1]);
@@ -186,7 +187,7 @@ export const S12_Leaderboard: React.FC = () => {
             position: 'absolute',
             left: numX,
             top: numY,
-            transform: `translate(-100%, -50%) scale(${Math.max(numScale, 40 / 236)})`,
+            transform: `translate(-100%, -50%) scale(${Math.max(numScale, 45 / 236)})`,
             transformOrigin: 'right center',
             fontFamily: F.mono,
             fontSize: 236,
@@ -220,7 +221,7 @@ export const S12_Leaderboard: React.FC = () => {
             left: 210,
             bottom: 62,
             fontFamily: F.mono,
-            fontSize: 19,
+            fontSize: 25,
             letterSpacing: '0.12em',
             color: C.muted,
             opacity: lerp(frame, [126, 140], [0, 1]),

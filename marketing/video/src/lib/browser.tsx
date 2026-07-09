@@ -61,7 +61,7 @@ export const BrowserPanel: React.FC<{
             flex: 1,
             textAlign: 'center',
             fontFamily: F.mono,
-            fontSize: 15,
+            fontSize: 21,
             letterSpacing: '0.12em',
             color: C.muted,
           }}

@@ -36,3 +36,14 @@ export const F = {
 export const W = 1920;
 export const H = 1080;
 export const FPS = 30;
+
+/**
+ * Platform-chrome safe zones (px at native comp size) — keep hero text and
+ * must-read UI inside. Portrait covers TikTok/Reels/Shorts overlay chrome
+ * (side rail, caption strip); landscape is action-safe padding for YouTube.
+ * New scenes import these instead of guessing margins.
+ */
+export const SAFE = {
+  landscape: {top: 72, bottom: 72, sides: 96}, // 1920×1080 master film
+  portrait: {top: 150, bottom: 170, sides: 60}, // 1080×1920 shorts + fun campaign
+} as const;

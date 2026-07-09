@@ -45,7 +45,7 @@ const TickerChip: React.FC<{x: number; y: number; scale?: number; opacity?: numb
       boxShadow: '0 16px 44px rgba(0,0,0,0.45)',
     }}
   >
-    <Redact scale={0.95} />
+    <Redact cash scale={0.8} />
   </div>
 );
 
@@ -84,7 +84,7 @@ export const B1_Queue: React.FC = () => {
     <Void depth>
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 260, opacity: lerp(frame, [4, 16], [0, 1])}}>
-          <Eyebrow size={24} color={C.ink}>
+          <Eyebrow size={30} color={C.ink}>
             THE GATE
           </Eyebrow>
         </div>
@@ -92,7 +92,7 @@ export const B1_Queue: React.FC = () => {
           style={{
             marginTop: 18,
             fontFamily: F.mono,
-            fontSize: 19,
+            fontSize: 25,
             letterSpacing: '0.14em',
             color: C.dim,
             opacity: lerp(frame, [18, 30], [0, 1]),
@@ -101,12 +101,17 @@ export const B1_Queue: React.FC = () => {
           AUTOMATIC VETOES · NO EXCEPTIONS
         </div>
         <div style={{marginTop: 200}}>
-          <Kinetic text={'Everyone wants in.'} delay={46} size={62} />
+          <Kinetic
+            text={'Everyone in line is\n“the next NVDA.”'}
+            delay={26}
+            size={66}
+            accents={{6: C.discovery}}
+          />
         </div>
       </AbsoluteFill>
       <Rope drawAt={10} />
       {QX.map((x, i) => {
-        const s = pop(frame, 44 + i * 9, 12, 0.85);
+        const s = pop(frame, 18 + i * 7, 12, 0.85);
         return (
           <TickerChip
             key={i}
@@ -132,7 +137,7 @@ export const B2_Checks: React.FC = () => {
       <Rope drawAt={-99} />
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 260}}>
-          <Eyebrow size={24} color={C.ink}>
+          <Eyebrow size={30} color={C.ink}>
             THE GATE
           </Eyebrow>
         </div>
@@ -140,7 +145,7 @@ export const B2_Checks: React.FC = () => {
           style={{
             marginTop: 18,
             fontFamily: F.mono,
-            fontSize: 19,
+            fontSize: 25,
             letterSpacing: '0.14em',
             color: C.dim,
           }}
@@ -203,7 +208,7 @@ export const B2_Checks: React.FC = () => {
                     top: GATE_Y - 150,
                     transform: 'translate(-50%, -100%)',
                     fontFamily: F.mono,
-                    fontSize: 17,
+                    fontSize: 23,
                     letterSpacing: '0.12em',
                     color: C.dim,
                     opacity: 0.5 + 0.5 * Math.abs(Math.sin(frame / 3)),
@@ -237,7 +242,7 @@ export const B2_Checks: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: F.display,
-                    fontSize: 54,
+                    fontSize: 58,
                     fontWeight: 700,
                     color: v.pass ? C.fundamentals : C.danger,
                     background: `${v.pass ? C.fundamentals : C.danger}12`,
@@ -247,7 +252,7 @@ export const B2_Checks: React.FC = () => {
                   {v.pass ? '✓' : '✕'}
                 </div>
                 {v.reason && (
-                  <Chip size={18} color={C.danger} border={`${C.danger}66`} bg={`${C.danger}12`}>
+                  <Chip size={24} color={C.danger} border={`${C.danger}66`} bg={`${C.danger}12`}>
                     {v.reason}
                   </Chip>
                 )}
@@ -267,7 +272,7 @@ export const B3_Line: React.FC = () => (
       <Kinetic
         text={'The gate doesn’t argue.\nIt checks.'}
         delay={8}
-        size={62}
+        size={66}
         accents={{5: C.fundamentals}}
       />
     </AbsoluteFill>
@@ -281,7 +286,7 @@ export const B4_Board: React.FC = () => {
     <Void depth>
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 320}}>
-          <Kinetic text={'Getting in only\nearns a scoring.'} delay={6} size={58} />
+          <Kinetic text={'Getting in only\nearns a scoring.'} delay={6} size={62} />
         </div>
       </AbsoluteFill>
       <MiniRow y={880} rank="01" score="73.9" at={48} />
@@ -292,7 +297,7 @@ export const B4_Board: React.FC = () => {
           left: 90,
           top: 1150,
           fontFamily: F.mono,
-          fontSize: 18,
+          fontSize: 24,
           letterSpacing: '0.12em',
           color: C.dim,
           opacity: lerp(frame, [96, 110], [0, 1]),

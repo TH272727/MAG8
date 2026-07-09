@@ -58,7 +58,7 @@ export const S07_Fundamentals: React.FC = () => {
             <circle cx={193} cy={205} r={10} fill={C.panel2} stroke={C.hairline2} strokeWidth={2} />
           </svg>
           <div style={{position: 'absolute', right: 4, top: 4, fontFamily: F.mono}}>
-            <Roll target={8.6} delay={30} size={34} color={G} suffix=" / 10" />
+            <Roll target={8.6} delay={30} size={39} color={G} suffix=" / 10" />
           </div>
         </Instrument>
 
@@ -92,7 +92,7 @@ export const S07_Fundamentals: React.FC = () => {
                     <path d="M 6 12.5 L 10.5 17 L 18 7.5" fill="none" stroke={G} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={20} strokeDashoffset={20 - 20 * Math.min((frame - at) / 7, 1)} />
                   )}
                 </svg>
-                <span style={{fontFamily: F.mono, fontSize: 19, color: on ? C.ink : C.dim, letterSpacing: '0.04em'}}>
+                <span style={{fontFamily: F.mono, fontSize: 25, color: on ? C.ink : C.dim, letterSpacing: '0.04em'}}>
                   {label}
                 </span>
               </div>

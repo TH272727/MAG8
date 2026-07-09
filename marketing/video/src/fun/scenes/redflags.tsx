@@ -29,7 +29,7 @@ const CardStamp: React.FC<{good?: boolean; at: number}> = ({good, at}) => {
         borderRadius: 18,
         padding: '10px 24px',
         fontFamily: F.display,
-        fontSize: 52,
+        fontSize: 56,
         fontWeight: 700,
         letterSpacing: '0.08em',
         color,
@@ -67,7 +67,7 @@ const ProfileCard: React.FC<{
           wob + (1 - inS) * 4 + dir * 26 * sw
         }deg) translateY(${(1 - inS) * 90}px)`,
         opacity: Math.min(inS * 1.3, 1),
-        width: 820,
+        width: 890,
         height: 1220,
         background: C.panel2,
         border: `1.5px solid ${C.hairline2}`,
@@ -93,8 +93,8 @@ const ProfileCard: React.FC<{
           <Redact scale={0.7} />
         </div>
         <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
-          <Redact scale={1.35} />
-          <span style={{fontFamily: F.mono, fontSize: 20, letterSpacing: '0.1em', color: C.dim}}>
+          <Redact cash scale={1.35} />
+          <span style={{fontFamily: F.mono, fontSize: 22, letterSpacing: '0.1em', color: C.dim, whiteSpace: 'nowrap'}}>
             {sub}
           </span>
         </div>
@@ -117,11 +117,11 @@ const ProfileCard: React.FC<{
                 transform: `translateX(${(1 - s) * -26}px)`,
               }}
             >
-              <span style={{fontSize: 38, lineHeight: 1}}>{l.icon}</span>
+              <span style={{fontSize: 43, lineHeight: 1}}>{l.icon}</span>
               <span
                 style={{
                   fontFamily: F.body,
-                  fontSize: 35,
+                  fontSize: 40,
                   fontWeight: 600,
                   color: l.bad ? C.ink : C.fundamentals,
                 }}
@@ -141,7 +141,7 @@ const ProfileCard: React.FC<{
             right: 58,
             bottom: 64,
             fontFamily: F.body,
-            fontSize: 30,
+            fontSize: 36,
             fontStyle: 'italic',
             color: C.muted,
             opacity: lerp(frame, [linesAt + lines.length * 16 + 8, linesAt + lines.length * 16 + 20], [0, 1]),
@@ -161,8 +161,8 @@ const Header: React.FC = () => {
   return (
     <AbsoluteFill style={{alignItems: 'center'}}>
       <div style={{marginTop: 250, opacity: lerp(frame, [4, 16], [0, 1])}}>
-        <Eyebrow size={23} color={C.ink}>
-          RED FLAGS · A FIELD GUIDE
+        <Eyebrow size={29} color={C.ink}>
+          STOCK RED FLAGS · A FIELD GUIDE
         </Eyebrow>
       </div>
     </AbsoluteFill>
@@ -174,7 +174,7 @@ export const R1_Swipe1: React.FC = () => (
   <Void depth>
     <Header />
     <ProfileCard
-      sub="3Y LISTED · SMALL CAP"
+      sub="SMALL CAP · CALLS ITSELF “THE NEXT TSLA”"
       lines={[
         {icon: '🚩', text: 'loves: dilution', bad: true},
         {icon: '🚩', text: '“adjusted” everything', bad: true},
@@ -259,7 +259,7 @@ export const R3_Keeper: React.FC = () => {
           style={{
             marginBottom: 210,
             fontFamily: F.mono,
-            fontSize: 20,
+            fontSize: 26,
             letterSpacing: '0.14em',
             color: C.dim,
             opacity: lerp(frame, [120, 134], [0, 1]),
@@ -277,7 +277,7 @@ export const R4_Desk: React.FC = () => (
   <Void depth>
     <AbsoluteFill style={{alignItems: 'center'}}>
       <div style={{marginTop: 300}}>
-        <Kinetic text={'One good profile\nisn’t a verdict.'} delay={8} size={62} />
+        <Kinetic text={'One good profile\nisn’t a verdict.'} delay={8} size={66} />
       </div>
     </AbsoluteFill>
     <DeskStamps

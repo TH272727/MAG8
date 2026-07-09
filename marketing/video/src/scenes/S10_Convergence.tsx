@@ -29,7 +29,7 @@ export const S10_Convergence: React.FC = () => {
           <Kinetic
             text="When independent methods agree —"
             delay={56}
-            size={66}
+            size={70}
             out={164}
           />
         </div>

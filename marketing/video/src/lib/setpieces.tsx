@@ -86,7 +86,7 @@ export const SearchBar: React.FC<{
           position: 'absolute',
           left: 46,
           fontFamily: F.body,
-          fontSize: 36,
+          fontSize: 41,
           fontWeight: 500,
           color: C.muted,
           opacity: placeholderOp,
@@ -95,13 +95,13 @@ export const SearchBar: React.FC<{
         Search for...
       </div>
       {done ? (
-        <div style={{fontFamily: F.body, fontSize: 36, fontWeight: 500, color: C.ink}}>
+        <div style={{fontFamily: F.body, fontSize: 41, fontWeight: 500, color: C.ink}}>
           {QUERY}
           <span
             style={{
               display: 'inline-block',
               width: 3.5,
-              height: 40,
+              height: 45,
               marginLeft: 3,
               borderRadius: 2,
               background: C.ink,
@@ -116,7 +116,7 @@ export const SearchBar: React.FC<{
           delay={typeDelay}
           seed="s1-query"
           base={2.0}
-          size={36}
+          size={41}
           font="body"
           weight={500}
           color={C.ink}
@@ -139,34 +139,34 @@ export type BubbleSpec = {
 
 /* Hand-placed to bury the centered search bar by the end of S2. */
 export const BUBBLES: BubbleSpec[] = [
-  {text: '🚀 100x trust me', x: 560, y: 300, rot: -6, size: 40, order: 0},
-  {text: 'BUY NOW', x: 1360, y: 250, rot: 5, size: 46, order: 1},
-  {text: "can't miss", x: 330, y: 640, rot: 4, size: 38, order: 2},
-  {text: 'the next big thing', x: 1520, y: 620, rot: -4, size: 36, order: 3},
-  {text: 'all in', x: 1120, y: 810, rot: 7, size: 44, order: 4},
-  {text: "I'm never wrong", x: 620, y: 900, rot: -5, size: 36, order: 5},
-  {text: 'to the moon', x: 1660, y: 900, rot: 6, size: 34, order: 6},
-  {text: 'trust me bro', x: 260, y: 140, rot: -8, size: 34, order: 7},
-  {text: 'free money', x: 1700, y: 130, rot: 7, size: 36, order: 8},
-  {text: 'guaranteed', x: 900, y: 130, rot: -3, size: 38, order: 9},
-  {text: 'no brainer', x: 1300, y: 460, rot: -7, size: 40, order: 10},
-  {text: 'everyone knows', x: 660, y: 500, rot: 3, size: 42, order: 11},
+  {text: '🚀 100x trust me', x: 560, y: 300, rot: -6, size: 45, order: 0},
+  {text: 'BUY NOW', x: 1360, y: 250, rot: 5, size: 50, order: 1},
+  {text: "can't miss", x: 330, y: 640, rot: 4, size: 43, order: 2},
+  {text: 'the next big thing', x: 1520, y: 620, rot: -4, size: 41, order: 3},
+  {text: 'all in', x: 1120, y: 810, rot: 7, size: 49, order: 4},
+  {text: "I'm never wrong", x: 620, y: 900, rot: -5, size: 41, order: 5},
+  {text: 'to the moon', x: 1660, y: 900, rot: 6, size: 39, order: 6},
+  {text: 'trust me bro', x: 260, y: 140, rot: -8, size: 39, order: 7},
+  {text: 'free money', x: 1700, y: 130, rot: 7, size: 41, order: 8},
+  {text: 'guaranteed', x: 900, y: 130, rot: -3, size: 43, order: 9},
+  {text: 'no brainer', x: 1300, y: 460, rot: -7, size: 45, order: 10},
+  {text: 'everyone knows', x: 660, y: 500, rot: 3, size: 47, order: 11},
   // the late wave lands ON the search bar and buries it
-  {text: 'overbought? never', x: 850, y: 545, rot: -4, size: 36, order: 12},
-  {text: "this time it's different", x: 1210, y: 560, rot: 5, size: 34, order: 13},
-  {text: 'YOLO', x: 640, y: 585, rot: -6, size: 46, order: 14},
-  {text: 'moon math', x: 1450, y: 760, rot: 6, size: 36, order: 15},
-  {text: 'up only', x: 480, y: 770, rot: -5, size: 40, order: 16},
-  {text: 'diamond hands', x: 985, y: 540, rot: 2.5, size: 42, order: 17},
+  {text: 'overbought? never', x: 850, y: 545, rot: -4, size: 41, order: 12},
+  {text: "this time it's different", x: 1210, y: 560, rot: 5, size: 39, order: 13},
+  {text: 'YOLO', x: 640, y: 585, rot: -6, size: 50, order: 14},
+  {text: 'moon math', x: 1450, y: 760, rot: 6, size: 41, order: 15},
+  {text: 'up only', x: 480, y: 770, rot: -5, size: 45, order: 16},
+  {text: 'diamond hands', x: 985, y: 540, rot: 2.5, size: 47, order: 17},
   // the screaming wave — conflicting voices shouting past each other
-  {text: 'SELL EVERYTHING', x: 430, y: 420, rot: -5, size: 40, order: 18},
-  {text: "it's over", x: 1180, y: 330, rot: 4, size: 36, order: 19},
-  {text: 'PUMP IT', x: 1580, y: 470, rot: -6, size: 44, order: 20},
-  {text: '10x by Friday', x: 250, y: 940, rot: 5, size: 36, order: 21},
-  {text: "you're all wrong", x: 1520, y: 1000, rot: -4, size: 36, order: 22},
-  {text: 'obvious scam', x: 830, y: 950, rot: 6, size: 38, order: 23},
-  {text: 'GET IN NOW', x: 1090, y: 665, rot: -3, size: 44, order: 24},
-  {text: 'told you so', x: 380, y: 235, rot: 7, size: 34, order: 25},
+  {text: 'SELL EVERYTHING', x: 430, y: 420, rot: -5, size: 45, order: 18},
+  {text: "it's over", x: 1180, y: 330, rot: 4, size: 41, order: 19},
+  {text: 'PUMP IT', x: 1580, y: 470, rot: -6, size: 49, order: 20},
+  {text: '10x by Friday', x: 250, y: 940, rot: 5, size: 41, order: 21},
+  {text: "you're all wrong", x: 1520, y: 1000, rot: -4, size: 41, order: 22},
+  {text: 'obvious scam', x: 830, y: 950, rot: 6, size: 43, order: 23},
+  {text: 'GET IN NOW', x: 1090, y: 665, rot: -3, size: 49, order: 24},
+  {text: 'told you so', x: 380, y: 235, rot: 7, size: 39, order: 25},
 ];
 
 export const Bubble: React.FC<{

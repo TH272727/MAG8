@@ -6,8 +6,17 @@
  * imports it to place musical hits. Keep erasable-TS only (plain consts).
  */
 export type SceneDef = {id: string; frames: number};
-export type FunId = 'eightball' | 'groupchat' | 'gate' | 'redflags';
+export type FunId =
+  | 'eightball'
+  | 'groupchat'
+  | 'gate'
+  | 'redflags'
+  | 'naturedoc'
+  | 'speedrun'
+  | 'replay'
+  | 'coldcase';
 
+/** All endcards are 168f since the waitlist CTA landed (was 150). */
 export const FUN: Record<FunId, SceneDef[]> = {
   /** "Not a magic 8-ball" — shake the toy, get toy answers, meet the desk. */
   eightball: [
@@ -15,7 +24,7 @@ export const FUN: Record<FunId, SceneDef[]> = {
     {id: 'E2_Shake', frames: 225},
     {id: 'E3_Toys', frames: 135},
     {id: 'E4_Desk', frames: 216},
-    {id: 'E5_End', frames: 150},
+    {id: 'E5_End', frames: 168},
   ],
   /** The group chat melts down over a ticker; the desk answers quietly. */
   groupchat: [
@@ -23,7 +32,7 @@ export const FUN: Record<FunId, SceneDef[]> = {
     {id: 'G2_Cut', frames: 96},
     {id: 'G3_Line', frames: 114},
     {id: 'G4_Desk', frames: 216},
-    {id: 'G5_End', frames: 150},
+    {id: 'G5_End', frames: 168},
   ],
   /** The bouncer bit — automatic vetoes at the velvet rope. */
   gate: [
@@ -31,7 +40,7 @@ export const FUN: Record<FunId, SceneDef[]> = {
     {id: 'B2_Checks', frames: 330},
     {id: 'B3_Line', frames: 108},
     {id: 'B4_Board', frames: 156},
-    {id: 'B5_End', frames: 150},
+    {id: 'B5_End', frames: 168},
   ],
   /** Dating-app red flags — value traps get swiped left. */
   redflags: [
@@ -39,11 +48,52 @@ export const FUN: Record<FunId, SceneDef[]> = {
     {id: 'R2_Swipe2', frames: 168},
     {id: 'R3_Keeper', frames: 186},
     {id: 'R4_Desk', frames: 192},
-    {id: 'R5_End', frames: 150},
+    {id: 'R5_End', frames: 168},
+  ],
+  /** Attenborough bit — the herd chases a ticker straight off a cliff. */
+  naturedoc: [
+    {id: 'N1_Field', frames: 144},
+    {id: 'N2_Herd', frames: 228},
+    {id: 'N3_Cliff', frames: 168},
+    {id: 'N4_Desk', frames: 186},
+    {id: 'N5_End', frames: 168},
+  ],
+  /** Speedrun HUD — a world-record run at losing money, splits and all. */
+  speedrun: [
+    {id: 'SP1_Title', frames: 126},
+    {id: 'SP2_Run', frames: 336},
+    {id: 'SP3_Line', frames: 114},
+    {id: 'SP4_Desk', frames: 156},
+    {id: 'SP5_End', frames: 168},
+  ],
+  /** Sports broadcast — buying the exact top, then the instant replay. */
+  replay: [
+    {id: 'RP1_Live', frames: 138},
+    {id: 'RP2_Play', frames: 222},
+    {id: 'RP3_Replay', frames: 216},
+    {id: 'RP4_Desk', frames: 156},
+    {id: 'RP5_End', frames: 168},
+  ],
+  /** True-crime — the evidence board for a bag that was avoidable. */
+  coldcase: [
+    {id: 'K1_File', frames: 132},
+    {id: 'K2_Board', frames: 264},
+    {id: 'K3_Twist', frames: 156},
+    {id: 'K4_Desk', frames: 174},
+    {id: 'K5_End', frames: 168},
   ],
 };
 
-export const FUN_IDS: FunId[] = ['eightball', 'groupchat', 'gate', 'redflags'];
+export const FUN_IDS: FunId[] = [
+  'eightball',
+  'groupchat',
+  'gate',
+  'redflags',
+  'naturedoc',
+  'speedrun',
+  'replay',
+  'coldcase',
+];
 
 export const funScenes = (id: FunId): SceneDef[] => FUN[id];
 

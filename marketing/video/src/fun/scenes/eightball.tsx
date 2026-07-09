@@ -65,8 +65,8 @@ const Ball: React.FC<{
           left: '50%',
           top: '54%',
           transform: 'translate(-50%, -50%)',
-          width: 210,
-          height: 210,
+          width: 244,
+          height: 244,
           borderRadius: 999,
           background: '#070b14',
           border: `2px solid ${C.hairline2}`,
@@ -94,7 +94,7 @@ const Ball: React.FC<{
             style={{
               position: 'absolute',
               fontFamily: F.mono,
-              fontSize: 25,
+              fontSize: 31,
               fontWeight: 700,
               letterSpacing: '0.06em',
               textAlign: 'center',
@@ -114,11 +114,46 @@ const Ball: React.FC<{
   </div>
 );
 
-/** The question chip that haunts the whole bit. */
-const AskChip: React.FC<{at: number; dimAfter?: number}> = ({at, dimAfter}) => {
+/** The hook cycle: two famous tickers, then the anonymous "next one". */
+const SWAPS = [10, 42, 72];
+const NAMES = ['$NVDA', '$TSLA'];
+
+/**
+ * The question chip that haunts the whole bit. With `cycle` (E1) it swaps
+ * real mega-cap tickers before settling on the redacted candidate — the
+ * first second must read "stocks", not "generic question".
+ */
+const AskChip: React.FC<{at: number; dimAfter?: number; cycle?: boolean}> = ({
+  at,
+  dimAfter,
+  cycle,
+}) => {
   const frame = useCurrentFrame();
   const s = pop(frame, at, 13, 0.9);
   const dim = dimAfter === undefined ? 1 : lerp(frame, [dimAfter, dimAfter + 16], [1, 0.55]);
+  const slot = (key: string, inAt: number, outAt: number | undefined, child: React.ReactNode) => {
+    const sp = pop(frame, inAt, 12, 0.8);
+    const op =
+      lerp(frame, [inAt, inAt + 5], [0, 1]) *
+      (outAt === undefined ? 1 : lerp(frame, [outAt - 2, outAt + 2], [1, 0]));
+    if (op <= 0.01) return null;
+    return (
+      <div
+        key={key}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: op,
+          transform: `translateY(${(1 - sp) * 16}px)`,
+        }}
+      >
+        {child}
+      </div>
+    );
+  };
   return (
     <AbsoluteFill style={{alignItems: 'center'}}>
       <div
@@ -136,11 +171,38 @@ const AskChip: React.FC<{at: number; dimAfter?: number}> = ({at, dimAfter}) => {
           boxShadow: '0 24px 70px rgba(0,0,0,0.5)',
         }}
       >
-        <span style={{fontFamily: F.body, fontSize: 40, fontWeight: 600, color: C.ink}}>
+        <span style={{fontFamily: F.body, fontSize: 45, fontWeight: 600, color: C.ink}}>
           should I buy
         </span>
-        <Redact scale={1.3} />
-        <span style={{fontFamily: F.body, fontSize: 40, fontWeight: 600, color: C.ink}}>?</span>
+        <div style={{position: 'relative', width: 195, height: 48}}>
+          {cycle ? (
+            <>
+              {NAMES.map((n, i) =>
+                slot(
+                  n,
+                  SWAPS[i],
+                  SWAPS[i + 1],
+                  <span
+                    style={{
+                      fontFamily: F.mono,
+                      fontSize: 47,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      color: C.discovery,
+                      textShadow: '0 0 22px rgba(139,124,255,0.45)',
+                    }}
+                  >
+                    {n}
+                  </span>,
+                ),
+              )}
+              {slot('redact', SWAPS[2], undefined, <Redact cash scale={1.2} />)}
+            </>
+          ) : (
+            slot('static', -99, undefined, <Redact cash scale={1.2} />)
+          )}
+        </div>
+        <span style={{fontFamily: F.body, fontSize: 45, fontWeight: 600, color: C.ink}}>?</span>
       </div>
     </AbsoluteFill>
   );
@@ -153,20 +215,20 @@ export const E1_Ask: React.FC = () => {
   const wob = Math.sin(frame / 24) * 2;
   return (
     <Void depth>
-      <AskChip at={10} />
+      <AskChip at={10} cycle />
       <Ball x={BALL_X} y={-360 + drop * (BALL_Y + 360)} rot={wob} />
       <AbsoluteFill style={{alignItems: 'center', justifyContent: 'flex-end'}}>
         <div
           style={{
             marginBottom: 220,
             fontFamily: F.mono,
-            fontSize: 19,
+            fontSize: 25,
             letterSpacing: '0.14em',
             color: C.dim,
             opacity: lerp(frame, [96, 110], [0, 1]),
           }}
         >
-          THE TRADITIONAL METHOD
+          STOCK PICKING · THE TRADITIONAL METHOD
         </div>
       </AbsoluteFill>
     </Void>
@@ -204,7 +266,7 @@ export const E2_Shake: React.FC = () => {
           style={{
             marginBottom: 220,
             fontFamily: F.mono,
-            fontSize: 21,
+            fontSize: 27,
             letterSpacing: '0.14em',
             color: C.dim,
             opacity: lerp(frame, [200, 212], [0, 1]),
@@ -242,7 +304,7 @@ export const E3_Toys: React.FC = () => {
       <TrashCan x={760} y={canY} />
       <Center>
         <div style={{marginBottom: 620}}>
-          <Kinetic text={'Stop asking toys.'} delay={70} size={68} />
+          <Kinetic text={'Stop asking toys.'} delay={70} size={72} />
         </div>
       </Center>
     </Void>
@@ -257,7 +319,7 @@ export const E4_Desk: React.FC = () => (
         <Kinetic
           text={'MAG8 is not\na magic 8-ball.'}
           delay={8}
-          size={66}
+          size={70}
           accents={{2: C.discovery}}
         />
       </div>

@@ -11,6 +11,10 @@
 | `fun-gate.mp4` **NEW** | 1080×1920 @30 | 29.8s (894f) | bouncer / automatic vetoes |
 | `fun-redflags.mp4` **NEW** | 1080×1920 @30 | 28.8s (864f) | dating-app value traps |
 
+Commit: `296c280` — "film: intro rework (huge question → shrink → scream-flood)
++ four fun campaign shorts" (20 files, +2385/−78; mp4s/WAVs gitignored &
+reproducible via `gen:score*` + `render*` scripts).
+
 ## 1. What was asked
 
 1. **Intro rework on the existing 4 videos:** make "the next trillion-dollar
@@ -115,7 +119,18 @@ only on verdict numbers, lens PUBLIC labels only, every endcard keeps
   fixed from stills: gate veto reason-chips exited too fast to read →
   verdict at s+34, veto exit pushed to [s+58, s+74] (pass exit unchanged),
   score cues moved to match.
-- Encoded-mp4 spot frames + ffprobe: see §5 (post-render).
+- **ffprobe on all 8 files (post-render): exact frame counts** — the-signal
+  3684 (1920×1080, 102MB), short-fundamentals 2364 (67MB), short-macro 2514
+  (71MB), short-consensus 2385 (68MB), fun-eightball 861 (25MB),
+  fun-groupchat 822 (25MB), fun-gate 894 (26MB), fun-redflags 864 (25MB) —
+  all 30fps, AAC audio, every count matches its timeline sum. Full queue
+  (master + 3 lens + 4 fun) rendered sequentially in one pass, exit 0.
+- **Encoded-mp4 spot frames** (`out/stills/enc/`, extracted with ffmpeg
+  `select='eq(n,N)'`): master f80 big-question hold + f332 flood peak;
+  short-macro f70 confirms the retimed spine in a second lens short;
+  fun-eightball f192 "REPLY HAZY" solid in the window; fun-gate f270 veto
+  ✕ + "F-SCORE 2 / 9" reason chip readable with the extended hold. All as
+  designed in the encoded output, not just the compositions.
 
 ## 5. Render pipeline (unchanged)
 
@@ -124,7 +139,90 @@ renders/stills — never two at once), headless-shell download DNS-blackholed.
 Full queue (master + 3 lens + 4 fun) ≈ 70–90 min. ffmpeg `select='eq(n,N)'`
 verifies encoded output; `remotion still` verifies compositions.
 
-## 6. Open / next
+## 6. Hook rework (follow-up, same session date, later)
+
+Feedback: viewers can't tell the fun shorts are about **stocks** from the
+first seconds. Fix: every hook now names real mega-cap tickers (safe,
+neutral/flattering framings only — nobody scores or vetoes a real company)
+and/or says "stock" outright, inside the first ~1s. Videos stay ~90%
+identical: same scene tables (zero duration changes), same jokes, desks,
+endcards; only first-scene content (+2 tiny score cues) changed. One shared
+campaign idea: *you know the famous winners — this is about the next one.*
+
+- **flib**: `Redact` gains `cash` prop (glowing `$` prefix → bars read as a
+  ticker at a glance); `MiniRow` uses it.
+- **eightball**: ask-chip now cycles `$NVDA` (f10) → `$TSLA` (f42) → $-redact
+  (f72) in a fixed 195px slot (violet mono, swap ticks in score); E2's static
+  chip = same $-redact slot so the cut is invisible. Footer → "STOCK PICKING ·
+  THE TRADITIONAL METHOD".
+- **groupchat**: msgs 1–2 → "missed $NVDA. missed $TSLA 😭" / "NOT missing
+  the next one."; ticker bubble gains `pre` lead-in "found it:" (+ $-redact).
+  Other 8 messages, all timings/reactions untouched.
+- **gate**: headline → `Everyone in line is\n“the next NVDA.”` (delay 46→26,
+  violet accent on NVDA); queue chips arrive earlier (18+i·7, score pops
+  retimed 44+i·9→18+i·7… i.e. [18,25,32,39,46]); TickerChip = $-redact at
+  scale 0.8 (0.95 would overlap the 185px queue pitch with the $ added).
+- **redflags**: eyebrow → "STOCK RED FLAGS · A FIELD GUIDE" (all 3 swipe
+  scenes); profile-1 sub → `SMALL CAP · CALLS ITSELF “THE NEXT TSLA”`; card
+  names $-redacted.
+
+Verified: `tsc --noEmit` clean; scores regenerated (same lengths); leak grep
+over `src/ scripts/` **0 hits** (tickers aren't in the banned set); 11 hook
+stills reviewed (`out/stills/hk-*`): $NVDA/$TSLA/$-redact chip states + E2
+continuity, chat 3-message arc, gate line+$-queue+veto-chip readability,
+redflags header/card/sub. All four re-rendered (same frame counts as §4) +
+encoded spot frames checked.
+
+**Found & fixed while spot-checking the encode — Kinetic ghost words
+(latent, ALL films):** encoded gate frames showed single words of the
+headline heavily blurred (~3px) for ~0.5s stretches ("is" at n≈74–76, "in"
+at n≈89–91) while `remotion still` at the same frames was crisp. Root cause:
+`Kinetic` set `filter: blur(${(1-s)*5}px)` off a raw spring — on overshoot
+(s>1) that emits a NEGATIVE blur radius, which is invalid CSS; the video
+renderer's tabs reuse the DOM across queued frames, so the invalid write is
+rejected and the *previous* (possibly mid-rise, large) blur sticks until the
+oscillation next dips below 1. Stills render one frame per fresh page →
+never affected; which words stick is queue-timing-dependent → capricious
+(prior sessions' spot checks were clean by luck). Fix in `src/lib/ui.tsx`:
+`blur(${Math.max(0, 1 - s) * 5}px)` — invalid values can no longer be
+emitted, verified by full re-render + re-extracting the exact offending
+frames. NOTE: the-signal + the three lens shorts were rendered with the
+buggy Kinetic and may carry transient ghost words — re-render them whenever
+convenient to pick up the fix (compositions unchanged otherwise).
+
+## 7. Text-size pass (ALL 8 films, same session, later still)
+
+Feedback: small text is hard to read in short-form. Applied a graded bump —
+readability-first on the smallest classes, barely-there on display text:
+**≤32px → +6 · 33–44 → +5 · 45–68 → +4 · ≥69 unchanged** (`fontSize: N`,
+`size={N}` props, and bubble-spec `size:` fields; 241 automated rewrites via
+one-shot codemod, plus component defaults: Eyebrow 20→26, Chip 19→25,
+lens `Roll` 30→36, vlib SceneTitle 64→68).
+
+Containers retuned so nothing clips/wraps ugly (the "surroundings" work):
+- groupchat bubble maxWidth 660→750; 8-ball answer window 210→244;
+  redflags card 820→890 (sub pinned 22px nowrap — 26 wrapped in the
+  642px name column); AskChip pill text 45/47px in the same 195px slot.
+- `Roll` is now `whiteSpace: nowrap` (VF2's "8 / 9" wrapped mid-readout);
+  VF2 veto note wraps intentionally (maxWidth 620, flex-end row).
+- VM2 MeterRow label columns 14→20 / 24→34; VM4's first point label
+  anchors `start` +16px so "45%" clears the y-axis ticks.
+- S12: docked 90.3 now lands right-aligned with rows 2/3 (numX −36, scale
+  45/236 — was −96/40: glyphs glued into the number after the bump).
+- S13 wire: fontSize 23, tag column minWidth 150→180 ("fundamentals" was
+  overrunning it), slice(-11)→slice(-7) so wrapped rows can't overflow
+  the 636px panel.
+- BigQuestion→pill handoff retuned for the 41px pill text (was 36): S01
+  target x −174→−134 scale 41/150; V01 x −142→−110 scale (41·0.82)/126;
+  SearchBar cursor 40→45.
+
+Verified: tsc clean; leak grep 0; ~35 stills across all 8 comps (masters
+S01/S02/S12/S13/S14/S19/S20/S21, lens VF1-5/VM2-5/VC2-4 + spine/receipts/
+endcard, fun hooks/desks/cards) — every finding above came out of that sweep
+and was re-stilled after its fix. All 8 re-rendered (frame counts unchanged;
+scores untouched — no timeline edits) + encoded spot checks.
+
+## 8. Open / next
 
 - Social encodes on posting day (`ffmpeg -crf 26 -preset slow`, ~20MB);
   poster frames: fun endcards sit in the last ~4s of each file.

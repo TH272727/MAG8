@@ -24,12 +24,13 @@ const SPINE_OPEN: SceneDef[] = [
   {id: 'V04_Lanes', frames: 150},
 ];
 
-/** Shared closing spine: fusion, verdict, receipts, endcard. */
+/** Shared closing spine: fusion, verdict, receipts, endcard.
+ * V13 165→183 (2026-07-08): the waitlist CTA needs its read time. */
 const SPINE_CLOSE: SceneDef[] = [
   {id: 'V10_Fusion', frames: 189},
   {id: 'V11_Verdict', frames: 165},
   {id: 'V12_Receipts', frames: 195},
-  {id: 'V13_Endcard', frames: 165},
+  {id: 'V13_Endcard', frames: 183},
 ];
 
 /** The specialized middle chapter, one per lens. */

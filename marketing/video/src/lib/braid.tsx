@@ -9,7 +9,7 @@ export const BRAID_END = 1660;
 export const THREADS = [
   {color: C.discovery, y0: 216, label: 'DISCOVERY SCOUT', seed: 71},
   {color: C.fundamentals, y0: 432, label: 'FUNDAMENTALS', seed: 137},
-  {color: C.macro, y0: 648, label: 'MACRO ASYMMETRY', seed: 211},
+  {color: C.macro, y0: 648, label: 'GAME THEORY', seed: 211},
   {color: C.consensus, y0: 864, label: 'STREET CONSENSUS', seed: 307},
 ];
 
@@ -88,7 +88,7 @@ export const Threads: React.FC<{
             y={th.y0 - 22}
             fill={th.color}
             opacity={labelOp}
-            style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 17, letterSpacing: '0.14em'}}
+            style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 23, letterSpacing: '0.14em'}}
           >
             {th.label}
           </text>

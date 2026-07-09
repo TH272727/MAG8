@@ -45,7 +45,7 @@ export const VC1_Street: React.FC = () => {
             delay={86}
             seed="vc1"
             base={0.7}
-            size={52}
+            size={56}
             tint={T}
             cursor={false}
           />
@@ -101,22 +101,22 @@ export const VC2_Desks: React.FC = () => {
             }}
           >
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
-              <span style={{fontFamily: F.mono, fontSize: 19, fontWeight: 700, letterSpacing: '0.08em', color: C.ink}}>
+              <span style={{fontFamily: F.mono, fontSize: 25, fontWeight: 700, letterSpacing: '0.08em', color: C.ink}}>
                 DESK {String(i + 1).padStart(2, '0')}
               </span>
-              <span style={{fontFamily: F.mono, fontSize: 24, color: stanceColor(d.stance)}}>{d.stance}</span>
+              <span style={{fontFamily: F.mono, fontSize: 30, color: stanceColor(d.stance)}}>{d.stance}</span>
             </div>
-            <div style={{marginTop: 12, fontFamily: F.mono, fontSize: 22, color: C.muted, fontVariantNumeric: 'tabular-nums'}}>
+            <div style={{marginTop: 12, fontFamily: F.mono, fontSize: 28, color: C.muted, fontVariantNumeric: 'tabular-nums'}}>
               ${d.lo} – ${d.hi}
             </div>
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 14}}>
-              <span style={{fontFamily: F.mono, fontSize: 14, letterSpacing: '0.1em', color: C.dim}}>
+              <span style={{fontFamily: F.mono, fontSize: 20, letterSpacing: '0.1em', color: C.dim}}>
                 AS OF {d.asOf}
               </span>
               <span
                 style={{
                   fontFamily: F.mono,
-                  fontSize: 13,
+                  fontSize: 19,
                   letterSpacing: '0.1em',
                   color: T,
                   opacity: lerp(frame, [at + 14, at + 22], [0, 1]),
@@ -131,16 +131,16 @@ export const VC2_Desks: React.FC = () => {
       <Instrument x={70} y={1500} w={940} h={140} label="BALANCE" appear={140}>
         <div style={{display: 'flex', gap: 50, alignItems: 'baseline'}}>
           <ReadoutRow label="BULL" delay={148}>
-            <Roll target={5} decimals={0} delay={150} size={28} color={T} />
+            <Roll target={5} decimals={0} delay={150} size={34} color={T} />
           </ReadoutRow>
           <ReadoutRow label="HOLD" delay={154}>
-            <Roll target={2} decimals={0} delay={156} size={28} />
+            <Roll target={2} decimals={0} delay={156} size={34} />
           </ReadoutRow>
           <ReadoutRow label="BEAR" delay={160}>
-            <Roll target={1} decimals={0} delay={162} size={28} color={C.danger} />
+            <Roll target={1} decimals={0} delay={162} size={34} color={C.danger} />
           </ReadoutRow>
           <ReadoutRow label="STALE CUT" delay={166}>
-            <Roll target={1} decimals={0} delay={168} size={28} color={C.macro} />
+            <Roll target={1} decimals={0} delay={168} size={34} color={C.macro} />
           </ReadoutRow>
         </div>
       </Instrument>
@@ -183,7 +183,7 @@ export const VC3_Band: React.FC = () => {
         {[210, 230, 250, 270].map((v) => (
           <g key={v} opacity={lerp(frame, [18, 30], [0, 1])}>
             <line x1={toX(v)} x2={toX(v)} y1={SCALE_Y - 7} y2={SCALE_Y + 7} stroke={C.hairline2} strokeWidth={2} />
-            <text x={toX(v)} y={SCALE_Y + 34} textAnchor="middle" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 15}}>
+            <text x={toX(v)} y={SCALE_Y + 34} textAnchor="middle" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
               ${v}
             </text>
           </g>
@@ -232,7 +232,7 @@ export const VC3_Band: React.FC = () => {
           top: SCALE_Y - 290,
           transform: 'translateX(-50%)',
           fontFamily: F.mono,
-          fontSize: 19,
+          fontSize: 25,
           color: T,
           opacity: merge,
         }}
@@ -246,7 +246,7 @@ export const VC3_Band: React.FC = () => {
           top: SCALE_Y + 52,
           transform: 'translateX(-50%)',
           fontFamily: F.mono,
-          fontSize: 17,
+          fontSize: 23,
           color: C.muted,
           opacity: lerp(frame, [118, 130], [0, 1]),
         }}
@@ -256,16 +256,16 @@ export const VC3_Band: React.FC = () => {
       <Instrument x={110} y={1160} w={860} h={170} label="THE RANGE" appear={118}>
         <div style={{display: 'flex', gap: 48, alignItems: 'baseline', marginTop: 2}}>
           <ReadoutRow label="LOW" delay={124}>
-            <Roll target={236} decimals={0} delay={126} size={30} />
+            <Roll target={236} decimals={0} delay={126} size={36} />
           </ReadoutRow>
           <ReadoutRow label="CONSENSUS" delay={130}>
-            <Roll target={247} decimals={0} delay={132} size={30} color={T} />
+            <Roll target={247} decimals={0} delay={132} size={36} color={T} />
           </ReadoutRow>
           <ReadoutRow label="HIGH" delay={136}>
-            <Roll target={258} decimals={0} delay={138} size={30} />
+            <Roll target={258} decimals={0} delay={138} size={36} />
           </ReadoutRow>
           <ReadoutRow label="SPREAD" delay={142}>
-            <Roll target={9} decimals={0} delay={144} size={30} suffix="%" />
+            <Roll target={9} decimals={0} delay={144} size={36} suffix="%" />
           </ReadoutRow>
         </div>
       </Instrument>
@@ -307,12 +307,12 @@ export const VC4_BullBear: React.FC = () => {
         }}
       >
         <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
-          <span style={{fontFamily: F.mono, fontSize: 44, color, lineHeight: 1}}>{glyph}</span>
-          <span style={{fontFamily: F.mono, fontSize: 21, fontWeight: 700, letterSpacing: '0.12em', color}}>
+          <span style={{fontFamily: F.mono, fontSize: 49, color, lineHeight: 1}}>{glyph}</span>
+          <span style={{fontFamily: F.mono, fontSize: 27, fontWeight: 700, letterSpacing: '0.12em', color}}>
             {tag}
           </span>
           <div style={{flex: 1}} />
-          <span style={{fontFamily: F.mono, fontSize: 34, fontWeight: 700, color: C.ink, fontVariantNumeric: 'tabular-nums', opacity: lerp(frame, [at + 22, at + 32], [0, 1])}}>
+          <span style={{fontFamily: F.mono, fontSize: 39, fontWeight: 700, color: C.ink, fontVariantNumeric: 'tabular-nums', opacity: lerp(frame, [at + 22, at + 32], [0, 1])}}>
             ${target}
           </span>
         </div>
@@ -320,7 +320,7 @@ export const VC4_BullBear: React.FC = () => {
           style={{
             marginTop: 26,
             fontFamily: F.body,
-            fontSize: 29,
+            fontSize: 35,
             fontWeight: 400,
             lineHeight: 1.5,
             color: C.muted,
@@ -390,10 +390,10 @@ export const VC5_Flag: React.FC = () => {
           <line x1={xB} y1={Y - 72} x2={xB} y2={Y - 56} stroke={C.macro} strokeWidth={2.5} />
         </g>
       </svg>
-      <div style={{position: 'absolute', left: xA, top: Y + 46, transform: 'translateX(-50%)', fontFamily: F.mono, fontSize: 17, color: T, opacity: lerp(frame, [16, 26], [0, 1])}}>
+      <div style={{position: 'absolute', left: xA, top: Y + 46, transform: 'translateX(-50%)', fontFamily: F.mono, fontSize: 23, color: T, opacity: lerp(frame, [16, 26], [0, 1])}}>
         STREET READ
       </div>
-      <div style={{position: 'absolute', left: xB, top: Y + 46, transform: 'translateX(-50%)', fontFamily: F.mono, fontSize: 17, color: C.macro, opacity: lerp(frame, [16, 26], [0, 1])}}>
+      <div style={{position: 'absolute', left: xB, top: Y + 46, transform: 'translateX(-50%)', fontFamily: F.mono, fontSize: 23, color: C.macro, opacity: lerp(frame, [16, 26], [0, 1])}}>
         INDEPENDENT QUOTE
       </div>
       <div
@@ -403,7 +403,7 @@ export const VC5_Flag: React.FC = () => {
           top: Y - 118,
           transform: 'translateX(-50%)',
           fontFamily: F.mono,
-          fontSize: 24,
+          fontSize: 30,
           fontWeight: 700,
           color: C.macro,
           opacity: gapOn,
@@ -423,12 +423,12 @@ export const VC5_Flag: React.FC = () => {
           opacity: Math.min(chipS * 1.5, 1),
         }}
       >
-        <Chip size={23} color={C.macro} border={`${C.macro}88`} bg={`${C.macro}12`} style={{boxShadow: `0 0 30px ${C.macro}33`}}>
+        <Chip size={29} color={C.macro} border={`${C.macro}88`} bg={`${C.macro}12`} style={{boxShadow: `0 0 30px ${C.macro}33`}}>
           DIVERGENCE FLAGGED
         </Chip>
       </div>
       <div style={{position: 'absolute', left: 0, right: 0, top: 1240, display: 'flex', justifyContent: 'center'}}>
-        <Kinetic text={'Flagged in the open.\nScored anyway.'} delay={96} size={46} color={C.muted} />
+        <Kinetic text={'Flagged in the open.\nScored anyway.'} delay={96} size={50} color={C.muted} />
       </div>
       <VFoot at={116} bottom={330}>
         JOINS THE KNOWN-GAPS LIST ON THE REPORT

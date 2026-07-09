@@ -38,7 +38,7 @@ export const V12_Receipts: React.FC = () => {
       />
       <AbsoluteFill style={{alignItems: 'center', justifyContent: 'flex-end'}}>
         <div style={{marginBottom: 250}}>
-          <Kinetic text="Every verdict shows its work." delay={118} size={52} maxWidth={960} />
+          <Kinetic text="Every verdict shows its work." delay={118} size={56} maxWidth={960} />
         </div>
       </AbsoluteFill>
       <div
@@ -49,7 +49,7 @@ export const V12_Receipts: React.FC = () => {
           bottom: 178,
           textAlign: 'center',
           fontFamily: F.mono,
-          fontSize: 18,
+          fontSize: 24,
           letterSpacing: '0.12em',
           color: C.dim,
           opacity: lerp(frame, [152, 166], [0, 1]),
