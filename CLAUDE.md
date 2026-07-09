@@ -206,5 +206,9 @@ on-server full-mode runs are the board-update path (no fly-sftp equivalent). Re-
 tsc 0, build clean, matrix `/` 200 + nine 404s, homepage 0 internal hrefs + 0 real tickers + leak 0-hit,
 full-mode restore exact. GitHub pushed same day (origin TH272727/MAG8): film+app domain commits.
 Open: (1) email capture stores (E2E-verified 2026-07-09) but nothing sends;
-(2) Railway chosen but not yet provisioned — one long-lived instance (SSE bus + SQLite; Postgres port = rewrite `lib/db.ts` only); `DEPLOY.md` §Railway has the specifics.
+(2) LIVE on Railway free trial since 2026-07-09 ($5 one-time credit, ~$2–4/mo burn → upgrade to Hobby) —
+volume `/data` + `MAG8_DB_PATH` was instructed but is UNVERIFIED: confirm before any push to main
+(auto-deploy restarts the container; un-volumed signups are wiped); `DEPLOY.md` §Railway has the specifics;
+(3) NEXT TASK: token-gated GET `/api/waitlist` (launch-exempt, `?token=` for phone browsers, 404 on bad token,
+SQL added to lib/db.ts) — full spec §6 of `HANDOFF-2026-07-09-railway-launch.md`; prereq: set ADMIN_TOKEN on Railway.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
