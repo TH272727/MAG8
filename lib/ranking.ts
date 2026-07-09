@@ -103,7 +103,7 @@ Each candidate receives four sub-scores, each 0–100, one per independent lens:
 
 1. **Fundamentals** — weight ${w("fundamentals")}. From the fundamentals lens: financial strength (Piotroski F, Altman Z), quality and moat, reverse-DCF expectations gap, reward/risk, and the lens's own composite and verdict.
 2. **Discovery thesis** — weight ${w("discoveryThesis")}. From the Stage-1 discovery scout: how credibly the company matches pre-scale mega-cap DNA traits and rides a durable secular wave.
-3. **GT asymmetry** — weight ${w("gtAsymmetry")}. From the macro-asymmetry lens: Asymmetry Score (1–10, 10 = maximum mispricing), strength and direction of the macro/game-theoretic read, quality of the entry window.
+3. **GT asymmetry** — weight ${w("gtAsymmetry")}. From the game-theory lens: Asymmetry Score (1–10, 10 = maximum mispricing), strength and direction of the game-theoretic read (players, compelled moves, base rates), quality of the entry window.
 4. **Institutional gap** — weight ${w("institutionalGap")}. From the street-consensus lens: implied upside vs verified consensus targets, stance, coverage breadth, and spread (a tight bullish consensus scores higher than a wide scattered one).
 
 **Sub-score anchors:** 80+ exceptional evidence, 60–79 strong, 40–59 mixed/neutral, below 40 weak or contradicting.

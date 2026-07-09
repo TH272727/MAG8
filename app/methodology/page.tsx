@@ -3,6 +3,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CITATION_GROUPS, groundingShorts } from "@/lib/citations";
+import { launchMode } from "@/lib/config";
 import { buildRubricText } from "@/lib/ranking";
 import { PUBLIC_DISCOVERY, PUBLIC_LENS_META } from "@/lib/public-lens";
 
@@ -22,7 +23,7 @@ const STAGES = [
   {
     n: "02",
     name: "Independent lenses",
-    body: "Each candidate is analyzed by three lenses that cannot see each other's work: a fundamentals scanner (Piotroski F, Altman Z, reverse-DCF, value-trap gates), a game-theory macro engine (base rates, asymmetry scoring), and a street-consensus aggregator (live-verified analyst targets).",
+    body: "Each candidate is analyzed by three lenses that cannot see each other's work: a fundamentals scanner (Piotroski F, Altman Z, reverse-DCF, value-trap gates), a game-theory engine (player maps, base rates, asymmetry scoring), and a street-consensus aggregator (live-verified analyst targets).",
   },
   {
     n: "03",
@@ -48,7 +49,7 @@ const LENSES = [
     accent: "macro",
     name: PUBLIC_LENS_META.macro.label,
     code: PUBLIC_LENS_META.macro.short,
-    body: "What do structural forces say? Anchors on outside-view base rates, then scores how mispriced the setup is (Asymmetry 1–10) with explicit falsification conditions.",
+    body: "Who are the players, and what are they compelled to do? Maps the actors around the stock, anchors on outside-view base rates, prices the 3–24-month scenarios, then scores how mispriced the setup is (Asymmetry 1–10) — with explicit falsification conditions.",
   },
   {
     accent: "consensus",
@@ -118,6 +119,100 @@ export default function MethodologyPage() {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* The two engines, closer up */}
+      <section className="mt-12" aria-labelledby="engines-h">
+        <h2 id="engines-h" className="eyebrow">
+          The two engines, closer up
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm text-muted">
+          Two parts of the pipeline do work you will not find in a stock screener: the discovery
+          stage&apos;s DNA matching and the game-theory lens. Here is what each one actually does.
+        </p>
+
+        {/* Discovery — the DNA screen */}
+        <div id="discovery-dna" className="panel mt-4 scroll-mt-24 border-t-2 border-t-discovery/70 p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h3 className="font-display text-lg font-semibold text-discovery">
+              Discovery — the trillion-dollar DNA screen
+            </h3>
+            <span className="font-mono text-[11px] text-dim">{PUBLIC_DISCOVERY.short}</span>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Since 1926, the best-performing ~4% of US stocks account for <em>all</em> of the
+            market&apos;s net wealth creation over Treasury bills (Bessembinder 2018 — in the evidence
+            base below). Returns don&apos;t spread out; they concentrate in a handful of compounders.
+            The scout&apos;s whole mandate is finding members of that 4% while they are still small.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            So it inverts the usual question. Instead of &ldquo;what looks cheap this week?&rdquo; it
+            asks: <span className="text-ink">what did the trillion-dollar companies look like before
+            they were trillion-dollar companies — and who looks like that now?</span> The traits the
+            giants shared before they were big are the genome; the screen hunts US-listed small and
+            mid-caps expressing it today, while the label on the tin still says niche.
+          </p>
+          <dl className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2">
+            {[
+              ["Founder-led", "The founder still steering, reinvesting heavily in R&D and capacity (Fahlenbrach 2009)."],
+              ["Platform economics", "Every new customer makes the product cheaper or better for the next one."],
+              ["Compounding moat", "A structural power — network effects, switching costs, scale — already visible at small size (Helmer 2016)."],
+              ["Category creation", "Selling something that had no market yesterday, so growth is taken from the future, not from rivals."],
+              ["S-curve timing", "Sitting near the knee of an adoption curve as a durable secular wave arrives underneath (Rogers 1962)."],
+              ["Misunderstood", "Consensus sees a toy, a niche, or a money-loser. The asymmetry lives in that gap."],
+            ].map(([t, d]) => (
+              <div key={t} className="bg-panel2 px-4 py-3">
+                <dt className="eyebrow text-discovery">{t}</dt>
+                <dd className="mt-1 text-[13px] leading-relaxed text-muted">{d}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 text-sm leading-relaxed text-muted">
+            Every nomination names the specific traits matched and the wave underneath it — a
+            hypothesis, stated so it can be attacked. Discovery opens the case and argues it; it
+            never scores it. The three lenses below take the thesis apart independently, and the
+            weekly leaderboard is what survives.
+          </p>
+        </div>
+
+        {/* Game theory — the world, war-gamed */}
+        <div id="game-theory" className="panel mt-4 scroll-mt-24 border-t-2 border-t-macro/70 p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h3 className="font-display text-lg font-semibold text-macro">
+              Game Theory — the world, war-gamed
+            </h3>
+            <span className="font-mono text-[11px] text-dim">{PUBLIC_LENS_META.macro.short}</span>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Most research asks what a company is worth. This lens asks what the world around it is
+            about to do — export controls, rate regimes, subsidy races, procurement cycles, cartel
+            discipline. For a small company riding a big wave, those moves often decide more than any
+            quarterly print. Markets are games; games have players; players can be read.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted">Every cell it files is built the same way:</p>
+          <dl className="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2">
+            {[
+              ["1 · Player map", "The actors that actually decide the outcome — states, central banks, incumbents, regulators, suppliers — each scored Mass × Energy × Coordination (1–10): the weight they swing, how badly they want it, how coherently they can act."],
+              ["2 · Compelled moves", "The read looks for dominant strategies — moves a player makes in every scenario because incentives leave no real alternative. Structure over opinion."],
+              ["3 · Base rate first", "Before any story: the outside-view base rate for situations shaped like this one (reference-class forecasting). The specific case only adjusts it."],
+              ["4 · Horizon probabilities", "The primary outcome is priced at 3, 6, 12, and 24 months — a thesis is a curve over time, not a vibe."],
+              ["5 · Asymmetry Score (1–10)", "The gap between what the lens judges likely and what the market has priced. 10 = maximum mispricing — the setups worth waking up for."],
+              ["6 · The falsifier", "Every read states the observable condition that would kill it. A thesis that cannot be wrong is not a thesis."],
+            ].map(([t, d]) => (
+              <div key={t} className="bg-panel2 px-4 py-3">
+                <dt className="eyebrow text-macro">{t}</dt>
+                <dd className="mt-1 text-[13px] leading-relaxed text-muted">{d}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 text-sm leading-relaxed text-muted">
+            The forecasting literature is blunt about unaided expert prediction (Tetlock 2005; Green
+            2005 — below), which is why this lens is graded rather than trusted: base rates come
+            first, the opposing case is argued in every report, and its probability calls are logged
+            and Brier-scored. On each stock&apos;s page all of this renders as instruments — the
+            player map, the horizon fan, the asymmetry dial — with the full write-up underneath.
+          </p>
         </div>
       </section>
 
@@ -244,9 +339,15 @@ export default function MethodologyPage() {
       </section>
 
       <div className="mt-10">
-        <Link href="/rankings" className="btn">
-          See the current leaderboard
-        </Link>
+        {launchMode() ? (
+          <Link href="/#waitlist" className="btn">
+            Join the waitlist
+          </Link>
+        ) : (
+          <Link href="/rankings" className="btn">
+            See the current leaderboard
+          </Link>
+        )}
       </div>
     </main>
   );

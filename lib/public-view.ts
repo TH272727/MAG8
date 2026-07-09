@@ -42,7 +42,12 @@ export const PUBLIC_LENS_LABEL = (skill: LensSkill): string => PUBLIC_LENS_META[
 const EXACT_TOKENS: [RegExp, string][] = [
   [/\bnew[- ]gen[- ]stock\b/gi, "the discovery scout"],
   [/\bstock[- ]scanner\b/gi, "the fundamentals lens"],
-  [/\bgt[- ]predictor\b/gi, "the macro-asymmetry lens"],
+  [/\bgt[- ]predictor\b/gi, "the game-theory lens"],
+  // Retro-label: rows persisted before the 2026-07-08 rename say "Macro
+  // Asymmetry"; translate on the way out so old reports match the product.
+  [/\bMACRO[- ]ASYMMETRY\b/g, "GAME THEORY"],
+  [/\bMacro[- ][Aa]symmetry\b/g, "Game Theory"],
+  [/\bmacro[- ]asymmetry\b/g, "game theory"],
   [/\binstitutional[- ]forecast\b/gi, "the street-consensus lens"],
   [/\bSKILL\.md\b/g, "the playbook"],
   [/\bClaude Code\b/g, "the research engine"],

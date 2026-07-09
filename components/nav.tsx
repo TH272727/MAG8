@@ -1,9 +1,12 @@
 import Link from "next/link";
 import LogoMark from "@/components/logo";
+import { launchMode } from "@/lib/config";
 import { getActiveRun } from "@/lib/db";
 
 export default async function Nav() {
-  const active = getActiveRun();
+  // Pre-launch curtain: only Methodology survives in the nav (the hidden pages 404).
+  const launch = launchMode();
+  const active = launch ? null : getActiveRun();
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-void/90 backdrop-blur-sm">
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
@@ -22,18 +25,24 @@ export default async function Nav() {
               LIVE RUN
             </Link>
           )}
-          <Link href="/rankings" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
-            Rankings
-          </Link>
-          <Link href="/lab" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
-            Lab
-          </Link>
+          {!launch && (
+            <Link href="/rankings" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
+              Rankings
+            </Link>
+          )}
+          {!launch && (
+            <Link href="/lab" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
+              Lab
+            </Link>
+          )}
           <Link href="/methodology" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
             Methodology
           </Link>
-          <Link href="/admin" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
-            Admin
-          </Link>
+          {!launch && (
+            <Link href="/admin" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
+              Admin
+            </Link>
+          )}
         </div>
       </nav>
     </header>

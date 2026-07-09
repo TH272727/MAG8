@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LogoMark from "@/components/logo";
+import { launchMode } from "@/lib/config";
 
 export default function NotFound() {
   return (
@@ -12,9 +13,15 @@ export default function NotFound() {
         completed run has ranked them.
       </p>
       <div className="mt-6 flex gap-3">
-        <Link href="/rankings" className="btn btn-primary">
-          Current rankings
-        </Link>
+        {launchMode() ? (
+          <Link href="/methodology" className="btn btn-primary">
+            How Mag8 works
+          </Link>
+        ) : (
+          <Link href="/rankings" className="btn btn-primary">
+            Current rankings
+          </Link>
+        )}
         <Link href="/" className="btn">
           Home
         </Link>

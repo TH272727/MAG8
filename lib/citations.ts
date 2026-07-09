@@ -122,7 +122,7 @@ export const CITATION_GROUPS: CitationGroup[] = [
   },
   {
     key: "macro",
-    title: "Macro Asymmetry lens",
+    title: "Game Theory lens",
     intro:
       "The lens's discipline — outside-view base rates, probability scoring, structured analogies, explicit falsifiers — is the tested core of the forecasting literature. Its actor-scoring framework is a stylized cousin of published expected-utility models and is labeled as judgment, not as an estimated parameter.",
     works: [

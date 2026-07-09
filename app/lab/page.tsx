@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import LabPanel from "@/components/lab/LabPanel";
 import type { RunEstimate } from "@/components/admin/AdminPanel";
 import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
-import { CONFIG, estimateRun } from "@/lib/config";
+import { CONFIG, estimateRun, launchMode } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,9 @@ export const metadata: Metadata = {
 };
 
 export default async function LabPage() {
+  // Pre-launch curtain: the page stays in the tree but 404s until launch.
+  if (launchMode()) notFound();
+
   const cookieToken = (await cookies()).get(ADMIN_COOKIE)?.value ?? null;
   const adminUnlocked = tokenMatches(cookieToken);
 

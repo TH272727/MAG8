@@ -21,7 +21,7 @@ export const LENS_META: Record<
   { label: string; short: string; accent: "fundamentals" | "macro" | "consensus" }
 > = {
   "stock-scanner": { label: "Fundamentals", short: "SCAN", accent: "fundamentals" },
-  "gt-predictor": { label: "Macro Asymmetry", short: "GT", accent: "macro" },
+  "gt-predictor": { label: "Game Theory", short: "GT", accent: "macro" },
   "institutional-forecast": { label: "Street Consensus", short: "INST", accent: "consensus" },
 };
 export const DISCOVERY_META = { label: "Discovery Scout", short: "SCOUT", accent: "discovery" as const };

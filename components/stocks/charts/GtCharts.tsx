@@ -16,7 +16,7 @@ import type { MetricValue } from "@/lib/schemas";
 import { asArr, asNum, asObj, asStr, markFill } from "./chartUtils";
 
 /* ============================================================================
- * Macro-asymmetry instruments: asymmetry dial, horizon probability fan,
+ * Game-theory instruments: asymmetry dial, horizon probability fan,
  * player map (Mass × Coordination, dot size = Energy). All null-safe — rows
  * persisted before these fields existed render the card unchanged.
  * ========================================================================== */

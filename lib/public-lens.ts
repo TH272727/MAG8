@@ -22,13 +22,18 @@ import type {
 export const PUBLIC_LENSES = ["fundamentals", "macro", "consensus"] as const;
 export type PublicLens = (typeof PUBLIC_LENSES)[number];
 
-export const PUBLIC_LENS_META: Record<PublicLens, { label: string; short: string }> = {
-  fundamentals: { label: "Fundamentals", short: "SCAN" },
-  macro: { label: "Macro Asymmetry", short: "GT" },
-  consensus: { label: "Street Consensus", short: "INST" },
+export const PUBLIC_LENS_META: Record<PublicLens, { label: string; short: string; tagline: string }> = {
+  fundamentals: { label: "Fundamentals", short: "SCAN", tagline: "Is the business financially real?" },
+  macro: { label: "Game Theory", short: "GT", tagline: "Who are the players — and what are they compelled to do?" },
+  consensus: { label: "Street Consensus", short: "INST", tagline: "What does the street actually say right now?" },
 };
 
-export const PUBLIC_DISCOVERY = { code: "discovery", label: "Discovery Scout", short: "SCOUT" } as const;
+export const PUBLIC_DISCOVERY = {
+  code: "discovery",
+  label: "Discovery Scout",
+  short: "SCOUT",
+  tagline: "Trillion-dollar DNA, found while it's still small.",
+} as const;
 
 export type PublicCellKey = `${string}:${PublicLens}`;
 export const publicCellKey = (ticker: string, lens: PublicLens): PublicCellKey => `${ticker}:${lens}`;

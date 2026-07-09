@@ -4,8 +4,8 @@
 
 Mag8 is a Next.js app that orchestrates four existing Claude Skills (via `@anthropic-ai/claude-agent-sdk`) into a three-stage equity-research pipeline with a live multi-agent Mission Control:
 
-1. **Discovery** — a scout agent runs the `new-gen-stock` skill: heavy web research nominating small/mid-cap candidates that match the traits today's mega-caps had before they were big.
-2. **Analysis matrix** — every candidate is analyzed by three agents that never see each other's work: `stock-scanner` (fundamentals: Piotroski F, Altman Z, reverse-DCF, value-trap gates), `gt-predictor` (game-theory macro read with an Asymmetry Score), and `institutional-forecast` (live-verified street consensus). 3×N cells, concurrency-capped.
+1. **Discovery** — a scout agent runs the `new-gen-stock` skill: the "trillion-dollar DNA" screen — heavy web research nominating small/mid-cap candidates that match the traits today's mega-caps had before they were big.
+2. **Analysis matrix** — every candidate is analyzed by three agents that never see each other's work: `stock-scanner` (fundamentals: Piotroski F, Altman Z, reverse-DCF, value-trap gates), `gt-predictor` (public label **Game Theory**: player maps scored M×E×C, compelled moves, 3–24-month horizon probabilities, an Asymmetry Score, a falsifier), and `institutional-forecast` (live-verified street consensus). 3×N cells, concurrency-capped.
 3. **Compile & verify** — a compiler agent applies the **Trillion-Dollar Confluence Score** rubric; deterministic TypeScript then re-derives the gate from the scanner's own labels, recomputes the arithmetic, re-sorts, and enforces the placement rule. The model judges; the code enforces.
 
 The product thesis: any single analysis can talk itself into anything. Independent methods agreeing is harder to fake — that agreement (all three lenses bullish → +10 confluence bonus) is itself the signal, rendered everywhere as the gold braid.

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { launchMode } from "@/lib/config";
 import { getEventsSince, getRun } from "@/lib/db";
 import { bus, runChannel, type BusEvent } from "@/lib/orchestrator/progress";
 import { toPublicEvent } from "@/lib/public-view";
@@ -22,6 +23,10 @@ const HEARTBEAT_MS = 15_000;
  * Requires compress:false (next.config.ts) so Next never gzip-buffers this.
  */
 export async function GET(req: NextRequest, ctx: { params: Promise<{ runId: string }> }) {
+  // Pre-launch curtain: the live stream is dark until launch.
+  if (launchMode()) {
+    return NextResponse.json({ code: "not_found", error: "not found" }, { status: 404 });
+  }
   const { runId } = await ctx.params;
   const run = getRun(runId);
   if (!run) {

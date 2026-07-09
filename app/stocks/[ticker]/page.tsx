@@ -10,6 +10,7 @@ import {
   getRankingForTicker,
   latestRunForTicker,
 } from "@/lib/db";
+import { launchMode } from "@/lib/config";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { PUBLIC_LENSES, type PublicLens } from "@/lib/public-lens";
 import { sanitizeRankedStock, toPublicLensRow } from "@/lib/public-view";
@@ -21,11 +22,15 @@ function normalizeTicker(raw: string): string {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ ticker: string }> }): Promise<Metadata> {
+  if (launchMode()) return {};
   const { ticker } = await params;
   return { title: `${normalizeTicker(ticker)} — confluence dossier` };
 }
 
 export default async function StockPage({ params }: { params: Promise<{ ticker: string }> }) {
+  // Pre-launch curtain: dossiers stay in the tree but 404 until launch.
+  if (launchMode()) notFound();
+
   const { ticker: raw } = await params;
   const ticker = normalizeTicker(raw);
 

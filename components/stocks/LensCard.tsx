@@ -87,6 +87,8 @@ export default function LensCard({ row }: { row: PublicLensRow }) {
         </div>
       </div>
 
+      <p className="mt-1 font-mono text-[11px] tracking-wide text-dim">{meta.tagline}</p>
+
       <p className="mt-3 text-sm leading-relaxed text-ink/90">{a.summary}</p>
 
       <dl className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2">

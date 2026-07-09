@@ -144,6 +144,30 @@ export const CONFIG = {
   authMode: resolveAuthMode,
 } as const;
 
+/* ----------------------------------------------------------------------------
+ * Site mode — pre-launch visibility switch
+ * -------------------------------------------------------------------------- */
+
+export type SiteMode = "launch" | "full";
+
+/**
+ * "launch" leaves only the homepage and /methodology viewable — rankings, lab,
+ * admin, run replays, stock dossiers, and the run APIs all 404. Pages are
+ * hidden, never deleted; email capture stays live in both modes. Defaults:
+ * production → "launch" (a fresh deploy exposes nothing by accident),
+ * development → "full". Override either way with MAG8_SITE_MODE=launch|full.
+ */
+export function siteMode(): SiteMode {
+  const v = process.env.MAG8_SITE_MODE?.trim().toLowerCase();
+  if (v === "launch" || v === "full") return v;
+  return process.env.NODE_ENV === "production" ? "launch" : "full";
+}
+
+/** True when the pre-launch curtain is down (only / and /methodology respond). */
+export function launchMode(): boolean {
+  return siteMode() === "launch";
+}
+
 /** Pre-run estimate for N candidates, shown on /admin before confirming. */
 export function estimateRun(count: number) {
   const calls = 1 + count * 3 + 1;

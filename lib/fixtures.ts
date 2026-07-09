@@ -475,7 +475,7 @@ export const FIXTURE_SEEDS: TickerSeed[] = [
       },
     },
     subScores: { fundamentals: 45, discoveryThesis: 78, gtAsymmetry: 70, institutionalGap: 38 },
-    verdictLine: "Macro loves it, the street doesn't, and there's no balance sheet to referee — textbook caution gate.",
+    verdictLine: "Game theory loves it, the street doesn't, and there's no balance sheet to referee — textbook caution gate.",
   },
   {
     ticker: "ACHR",
@@ -707,7 +707,7 @@ ${s.scanner.riskFlags.map((r) => `- ${r}`).join("\n")}
 function gtMarkdown(s: TickerSeed): string {
   const k = s.gt.km;
   return `${DEMO_BANNER}
-# Macro Asymmetry — ${s.ticker} situation read
+# Game Theory — ${s.ticker} situation read
 
 ## Outside View
 - Reference class: ${k.baseRate}

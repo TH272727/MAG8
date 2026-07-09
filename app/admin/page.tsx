@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { adminLogout } from "@/app/actions";
 import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
 import RunHistoryTable from "@/components/admin/RunHistoryTable";
 import { ADMIN_COOKIE, adminConfigured, tokenMatches } from "@/lib/auth";
-import { CONFIG, estimateRun } from "@/lib/config";
+import { CONFIG, estimateRun, launchMode } from "@/lib/config";
 import { listRuns } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminPage() {
+  // Pre-launch curtain: the desk stays in the tree but 404s until launch
+  // (flip MAG8_SITE_MODE=full to operate it on a deployed instance).
+  if (launchMode()) notFound();
+
   const cookieToken = (await cookies()).get(ADMIN_COOKIE)?.value ?? null;
   const authed = tokenMatches(cookieToken);
 

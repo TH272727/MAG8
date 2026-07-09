@@ -26,7 +26,7 @@ import ConfluenceLine from "./ConfluenceLine";
 const SIGNALS = [
   { label: "Discovery Scout", hex: "#9184f2", y: 0.06 },
   { label: "Fundamentals", hex: "#57c28c", y: 0.36 },
-  { label: "Macro Asymmetry", hex: "#ef8c47", y: 0.64 },
+  { label: "Game Theory", hex: "#ef8c47", y: 0.64 },
   { label: "Street Consensus", hex: "#52b4cf", y: 0.94 },
 ];
 

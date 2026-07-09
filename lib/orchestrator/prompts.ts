@@ -169,7 +169,7 @@ ${buildRubricText()}
 
 - Assign each of the four sub-scores (0–100) from the evidence; be willing to use the full range.
 - Derive the gate strictly from the fundamentals lens's own labels per the rubric. If the fundamentals cell is MISSING, use gate "caution" and say so in gateReason.
-- Naming discipline: in every output field, refer to the analyses only as the fundamentals, macro-asymmetry, and street-consensus lenses (matching the lens data keys). Never mention internal tool, skill, or file names, session mechanics, or the AI platform.
+- Naming discipline: in every output field, refer to the analyses only as the fundamentals, game-theory, and street-consensus lenses (they appear under the data keys "fundamentals", "macro", "consensus" below). Never mention internal tool, skill, or file names, session mechanics, or the AI platform.
 - confluence is true ONLY when all three lenses' verdicts are bullish. A MISSING lens can never count as bullish.
 - A lens marked MISSING scores neutral (50) for its sub-score, and the gap goes in gapsNoted AND in that stock's groundingNotes.
 - groundingNotes MUST narrate the arithmetic explicitly, e.g. "Base 72.4 = 0.35×80 + 0.25×70 + 0.20×65 + 0.20×72. Gate caution ×0.75 → 54.3 (Watchlist: deployment-pace flag). No confluence bonus. Final 54.3." — then 1–3 sentences of evidence citing the lens data.

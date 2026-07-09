@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import AllTimeBoard from "@/components/rankings/AllTimeBoard";
 import Leaderboard from "@/components/rankings/Leaderboard";
 import type { LensMap } from "@/components/rankings/RankRow";
+import { launchMode } from "@/lib/config";
 import { getAllTimeBoard, getLensRowsForRun, latestCanonicalRun } from "@/lib/db";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { LENS_TO_PUBLIC, toPublicBoard, toPublicReport } from "@/lib/public-view";
@@ -15,6 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default function RankingsPage() {
+  // Pre-launch curtain: the page stays in the tree but 404s until launch.
+  if (launchMode()) notFound();
+
   // Weekly section pins to the latest CANONICAL run — a focused lab run never
   // displaces the weekly board; it lands on the lab board below instead.
   const run = latestCanonicalRun();

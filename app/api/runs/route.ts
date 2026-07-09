@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isAuthorized } from "@/lib/auth";
-import { CONFIG } from "@/lib/config";
+import { CONFIG, launchMode } from "@/lib/config";
 import { startRun } from "@/lib/run-manager";
 import { sanitizeModifier, type RunParams } from "@/lib/schemas";
 
@@ -17,6 +17,10 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Pre-launch curtain: the whole run surface is dark (MAG8_SITE_MODE=full to operate).
+  if (launchMode()) {
+    return NextResponse.json({ code: "not_found", error: "not found" }, { status: 404 });
+  }
   if (!isAuthorized(req)) {
     return NextResponse.json(
       { code: "unauthorized", error: "Admin token required — unlock via /admin or send x-admin-token." },
