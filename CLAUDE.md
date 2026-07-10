@@ -157,5 +157,16 @@ untouched (scores valid); all 12 re-rendered. `public/shots/run.png` still pre-r
 ASYMMETRY") — site reshoot pending. Same session: `marketing/video/FORMULA.md` CREATED (all
 owner video requests from 6 sessions, provenance-tagged, compounding changelog) + this pass's
 HANDOFF-2026-07-09-video-trillion-dna.md.
+2026-07-09 latest: FOUR ENGINE SPECIALS (HANDOFF-2026-07-09-engine-specials.md) — owner asked for
+4 films on the two flagship engines w/ creative freedom ("no need to stick to the same colors/
+designs/visuals"): fun-{dnatest,yearbook} = trillion-DNA scout (genome-lab helix w/ 6 trait genes +
+Bessembinder 4%; halftone yearbook "most likely to…" → Class of 2026 marker circle), fun-{poker,
+forecast} = Game Theory (felt table M×E×C/pot-committed/62-28-10 tree/falsifier; Channel-8 weather
+map H-L players/horizon cone/severe-asymmetry banner). Per-episode palettes (return to house dark
+at desk/endcard, coldcase precedent); OFL accents VENDORED via jsdelivr/fontsource (F.serif Libre
+Baskerville + F.hand Caveat — google hosts still dead); FORMULA §B/§H + `[07-09 engines]` appended;
+gen-score-fun.ts gained argv filter; `render:engines` script; 16 films total, 12→16 in render:fun.
+QA: 48 stills read (3 fit bugs fixed: Y1 cover wrap, PK2 label column, DN2 gene-band min-span),
+4 encode-path seq windows clean, leak gate 62 files 0 hits, 4 renders exit 0 + ffprobe exact.
 Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

@@ -31,6 +31,11 @@ export const F = {
   display: "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
   body: "'Manrope', ui-sans-serif, system-ui, sans-serif",
   mono: "'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+  // Episode-accent faces (2026-07-09 engine specials; OFL, vendored via
+  // jsdelivr/fontsource). Scene-local flavor only — brand surfaces (desks,
+  // endcards, wordmark) stay on display/body/mono.
+  serif: "'Libre Baskerville', Georgia, 'Times New Roman', serif",
+  hand: "'Caveat', 'Segoe Script', cursive",
 } as const;
 
 export const W = 1920;

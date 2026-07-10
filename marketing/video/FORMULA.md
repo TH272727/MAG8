@@ -10,7 +10,8 @@ to BE. Where they overlap, this file is the taste, CLAUDE.md is the physics.
 Provenance tags: `[07-07 film]` launch film · `[07-08 pace]` lens shorts + pacing ·
 `[07-08 fun]` intro rework + fun wave 1 (incl. hooks + text-size passes) · `[07-08 w2]`
 fun wave 2 + waitlist CTA · `[07-08 gt]` Game Theory rename · `[07-09 dna]` trillion-DNA +
-fit/contrast pass. Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
+fit/contrast pass · `[07-09 engines]` engine specials (scout + Game Theory features).
+Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 
 ---
 
@@ -42,6 +43,11 @@ fit/contrast pass. Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 - Lead with the flagship engines — the discovery-DNA hunt and the game-theory war-gaming are
   the eye-catching parts; don't bury them. DNA thesis language: "the traits today's giants
   showed before they were giants." `[07-08 gt]`
+- The two engines deserve DEDICATED films ("by far the most interesting, original, unique
+  features") — engine specials go deep on ONE engine while the desk carries the rest of the
+  story: fun-{dnatest,yearbook} = trillion-DNA scout; fun-{poker,forecast} = Game Theory
+  (M×E×C players, forced moves, base rates, horizon curve, asymmetry, kill condition, graded
+  in public). `[07-09 engines]`
 - Fun front half, deadpan instrument voice for the turn. The joke earns the pivot; the desk
   answers quietly. `[07-08 fun]`
 - Owner taste ranking: dialogue/social comedy (groupchat) > swipe/pun formats (redflags,
@@ -120,6 +126,14 @@ fit/contrast pass. Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 - Aside-style grammar: giant 2–6-word kinetic type, dark→white→dark chapter smash cuts, real
   UI floating in clean space, typewriter reveals, restraint (~2–3 movers per beat).
   `[07-07 film]`
+- Per-episode visual identities are owner-approved ("no need to stick to the same colors,
+  designs, visuals") — an episode may own a bespoke palette/typeface world (genome lab,
+  yearbook paper, poker felt, broadcast weather), PROVIDED the contracts still bind:
+  white-label, endcard close, gold = verdicts only (copper stays Game Theory), read-time,
+  type floors, contrast, fit. Episode palettes live only inside the episode; the desk and
+  endcard return to house dark (coldcase precedent). OFL accent faces (Caveat, Libre
+  Baskerville) are vendored via jsdelivr/fontsource — google hosts stay blackholed.
+  `[07-09 engines]`
 - ZERO spend: free/open tools only, everything renders locally; procedural score stays
   licensed-track-swappable (replace the WAV, keep the filename). `[07-08 w2]`
 
@@ -148,3 +162,4 @@ fit/contrast pass. Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 | 2026-07-08 | "Game theory", not "macro asymmetry"; surface the two engines | §B naming + engine-forward copy |
 | 2026-07-09 | Scout must carry the trillion-DNA framing everywhere | §B scout canon |
 | 2026-07-09 | All text fits its box; no overlap; no dark-on-dark / light-on-light | §E + §F, S13/S14/S17/VF4/VM2/VC3/redflags fixes |
+| 2026-07-09 | 4 films on the two engines (scout trillion-DNA + Game Theory — "the most interesting, original, unique features"); get creative, any free/open tools, no need to keep the same colors/designs/visuals | §B engine specials; §H per-episode identity freedom + vendored accent fonts; fun-{dnatest,yearbook,poker,forecast} |

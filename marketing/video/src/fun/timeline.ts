@@ -14,7 +14,11 @@ export type FunId =
   | 'naturedoc'
   | 'speedrun'
   | 'replay'
-  | 'coldcase';
+  | 'coldcase'
+  | 'dnatest'
+  | 'yearbook'
+  | 'poker'
+  | 'forecast';
 
 /** All endcards are 168f since the waitlist CTA landed (was 150). */
 export const FUN: Record<FunId, SceneDef[]> = {
@@ -82,6 +86,46 @@ export const FUN: Record<FunId, SceneDef[]> = {
     {id: 'K4_Desk', frames: 174},
     {id: 'K5_End', frames: 168},
   ],
+  /** ENGINE SPECIAL (scout) — the lab sequences the trillion-dollar club's
+   * genome, then a tiny unknown matches all six markers. */
+  dnatest: [
+    {id: 'DN1_Vials', frames: 174},
+    {id: 'DN2_Helix', frames: 294},
+    {id: 'DN3_Match', frames: 312},
+    {id: 'DN4_Desk', frames: 204},
+    {id: 'DN5_End', frames: 168},
+  ],
+  /** ENGINE SPECIAL (scout) — what the giants' yearbook photos looked like
+   * before the trillion, and the Class of 2026 page being written now. */
+  yearbook: [
+    {id: 'Y1_Cover', frames: 180},
+    {id: 'Y2_Pages', frames: 276},
+    {id: 'Y3_Class', frames: 318},
+    {id: 'Y4_Desk', frames: 204},
+    {id: 'Y5_End', frames: 168},
+  ],
+  /** ENGINE SPECIAL (game theory) — the market as a felt table: players
+   * scored M×E×C, the pot-committed forced move, priced-wrong pot odds,
+   * and the kill condition. */
+  poker: [
+    {id: 'PK1_Table', frames: 180},
+    {id: 'PK2_Reads', frames: 234},
+    {id: 'PK3_Forced', frames: 252},
+    {id: 'PK4_Odds', frames: 270},
+    {id: 'PK5_Desk', frames: 198},
+    {id: 'PK6_End', frames: 168},
+  ],
+  /** ENGINE SPECIAL (game theory) — Channel 8 Market Weather: pressure
+   * systems as players, fronts as forced moves, horizon cones, and a
+   * severe-asymmetry warning with a public kill condition. */
+  forecast: [
+    {id: 'WX1_Studio', frames: 234},
+    {id: 'WX2_Map', frames: 246},
+    {id: 'WX3_Curve', frames: 240},
+    {id: 'WX4_Warning', frames: 264},
+    {id: 'WX5_Desk', frames: 198},
+    {id: 'WX6_End', frames: 168},
+  ],
 };
 
 export const FUN_IDS: FunId[] = [
@@ -93,6 +137,10 @@ export const FUN_IDS: FunId[] = [
   'speedrun',
   'replay',
   'coldcase',
+  'dnatest',
+  'yearbook',
+  'poker',
+  'forecast',
 ];
 
 export const funScenes = (id: FunId): SceneDef[] => FUN[id];

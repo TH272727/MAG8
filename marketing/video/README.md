@@ -77,7 +77,41 @@ deadpan instrument voice for the turn, the standard endcard close (gag chip +
   2/9, going concern, serial dilution) → the desk's first on-screen FAIL:
   ▼ ─ ▼, 19.3, "WOULD HAVE FAILED THE GATE", case closed in 13 minutes.
 
-**Every endcard** (all 8 fun shorts, the 3 lens shorts' V13, the master's
+### Engine specials (feature deep-dives, ~38–45s each, 1080×1920)
+
+Four fun-format episodes dedicated to the two flagship engines (owner note
+2026-07-09: the most original features deserve their own films; visual
+identity may diverge per episode — each owns a bespoke palette that returns
+to house dark for the desk + endcard). Two new OFL faces are vendored for
+them (`Libre Baskerville`, `Caveat` — fetched from jsdelivr/fontsource, never
+Google hosts).
+
+- `out/fun-dnatest.mp4` — **"Stock DNA: the results are in."** (scout) Genome
+  lab: vials of $AAPL/$NVDA/$MSFT go in, a violet/blue double helix draws,
+  six gene markers light up (FOUNDER-LED → EXPANDING TAM, the discovery
+  prompt's own trait list, with the Bessembinder ~4% footnote), then a tiny
+  $-redacted small cap matches 6/6 — "The scout hunts trillion-dollar DNA —
+  before the trillion." Desk: "A match opens a case."
+- `out/fun-yearbook.mp4` — **"Before they were giants."** (scout) Halftone
+  yearbook: $NVDA "CLASS OF 1999 · most likely to accelerate everything",
+  $AAPL "CLASS OF 1980 · most likely to think different" — trait scribbles in
+  marker handwriting — then the CLASS OF 2026 page ($-redacted candidates,
+  one circled in red): "The scout reads yearbooks — hunting trillion-dollar
+  DNA before the trillion." Desk: "Superlatives don't score."
+- `out/fun-poker.mp4` — **"The table."** (Game Theory) Felt-green top-down
+  table, four seats (INCUMBENT / CHALLENGER / REGULATOR / SUPPLIER) scored
+  STACK·M / PRESSURE·E / ALLIES·C, the pot-committed incumbent's forced move
+  (RAISE 62 / CALL 28 / FOLD 10, equilibrium ignites copper), EVEN MONEY vs
+  62/38 mispricing (asymmetry 8.5/10), and the falsifier card — "A read you
+  can't kill is a superstition."
+- `out/fun-forecast.mp4` — **"Channel 8 Market Weather."** (Game Theory) The
+  feed's forecast (100% CHANCE OF MOON 🚀, source: vibes) vs the real one:
+  pressure map with H/L player cells and a red front ("Pressure is incentive.
+  Wind is the forced move."), the 4-horizon outlook with a probability cone
+  ("A curve, not a vibe."), and a SEVERE ASYMMETRY WARNING banner whose kill
+  condition is public — "Every forecast here gets graded in public."
+
+**Every endcard** (all 12 fun shorts, the 3 lens shorts' V13, the master's
 S21) now closes with the big **"Join the email waitlist!"** CTA — violet
 accent, underline sweep, glow pulse (`WaitlistCta` in `src/lib/ui.tsx`). Fun
 endcards and V13 grew +18f for its read time; the master's length is
@@ -89,10 +123,11 @@ unchanged.
 npm install
 npm run gen:score          # regenerate public/audio/score.wav from src/timeline.ts
 npm run gen:score:shorts   # regenerate public/audio/score-{fundamentals,macro,consensus}.wav
-npm run gen:score:fun      # regenerate public/audio/score-fun-{eightball,groupchat,gate,redflags}.wav
+npm run gen:score:fun      # regenerate ALL fun-campaign WAVs (append episode ids to filter: `-- dnatest poker`)
 npm run render             # render out/the-signal.mp4
 npm run render:shorts      # render all three vertical lens shorts
-npm run render:fun         # render all EIGHT fun campaign shorts
+npm run render:fun         # render all TWELVE fun campaign shorts (8 originals, then the engine specials)
+npm run render:engines     # render just the four engine specials (dnatest/yearbook/poker/forecast)
 npm run studio             # open Remotion Studio (port 3334) to scrub/iterate
 npm run stills -- Fun-Gate               # 12 evenly spaced review stills → out/stills/Fun-Gate/
 npm run stills -- Fun-Gate 30,300,800    # exact frames

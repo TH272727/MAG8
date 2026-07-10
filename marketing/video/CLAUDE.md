@@ -31,8 +31,13 @@ its changelog the day it lands. This file = the physics; FORMULA.md = the taste.
 ## Design system (tokens are law)
 
 - `src/theme.ts` is the single source: palette `C` (mirrors `app/globals.css` — film and product are
-  pixel-siblings), fonts `F` (vendored woff2 only — this network blackholes Google font hosts),
-  `W`/`H`/`FPS`, and `SAFE` zones. New scenes import tokens; never inline hex or guess margins.
+  pixel-siblings), fonts `F` (vendored woff2 only — this network blackholes Google font hosts;
+  new faces come from cdn.jsdelivr.net/fontsource, which resolves fine), `W`/`H`/`FPS`, and `SAFE`
+  zones. New scenes import tokens; never inline hex or guess margins. `F.serif` (Libre Baskerville)
+  and `F.hand` (Caveat) are episode-accent faces for the engine specials — scene-local flavor only;
+  brand surfaces (desks, endcards, wordmark) stay on display/body/mono. Episode palettes (per the
+  owner's 2026-07-09 creative-freedom note, FORMULA §H) are scene-local consts in the episode file
+  (coldcase precedent) and every episode returns to house dark at the desk/endcard.
 - GOLD (`C.confluence`) marks FINAL VERDICTS only and first appears at the fusion beat (S10 in the
   master). `C.macro` is copper for this reason. Same rule as the app.
 - Type floors (post 2026-07-08 graded pass): `Chip` 25 / `Eyebrow` 26 are the smallest legal on-screen
@@ -62,6 +67,8 @@ its changelog the day it lands. This file = the physics; FORMULA.md = the taste.
   not too little. Text-heavy beats hold ~0.5–0.7s longer than your first instinct (v1 viewer feedback).
 - Timing single-source: `src/timeline.ts` (film), `src/shorts/timeline.ts`, `src/fun/timeline.ts` drive
   the compositions AND `scripts/gen-score*.ts`. Any re-cut ⇒ regenerate the matching score.
+  `gen-score-fun.ts` accepts episode-id args to regenerate a subset (`node scripts/gen-score-fun.ts
+  dnatest poker`); scores are seeded-deterministic so a full regen is byte-stable regardless.
 - Every endcard closes with `WaitlistCta` (`lib/ui.tsx`) — "Join the email waitlist!" in big type
   (64px portrait / 56px master), ink + violet only. It is the one ask on every film; never drop it.
 

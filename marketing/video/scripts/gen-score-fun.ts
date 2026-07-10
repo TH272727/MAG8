@@ -200,7 +200,13 @@ const BEAT = 60 / 104;
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-for (const id of FUN_IDS as FunId[]) {
+/** Optional CLI filter: `node scripts/gen-score-fun.ts dnatest poker` regenerates
+ * only those episodes (scores are seeded-deterministic, so a full regen is
+ * byte-stable anyway — the filter just saves time). */
+const only = process.argv.slice(2);
+const TARGETS = (only.length ? FUN_IDS.filter((i) => only.includes(i)) : FUN_IDS) as FunId[];
+
+for (const id of TARGETS) {
   const total = funTotal(id);
   const trk = createTrack(total);
   const {tone, kick, tick, pop, impact, riser, pad, walla} = trk;
@@ -498,6 +504,208 @@ for (const id of FUN_IDS as FunId[]) {
     deskCues('K4_Desk', 48, 16, 120, 0.6, true); // minor — this one fails
     tick(f2t('K4_Desk', 152), 0.02, 3000);
     endcard('K5_End');
+  }
+
+  if (id === 'dnatest') {
+    // DN1 — lab room tone, the hook, three vial clinks
+    pad(f2t('DN1_Vials'), 6.5, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 1.6});
+    pop(f2t('DN1_Vials', 10), 0.05);
+    [118, 128, 138].forEach((f, i) => {
+      tick(f2t('DN1_Vials', f), 0.028, 3200 + i * 500, i - 1); // glass clinks
+      tone(f2t('DN1_Vials', f + 2), 0.3, [E4, A3 * 2, CS4 * 2][i], 0.018, {a: 0.004, curve: 2.6}, (i - 1) * 0.4);
+    });
+    tick(f2t('DN1_Vials', 140), 0.02, 2800); // caption
+    // DN2 — the sequencer runs, six genes chime up a ladder
+    pad(f2t('DN2_Helix'), sceneDur('DN2_Helix'), [A2 * 0.5, E3 * 0.5], 0.032, {a: 2});
+    for (let i = 0; i < 21; i++) {
+      tick(f2t('DN2_Helix', 8 + i * 3), 0.011, 5200 + trk.rnd() * 1400, i % 2 === 0 ? 0.35 : -0.35); // read-head
+    }
+    [220, 246.94, 277.18, 329.63, 369.99, 440].forEach((f0, i) => {
+      const t = f2t('DN2_Helix', [70, 90, 110, 130, 150, 170][i]);
+      tone(t, 0.55, f0 * 2, 0.026, {a: 0.006, curve: 2.4}, (i % 2) * 0.7 - 0.35);
+      tick(t, 0.022, 3600);
+    });
+    pad(f2t('DN2_Helix', 186), 3.4, [A3, CS4, E4], 0.034, {a: 0.9}); // the thesis line
+    tick(f2t('DN2_Helix', 238), 0.018, 3000); // the 4% footnote
+    // DN3 — reverse whoosh, the specimen, the scan, six ticks, the match
+    tone(f2t('DN3_Match', 10), 0.9, 720, 0.03, {a: 0.03, curve: 1.6}, 0, -0.62); // run it backwards
+    kick(f2t('DN3_Match', 106), 0.18, 84, 42, 0.35); // specimen lands
+    tone(f2t('DN3_Match', 126), 1.05, 460, 0.024, {a: 0.05, curve: 1.5}, -0.3, 0.55); // scan sweep
+    [0, 1, 2, 3, 4, 5].forEach((i) => {
+      tone(f2t('DN3_Match', 144 + i * 8), 0.32, 523.25 * (1 + i * 0.122), 0.02, {a: 0.004, curve: 2.6}, (i % 2) * 0.6 - 0.3);
+      tick(f2t('DN3_Match', 144 + i * 8), 0.02, 3800);
+    });
+    riser(f2t('DN3_Match', 200), 1.4, 0.04);
+    impact(f2t('DN3_Match', 200), 0.5); // GENOME MATCH
+    pad(f2t('DN3_Match', 202), 3.0, [E3, A3, CS4, E4], 0.05, {a: 0.25, curve: 1.4});
+    pad(f2t('DN3_Match', 212), 3.2, [A2, E3, A3], 0.036, {a: 1.0}); // canon line under
+    deskCues('DN4_Desk', 52, 18, 124);
+    tick(f2t('DN4_Desk', 156), 0.02, 3000);
+    endcard('DN5_End');
+  }
+
+  if (id === 'yearbook') {
+    // Y1 — music-box nostalgia, then the cover slams
+    pad(f2t('Y1_Cover'), 6, [A2 * 0.5, E3 * 0.5], 0.032, {a: 1.6});
+    [0, 1, 2, 3, 4, 5].forEach((i) => {
+      tone(f2t('Y1_Cover', 12 + i * 9), 0.7, [440, 554.37, 659.25, 880, 659.25, 554.37][i], 0.014, {a: 0.003, curve: 3}, (i % 2) * 0.7 - 0.35);
+    });
+    pop(f2t('Y1_Cover', 10), 0.045);
+    kick(f2t('Y1_Cover', 120), 0.22, 76, 38, 0.42); // the cover lands
+    impact(f2t('Y1_Cover', 120), 0.3);
+    tick(f2t('Y1_Cover', 150), 0.018, 3000);
+    // Y2 — pages: settle, marker squeaks, the flip, more squeaks
+    pad(f2t('Y2_Pages'), sceneDur('Y2_Pages'), [C3, G3], 0.03, {a: 2});
+    const squeak = (sc: string, f: number, up = true) =>
+      tone(f2t(sc, f), 0.32, up ? 640 : 780, 0.02, {a: 0.02, curve: 1.8}, 0.2, up ? 0.42 : -0.36);
+    kick(f2t('Y2_Pages', 10), 0.12, 90, 48, 0.24); // page 1 lands
+    tick(f2t('Y2_Pages', 32), 0.018, 3200); // class year
+    [48, 64, 66, 78].forEach((f, i) => squeak('Y2_Pages', f, i % 2 === 0));
+    tick(f2t('Y2_Pages', 56), 0.018, 2800); // "nobody voted for a market cap"
+    tone(f2t('Y2_Pages', 140), 0.5, 520, 0.028, {a: 0.02, curve: 1.6}, -0.4, -0.5); // the flip
+    for (let k = 0; k < 5; k++) tick(f2t('Y2_Pages', 140 + k * 2), 0.014, 2000 + trk.rnd() * 2200, -0.2);
+    kick(f2t('Y2_Pages', 152), 0.12, 90, 48, 0.24); // page 2 lands
+    tick(f2t('Y2_Pages', 176), 0.018, 3200);
+    [192, 208, 210, 222].forEach((f, i) => squeak('Y2_Pages', f, i % 2 === 1));
+    // Y3 — the 2026 page: four pops, four squeaks, the marker circle
+    pad(f2t('Y3_Class'), sceneDur('Y3_Class'), [A2 * 0.5, C3 * 0.5], 0.032, {a: 2});
+    kick(f2t('Y3_Class', 116), 0.14, 90, 46, 0.28); // the fresh page
+    [130, 142, 154, 166].forEach((f) => pop(f2t('Y3_Class', f), 0.034));
+    [148, 160, 172, 184].forEach((f, i) => squeak('Y3_Class', f, i % 2 === 0));
+    tone(f2t('Y3_Class', 198), 0.75, 700, 0.026, {a: 0.03, curve: 1.5}, 0.25, -0.45); // circle pass 1
+    tone(f2t('Y3_Class', 216), 0.6, 640, 0.022, {a: 0.03, curve: 1.5}, -0.2, -0.4); // circle pass 2
+    pad(f2t('Y3_Class', 208), 3.4, [A3, D4, E4], 0.034, {a: 1.0}); // canon line
+    deskCues('Y4_Desk', 52, 18, 124);
+    tick(f2t('Y4_Desk', 156), 0.02, 3000);
+    endcard('Y5_End');
+  }
+
+  if (id === 'poker') {
+    // a slow noir bass walk carries the table chapter
+    const walk = (sc: string, from: number, to: number) => {
+      const notes = [A2, C3, E3, C3];
+      let b = 0;
+      for (let t = f2t(sc, from); t < f2t(sc, to); t += BEAT * 1.5, b++) {
+        tone(t, 0.5, notes[b % 4] * 0.5, 0.05, {a: 0.01, curve: 1.6});
+      }
+    };
+    // PK1 — the hook, the felt lands, four seats, the pot
+    pad(f2t('PK1_Table'), 6.5, [A2 * 0.5, A2 * 0.5 * 1.005], 0.035, {a: 1.6});
+    pop(f2t('PK1_Table', 10), 0.05);
+    kick(f2t('PK1_Table', 112), 0.24, 70, 36, 0.5); // the table
+    walk('PK1_Table', 112, 180);
+    [128, 136, 144, 152].forEach((f) => {
+      for (let k = 0; k < 3; k++) tick(f2t('PK1_Table', f + k * 1.2), 0.02, 2600 + trk.rnd() * 900, trk.rnd() - 0.5); // chip clacks
+    });
+    pop(f2t('PK1_Table', 150), 0.04);
+    tick(f2t('PK1_Table', 144), 0.018, 3000);
+    // PK2 — four reads dealt, meters fill
+    pad(f2t('PK2_Reads'), sceneDur('PK2_Reads'), [A2 * 0.5, E3 * 0.5], 0.03, {a: 1.8});
+    walk('PK2_Reads', 0, 234);
+    [8, 22, 36, 50].forEach((f) => {
+      tone(f2t('PK2_Reads', f), 0.28, 880, 0.02, {a: 0.01, curve: 2.2}, trk.rnd() - 0.5, -0.3); // card slide
+      tick(f2t('PK2_Reads', f + 3), 0.022, 3400);
+    });
+    [24, 38, 52, 66].forEach((f) => tone(f2t('PK2_Reads', f), 0.5, 330, 0.014, {a: 0.05, curve: 1.6}, 0, 0.4)); // meters rise
+    pad(f2t('PK2_Reads', 138), 3.0, [A3, CS4, E4], 0.032, {a: 0.8});
+    tick(f2t('PK2_Reads', 172), 0.018, 3000);
+    // PK3 — pot-committed: the stamp, the tree, the equilibrium ignites
+    pad(f2t('PK3_Forced'), sceneDur('PK3_Forced'), [A2 * 0.5, C3 * 0.5], 0.034, {a: 1.6});
+    for (let b = 0; b < 7; b++) {
+      const t = f2t('PK3_Forced', 8 + b * 34);
+      kick(t, 0.07, 88, 46, 0.15);
+      kick(t + 0.3, 0.045, 80, 44, 0.13); // heartbeat
+    }
+    pop(f2t('PK3_Forced', 8), 0.04);
+    impact(f2t('PK3_Forced', 36), 0.4); // POT-COMMITTED
+    tone(f2t('PK3_Forced', 38), 0.4, 120, 0.045, {a: 0.004, curve: 1.2});
+    [60, 70, 80].forEach((f) => tone(f2t('PK3_Forced', f), 0.5, 500, 0.02, {a: 0.04, curve: 1.6}, (f - 70) / 25, 0.5)); // branches
+    [84, 96, 108].forEach((f) => pop(f2t('PK3_Forced', f), 0.034));
+    riser(f2t('PK3_Forced', 136), 1.2, 0.04);
+    pad(f2t('PK3_Forced', 136), 2.6, [E3, B3, E4], 0.05, {a: 0.15, curve: 1.5}); // the only move lights
+    tick(f2t('PK3_Forced', 138), 0.026, 3600);
+    pad(f2t('PK3_Forced', 158), 3.2, [A3, D4, E4], 0.03, {a: 1.0});
+    tick(f2t('PK3_Forced', 200), 0.018, 3000);
+    // PK4 — the price is wrong, the kill switch arms
+    pad(f2t('PK4_Odds'), sceneDur('PK4_Odds'), [A2 * 0.5, E3 * 0.5], 0.032, {a: 1.8});
+    walk('PK4_Odds', 0, 150);
+    [10, 24].forEach((f) => kick(f2t('PK4_Odds', f), 0.11, 96, 50, 0.2));
+    tone(f2t('PK4_Odds', 60), 1.1, 300, 0.02, {a: 0.15, curve: 1.4}, 0, 0.9); // the meter climbs
+    tick(f2t('PK4_Odds', 92), 0.024, 3600);
+    kick(f2t('PK4_Odds', 108), 0.16, 84, 42, 0.32); // falsifier lands
+    tick(f2t('PK4_Odds', 124), 0.02, 2800);
+    impact(f2t('PK4_Odds', 150), 0.42); // KILL CONDITION SET
+    tone(f2t('PK4_Odds', 151), 0.42, 108, 0.05, {a: 0.004, curve: 1.2});
+    tone(f2t('PK4_Odds', 151), 0.42, 162, 0.03, {a: 0.004, curve: 1.2});
+    pad(f2t('PK4_Odds', 172), 3.2, [A3, D4, E4], 0.03, {a: 1.0});
+    deskCues('PK5_Desk', 56, 18, 126);
+    tick(f2t('PK5_Desk', 156), 0.02, 3000);
+    endcard('PK6_End');
+  }
+
+  if (id === 'forecast') {
+    // WX1 — broadcast sting, the moon gag, the deadpan turn
+    [0, 1, 2].forEach((k) => {
+      tone(f2t('WX1_Studio', 4 + k * 4), 0.26, [A3, CS4, E4][k] * 2, 0.022, {a: 0.005, curve: 2.2}, k * 0.5 - 0.5);
+      kick(f2t('WX1_Studio', 4 + k * 4), 0.08, 130 - k * 14, 70, 0.14); // tom fill
+    });
+    pad(f2t('WX1_Studio'), sceneDur('WX1_Studio'), [A2 * 0.5, E3 * 0.5], 0.03, {a: 1.6});
+    pop(f2t('WX1_Studio', 8), 0.05);
+    kick(f2t('WX1_Studio', 38), 0.16, 84, 42, 0.3); // the gag card
+    tone(f2t('WX1_Studio', 46), 0.8, 300, 0.026, {a: 0.02, curve: 1.6}, 0.2, 2.2); // the rocket gliss
+    tick(f2t('WX1_Studio', 74), 0.02, 2200); // SOURCE: VIBES
+    tone(f2t('WX1_Studio', 78), 0.32, 392, 0.026, {a: 0.02, curve: 1.6});
+    tone(f2t('WX1_Studio', 90), 0.5, 311, 0.024, {a: 0.02, curve: 1.6}); // the wah
+    pad(f2t('WX1_Studio', 152), 3.0, [A3, CS4, E4], 0.034, {a: 0.7}); // the real one
+    tick(f2t('WX1_Studio', 154), 0.02, 3200);
+    // WX2 — radar pings, the coast draws, H and L land, the front crackles
+    pad(f2t('WX2_Map'), sceneDur('WX2_Map'), [A2 * 0.5, C3 * 0.5], 0.032, {a: 2});
+    for (let p = 0; p < 5; p++) {
+      const t = f2t('WX2_Map', 10 + p * 48);
+      tone(t, 0.5, 620, 0.022, {a: 0.004, curve: 2.6}, -0.3); // ping
+      tone(t + 0.16, 0.4, 620, 0.011, {a: 0.004, curve: 2.6}, 0.3); // echo
+    }
+    tone(f2t('WX2_Map', 12), 1.3, 380, 0.018, {a: 0.2, curve: 1.4}, 0, 0.5); // the coast draws
+    kick(f2t('WX2_Map', 56), 0.14, 80, 42, 0.3); // H
+    kick(f2t('WX2_Map', 80), 0.14, 72, 38, 0.3); // L
+    [66, 90].forEach((f) => tick(f2t('WX2_Map', f), 0.02, 3200));
+    for (let k = 0; k < 9; k++) {
+      tick(f2t('WX2_Map', 110 + k * 2.4), 0.018, 1400 + trk.rnd() * 900, trk.rnd() * 0.8 - 0.4); // the front
+    }
+    [128, 136, 144].forEach((f, i) =>
+      tone(f2t('WX2_Map', f), 0.45, 480 + i * 60, 0.018, {a: 0.03, curve: 1.7}, i * 0.4 - 0.4, 0.5),
+    ); // wind
+    pad(f2t('WX2_Map', 150), 3.2, [A3, D4, E4], 0.032, {a: 1.0});
+    tick(f2t('WX2_Map', 196), 0.018, 3000);
+    // WX3 — four bright cards up the scale, the bear stays on the map
+    pad(f2t('WX3_Curve'), sceneDur('WX3_Curve'), [C3, G3], 0.032, {a: 1.8});
+    tone(f2t('WX3_Curve', 14), 1.2, 340, 0.016, {a: 0.2, curve: 1.4}, 0, 0.7); // cone rises
+    [52, 66, 80, 94].forEach((f, i) => {
+      pop(f2t('WX3_Curve', f), 0.03);
+      tone(f2t('WX3_Curve', f + 2), 0.4, [523.25, 587.33, 659.25, 783.99][i], 0.02, {a: 0.005, curve: 2.4}, (i % 2) * 0.6 - 0.3);
+    });
+    [100, 106, 112].forEach((f) => tone(f2t('WX3_Curve', f), 0.22, 155, 0.026, {a: 0.006, curve: 1.6})); // dashed bear
+    tick(f2t('WX3_Curve', 126), 0.018, 2800);
+    pad(f2t('WX3_Curve', 120), 3.0, [A3, CS4, E4], 0.036, {a: 0.6}); // a curve, not a vibe
+    tick(f2t('WX3_Curve', 168), 0.018, 3000);
+    // WX4 — the warning: stylized two-tone klaxon, the kill card, the stamp
+    pad(f2t('WX4_Warning'), sceneDur('WX4_Warning'), [A2 * 0.5, C3 * 0.5, E3 * 0.5], 0.034, {a: 1.6});
+    kick(f2t('WX4_Warning', 10), 0.2, 76, 38, 0.4); // banner slams
+    for (let c = 0; c < 3; c++) {
+      tone(f2t('WX4_Warning', 12 + c * 16), 0.24, 740, 0.028, {a: 0.01, curve: 1.4});
+      tone(f2t('WX4_Warning', 20 + c * 16), 0.24, 555, 0.028, {a: 0.01, curve: 1.4}); // two-tone
+    }
+    tick(f2t('WX4_Warning', 70), 0.022, 3400); // mispricing chip
+    kick(f2t('WX4_Warning', 96), 0.16, 84, 42, 0.32); // the card
+    tick(f2t('WX4_Warning', 112), 0.02, 2800);
+    impact(f2t('WX4_Warning', 150), 0.42); // KILL CONDITION SET
+    tone(f2t('WX4_Warning', 151), 0.42, 108, 0.05, {a: 0.004, curve: 1.2});
+    tone(f2t('WX4_Warning', 151), 0.42, 162, 0.03, {a: 0.004, curve: 1.2});
+    pad(f2t('WX4_Warning', 172), 3.2, [A3, D4, E4], 0.03, {a: 1.0}); // graded in public
+    tick(f2t('WX4_Warning', 212), 0.018, 3000);
+    deskCues('WX5_Desk', 52, 18, 124);
+    tick(f2t('WX5_Desk', 154), 0.02, 3000);
+    endcard('WX6_End');
   }
 
   const out = join(here, '..', 'public', 'audio', `score-fun-${id}.wav`);

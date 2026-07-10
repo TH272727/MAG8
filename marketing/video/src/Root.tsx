@@ -17,6 +17,10 @@ import {N1_Field, N2_Herd, N3_Cliff, N4_Desk, N5_End} from './fun/scenes/natured
 import {SP1_Title, SP2_Run, SP3_Line, SP4_Desk, SP5_End} from './fun/scenes/speedrun';
 import {RP1_Live, RP2_Play, RP3_Replay, RP4_Desk, RP5_End} from './fun/scenes/replay';
 import {K1_File, K2_Board, K3_Twist, K4_Desk, K5_End} from './fun/scenes/coldcase';
+import {DN1_Vials, DN2_Helix, DN3_Match, DN4_Desk, DN5_End} from './fun/scenes/dnatest';
+import {Y1_Cover, Y2_Pages, Y3_Class, Y4_Desk, Y5_End} from './fun/scenes/yearbook';
+import {PK1_Table, PK2_Reads, PK3_Forced, PK4_Odds, PK5_Desk, PK6_End} from './fun/scenes/poker';
+import {WX1_Studio, WX2_Map, WX3_Curve, WX4_Warning, WX5_Desk, WX6_End} from './fun/scenes/forecast';
 
 import {V01_Hook} from './shorts/scenes/V01_Hook';
 import {V02_Intro} from './shorts/scenes/V02_Intro';
@@ -214,6 +218,28 @@ const FUN_REGISTRY: Record<string, React.FC> = {
   K3_Twist,
   K4_Desk,
   K5_End,
+  DN1_Vials,
+  DN2_Helix,
+  DN3_Match,
+  DN4_Desk,
+  DN5_End,
+  Y1_Cover,
+  Y2_Pages,
+  Y3_Class,
+  Y4_Desk,
+  Y5_End,
+  PK1_Table,
+  PK2_Reads,
+  PK3_Forced,
+  PK4_Odds,
+  PK5_Desk,
+  PK6_End,
+  WX1_Studio,
+  WX2_Map,
+  WX3_Curve,
+  WX4_Warning,
+  WX5_Desk,
+  WX6_End,
 };
 
 const makeFun = (id: FunId): React.FC => {
