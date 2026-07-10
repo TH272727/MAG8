@@ -143,7 +143,7 @@ board-update path. Volume `/data` + `MAG8_DB_PATH` instructed but UNVERIFIED —
 main (a redeploy wipes un-volumed signups). Same day: token-gated `GET /api/waitlist` SHIPPED (launch-exempt
 owner readout per invariant 12; `countSignups()`/`listSignups()` in lib/db.ts; `{count,signups[]}` newest
 first, `?count=1` count-only; verified: launch matrix, both modes, locked-closed no-token prod, JSON leak
-probe 0-hit). Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out;
-(3) confirm the volume; (4) set ADMIN_TOKEN on Railway (Variables — prereq for the endpoint), then phone-check
-`https://<domain>.up.railway.app/api/waitlist?token=<ADMIN_TOKEN>`.
+probe 0-hit). Owner confirmed 2026-07-09: volume `/data` + `MAG8_DB_PATH` attached AND ADMIN_TOKEN set on
+Railway → pushed; phone-check `https://<domain>.up.railway.app/api/waitlist?token=<ADMIN_TOKEN>`.
+Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
