@@ -147,9 +147,10 @@ like an index of thousands of anonymous stocks, all equal, all gray.
 2.0–5.5s: A violet #8b7cff beam of light sweeps slowly across the field like a scanner.
 Where it passes, a handful of blocks — eight of them — lift slightly and stay lit with a
 violet edge glow; a thin violet thread strings the lifted blocks together into a cohort.
-5.5–8.0s: Type, upper third, bold white: "One scout finds the cohort." Small mono chip
-below it: "DISCOVERY SCOUT". The field dims further; only the violet-linked cohort stays
-lit. Hold.
+5.5–8.0s: Type, upper third, bold white: "One scout hunts trillion-dollar DNA." Muted
+sub-line beneath: "The traits trillion-dollar stocks had — before they became
+trillion-dollar stocks." Small mono chip below it: "DISCOVERY SCOUT". The field dims
+further; only the violet-linked cohort stays lit. Hold.
 LAST FRAME: eight violet-edged blocks strung on a violet thread over a dim field.
 AUDIO: groove enters; a soft sonar-like ping each time a block lifts.
 ```
@@ -231,7 +232,7 @@ FIRST FRAME: the teal chart dissolves in the first 0.5s to the wide ink-navy voi
 height — violet #8b7cff, green #5fbf7a, copper #e0854a, teal #3fd1c9 — each extending
 rightward as a thin organic thread of light that wanders like a live signal (gentle noise
 displacement, tapered width, soft additive glow). Tiny mono labels beside each:
-"DISCOVERY SCOUT", "FUNDAMENTALS", "GAME THEORY", "STREET CONSENSUS".
+"TRILLION-DNA SCOUT", "FUNDAMENTALS", "GAME THEORY", "STREET CONSENSUS".
 2.0–5.0s: Type, top center: "When independent methods agree —". The four threads bend
 toward a single convergence point at 62% width, mid-height; their wandering calms and
 straightens as they approach. Bright packets of light run down each thread into the node.
@@ -454,7 +455,7 @@ FIRST FRAME: empty ink-navy void (vertical).
 0.0–2.0s: Four points of light ignite along the TOP edge at 20%, 40%, 60%, 80% frame
 width — violet #8b7cff, green #5fbf7a, copper #e0854a, teal #3fd1c9 — each extending
 DOWNWARD as a thin organic thread of light, wandering like live signals. Tiny mono
-uppercase labels stack beside them: "SCOUT", "FUNDAMENTALS", "MACRO", "CONSENSUS".
+uppercase labels stack beside them: "TRILLION-DNA", "FUNDAMENTALS", "GAME THEORY", "CONSENSUS".
 2.0–5.5s: Type, center: "Four lenses." then "Working blind." The threads run in strictly
 separate vertical lanes; bright packets travel down them.
 5.5–8.0s: The four threads begin bending toward a single convergence point at center,
