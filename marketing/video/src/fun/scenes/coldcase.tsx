@@ -26,7 +26,7 @@ export const K1_File: React.FC = () => {
     <Void depth>
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 216, opacity: lerp(frame, [4, 16], [0, 1])}}>
-          <Eyebrow color={C.dim}>A STOCK-MARKET COLD CASE</Eyebrow>
+          <Eyebrow color={C.muted}>A STOCK-MARKET COLD CASE</Eyebrow>
         </div>
       </AbsoluteFill>
 
@@ -233,7 +233,7 @@ export const K2_Board: React.FC = () => {
       <AbsoluteFill style={{transform: `scale(${creep})`, transformOrigin: '50% 42%'}}>
         <AbsoluteFill style={{alignItems: 'center'}}>
           <div style={{marginTop: 210, opacity: lerp(frame, [4, 16], [0, 1])}}>
-            <Eyebrow color={C.dim}>THE EVIDENCE</Eyebrow>
+            <Eyebrow color={C.muted}>THE EVIDENCE</Eyebrow>
           </div>
         </AbsoluteFill>
 

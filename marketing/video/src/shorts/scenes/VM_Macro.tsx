@@ -103,7 +103,7 @@ const MeterRow: React.FC<{tag: string; v: number; at: number}> = ({tag, v, at}) 
   const t = lerp(frame, [at, at + 20], [0, 1], easeOut);
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 9}}>
-      <span style={{fontFamily: F.mono, fontSize: 21, color: C.dim, width: 20}}>{tag}</span>
+      <span style={{fontFamily: F.mono, fontSize: 21, color: C.muted, width: 20}}>{tag}</span>
       <div style={{position: 'relative', flex: 1, height: 9, borderRadius: 5, background: `${O}14`, border: `1px solid ${O}30`}}>
         <div
           style={{
@@ -176,7 +176,7 @@ export const VM2_Players: React.FC = () => {
                   <span style={{color: O}}>{i + 1}</span> {p.name}
                 </span>
               </div>
-              <div style={{fontFamily: F.mono, fontSize: 20, color: C.dim, marginTop: 6, letterSpacing: '0.04em'}}>
+              <div style={{fontFamily: F.mono, fontSize: 20, color: C.muted, marginTop: 6, letterSpacing: '0.04em'}}>
                 {p.role}
               </div>
               <div style={{marginTop: 14}}>
@@ -204,16 +204,16 @@ export const VM2_Players: React.FC = () => {
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 168,
+            bottom: 176,
             textAlign: 'center',
             fontFamily: F.mono,
             fontSize: 24,
             letterSpacing: '0.12em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [96, 110], [0, 1]),
           }}
         >
-          WEIGHTED = [M + 2E + 4C] ÷ 7 · RANKING RE-CHECKED UNWEIGHTED
+          WEIGHTED = [M + 2E + 4C] ÷ 7 · RE-CHECKED UNWEIGHTED
         </div>
       </AbsoluteFill>
 
@@ -241,10 +241,10 @@ export const VM2_Players: React.FC = () => {
           ))}
           {[0, 5, 10].map((v) => (
             <React.Fragment key={v}>
-              <text x={px(v)} y={PLOT.y + PLOT.h + 34} textAnchor="middle" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
+              <text x={px(v)} y={PLOT.y + PLOT.h + 34} textAnchor="middle" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
                 {v}
               </text>
-              <text x={PLOT.x - 26} y={py(v) + 5} textAnchor="end" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
+              <text x={PLOT.x - 26} y={py(v) + 5} textAnchor="end" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
                 {v}
               </text>
             </React.Fragment>
@@ -286,7 +286,7 @@ export const VM2_Players: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 21,
             letterSpacing: '0.13em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [MAP_AT + 44, MAP_AT + 56], [0, 1]),
           }}
         >
@@ -308,7 +308,7 @@ export const VM2_Players: React.FC = () => {
           {PLAYERS.map((p, i) => (
             <span key={p.name} style={{fontFamily: F.mono, fontSize: 22, color: C.muted}}>
               <span style={{color: C.ink}}>{i + 1}</span> {p.name}
-              <span style={{color: C.dim}}> · M{p.m} E{p.e} C{p.c}</span>
+              <span style={{color: C.muted}}> · M{p.m} E{p.e} C{p.c}</span>
             </span>
           ))}
         </div>
@@ -317,12 +317,12 @@ export const VM2_Players: React.FC = () => {
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 168,
+            bottom: 176,
             textAlign: 'center',
             fontFamily: F.mono,
             fontSize: 24,
             letterSpacing: '0.12em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [MAP_AT + 56, MAP_AT + 70], [0, 1]),
           }}
         >
@@ -541,7 +541,7 @@ export const VM4_Horizons: React.FC = () => {
         {[0, 25, 50, 75, 100].map((p) => (
           <React.Fragment key={p}>
             <line x1={PLOT.x} x2={PLOT.x + PLOT.w} y1={hy(p)} y2={hy(p)} stroke={C.hairline} strokeWidth={1} opacity={0.7} />
-            <text x={PLOT.x - 24} y={hy(p) + 5} textAnchor="end" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
+            <text x={PLOT.x - 24} y={hy(p) + 5} textAnchor="end" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
               {p}
             </text>
           </React.Fragment>
@@ -587,7 +587,7 @@ export const VM4_Horizons: React.FC = () => {
         }}
       >
         <span style={{color: O}}>— PRIMARY OUTCOME</span>
-        <span style={{color: C.dim}}>--- BEAR CASE</span>
+        <span style={{color: C.muted}}>--- BEAR CASE</span>
       </div>
       <VFoot at={126} bottom={280}>
         DATED MEANS SCOREABLE · THE HIT RATE IS TRACKED
@@ -624,7 +624,7 @@ export const VM5_Asymmetry: React.FC = () => {
           <text x={250} y={240} textAnchor="middle" fill={C.ink} style={{font: "700 74px 'JetBrains Mono', monospace"}}>
             {(dialT * 10).toFixed(1)}
           </text>
-          <text x={250} y={288} textAnchor="middle" fill={C.dim} style={{font: "500 26px 'JetBrains Mono', monospace", letterSpacing: '0.1em'}}>
+          <text x={250} y={288} textAnchor="middle" fill={C.muted} style={{font: "500 26px 'JetBrains Mono', monospace", letterSpacing: '0.1em'}}>
             / 10
           </text>
         </svg>
@@ -651,7 +651,7 @@ export const VM5_Asymmetry: React.FC = () => {
             fontSize: 21,
             lineHeight: 1.6,
             letterSpacing: '0.06em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [88, 100], [0, 1]),
           }}
         >

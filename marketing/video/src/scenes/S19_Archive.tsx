@@ -76,7 +76,7 @@ export const S19_Archive: React.FC = () => {
           fontFamily: F.mono,
           fontSize: 25,
           letterSpacing: '0.13em',
-          color: C.dim,
+          color: C.muted,
           opacity: lerp(frame, [90, 104], [0, 1]),
         }}
       >

@@ -93,7 +93,7 @@ export const V13_Endcard: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 22,
             letterSpacing: '0.16em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [108, 124], [0, 1]),
           }}
         >

@@ -37,7 +37,19 @@ Everything here is white-label: film sources speak public lens vocabulary only.
   (`lib/ui.tsx` Eyebrow/Chip/Roll/Kinetic, `lib/setpieces.tsx`, `shorts/vlib.tsx`, `fun/flib.tsx`)
   rather than ad-hoc styled divs.
 - Safe zones: keep hero text/must-read UI inside `SAFE.portrait` (150/170/60 — TikTok/Reels/Shorts
-  chrome) and `SAFE.landscape` (72/72/96) from `theme.ts`.
+  chrome) and `SAFE.landscape` (72/72/96) from `theme.ts`. Mono footers at 24px/0.12em tracking fit
+  ~52 chars inside the 960px portrait safe width (chars × 0.6em + tracking) — MEASURE before writing;
+  the 2026-07-09 pass shortened three footers that ran ~1030px wide.
+- Contrast (2026-07-09 pass): text meant to be READ never sits in `C.dim` on the dark void (~3:1) —
+  use `C.muted` (~4.9:1) or brighter. `C.dim` is reserved for state-based de-emphasis (skipped /
+  pruned / inactive siblings of a lit element). On the white chapter, text uses `C.whiteInk` /
+  `C.whiteMuted` only — mid-greys like the old `#9aa2b1` footnote fail on white (~2.4:1).
+- Scout copy rule (owner, 2026-07-09): the scout is never just "a scout" — every scout mention
+  carries the trillion-DNA framing (it hunts stocks with the DNA of trillion-dollar stocks, BEFORE
+  they become trillion-dollar stocks). Canon: S05 "One scout hunts trillion-dollar DNA." + trait
+  sub-line; V03 "First, a scout hunts / trillion-dollar DNA — / before the trillion."; V02 "One
+  scout for trillion-dollar DNA."; thread labels TRILLION-DNA SCOUT (master braid) / TRILLION-DNA
+  (portrait vbraid, longer collides with FUNDAMENTALS); S13 wire "trillion-DNA screen · 8 names".
 - Motion grammar (`lib/anim.ts`): `pop()` = spring damping 12 / mass 0.7 / stiffness 130 for chips and
   glyph landings; `settle()` = 16 / 1 / 90 for big set pieces; `lerp()` is clamped by default. Specify
   motion numerically (frames, damping, px) — "nice entrance" is not a spec. Stagger related items a

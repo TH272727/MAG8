@@ -21,10 +21,10 @@ const CardStamp: React.FC<{good?: boolean; at: number}> = ({good, at}) => {
     <div
       style={{
         position: 'absolute',
-        left: good ? 54 : undefined,
-        right: good ? undefined : 54,
-        top: 60,
-        transform: `rotate(${good ? -12 : 12}deg) scale(${s})`,
+        left: '50%',
+        top: 620,
+        // centered in the card's empty band so the slam never covers copy
+        transform: `translateX(-50%) rotate(${good ? -12 : 12}deg) scale(${s})`,
         border: `5px solid ${color}`,
         borderRadius: 18,
         padding: '10px 24px',
@@ -32,6 +32,7 @@ const CardStamp: React.FC<{good?: boolean; at: number}> = ({good, at}) => {
         fontSize: 56,
         fontWeight: 700,
         letterSpacing: '0.08em',
+        whiteSpace: 'nowrap',
         color,
         background: `${color}10`,
         boxShadow: `0 0 40px ${color}33`,
@@ -94,7 +95,7 @@ const ProfileCard: React.FC<{
         </div>
         <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
           <Redact cash scale={1.35} />
-          <span style={{fontFamily: F.mono, fontSize: 22, letterSpacing: '0.1em', color: C.dim, whiteSpace: 'nowrap'}}>
+          <span style={{fontFamily: F.mono, fontSize: 22, letterSpacing: '0.1em', color: C.muted, whiteSpace: 'nowrap'}}>
             {sub}
           </span>
         </div>
@@ -261,7 +262,7 @@ export const R3_Keeper: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 26,
             letterSpacing: '0.14em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [120, 134], [0, 1]),
           }}
         >

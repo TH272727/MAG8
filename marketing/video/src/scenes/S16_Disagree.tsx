@@ -79,7 +79,7 @@ export const S16_Disagree: React.FC = () => {
           fontFamily: F.mono,
           fontSize: 25,
           letterSpacing: '0.14em',
-          color: '#9aa2b1',
+          color: C.whiteMuted,
           opacity: lerp(frame, [104, 118], [0, 1]),
         }}
       >

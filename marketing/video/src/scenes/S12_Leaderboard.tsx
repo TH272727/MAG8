@@ -81,7 +81,7 @@ const Row: React.FC<{
           opacity: cOp * (dim ? 0.6 : 1),
         }}
       >
-        <span style={{fontFamily: F.mono, fontSize: 32, color: C.dim}}>{rank}</span>
+        <span style={{fontFamily: F.mono, fontSize: 32, color: C.muted}}>{rank}</span>
         <Redacted dim={dim} />
         <div style={{flex: 1}} />
         <Chip

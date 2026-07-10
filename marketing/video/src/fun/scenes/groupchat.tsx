@@ -112,7 +112,7 @@ export const G1_Chat: React.FC = () => {
             the boys 📈
           </span>
           <div style={{flex: 1}} />
-          <span style={{fontFamily: F.mono, fontSize: 24, letterSpacing: '0.1em', color: C.dim}}>
+          <span style={{fontFamily: F.mono, fontSize: 24, letterSpacing: '0.1em', color: C.muted}}>
             8 ONLINE
           </span>
         </div>

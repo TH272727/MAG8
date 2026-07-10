@@ -145,7 +145,7 @@ export const DeskStamps: React.FC<{
             fontFamily: F.mono,
             fontSize: 24,
             letterSpacing: '0.12em',
-            color: C.dim,
+            color: C.muted,
             textAlign: 'center',
             opacity: lerp(frame, [footAt ?? verdictAt + 30, (footAt ?? verdictAt + 30) + 14], [0, 1]),
           }}
@@ -187,7 +187,7 @@ export const MiniRow: React.FC<{
         transform: `translateY(${(1 - s) * 30}px)`,
       }}
     >
-      <span style={{fontFamily: F.mono, fontSize: 30, color: C.dim}}>{rank}</span>
+      <span style={{fontFamily: F.mono, fontSize: 30, color: C.muted}}>{rank}</span>
       <Redact cash />
       {note && (
         <Chip size={20} color={C.muted} border={C.hairline}>
@@ -333,7 +333,7 @@ export const FunEndcard: React.FC<{gag: string}> = ({gag}) => {
             fontFamily: F.mono,
             fontSize: 22,
             letterSpacing: '0.16em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [104, 120], [0, 1]),
           }}
         >

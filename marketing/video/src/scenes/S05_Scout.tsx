@@ -5,7 +5,7 @@ import {AbsoluteFill} from 'remotion';
 import {Chip, Kinetic, Void} from '../lib/ui';
 import {BLOCKS, CHOSEN_IDS, threadPath} from '../lib/scout';
 import {easeInOut, lerp} from '../lib/anim';
-import {C} from '../theme';
+import {C, F} from '../theme';
 
 /** S5 — The scout: a violet beam lifts eight blocks out of the index. */
 export const S05_Scout: React.FC = () => {
@@ -100,7 +100,18 @@ export const S05_Scout: React.FC = () => {
       {/* headline */}
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 168, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26}}>
-          <Kinetic text="One scout finds the cohort." delay={100} size={78} />
+          <Kinetic text="One scout hunts trillion-dollar DNA." delay={90} size={78} />
+          <div
+            style={{
+              fontFamily: F.body,
+              fontSize: 33,
+              fontWeight: 500,
+              color: C.muted,
+              opacity: lerp(frame, [112, 126], [0, 1]),
+            }}
+          >
+            The traits trillion-dollar stocks had — before they became trillion-dollar stocks.
+          </div>
           <div style={{opacity: lerp(frame, [122, 134], [0, 1])}}>
             <Chip color={C.discovery} border="rgba(139,124,255,0.45)" bg="rgba(139,124,255,0.08)">
               DISCOVERY SCOUT

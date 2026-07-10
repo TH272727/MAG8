@@ -145,5 +145,13 @@ owner readout per invariant 12; `countSignups()`/`listSignups()` in lib/db.ts; `
 first, `?count=1` count-only; verified: launch matrix, both modes, locked-closed no-token prod, JSON leak
 probe 0-hit). Owner confirmed 2026-07-09: volume `/data` + `MAG8_DB_PATH` attached AND ADMIN_TOKEN set on
 Railway → pushed; phone-check `https://<domain>.up.railway.app/api/waitlist?token=<ADMIN_TOKEN>`.
+2026-07-09 later: VIDEO trillion-DNA pass, all 12 films (owner: "scout" must always carry the
+trillion-DNA framing + no overflow/low-contrast text) — S05/V02/V03 copy, braid labels
+TRILLION-DNA SCOUT / TRILLION-DNA, S13 wire two-line rows + "trillion-DNA screen"; ~35 dim→muted
+readable-copy bumps (state-dims kept), S16 white-chapter footnote → whiteMuted; overflow fixes
+(S14 pills, S17/VF4/redflags nowrap, redflags stamps → empty band, VM2/VC3/VF4 footers shortened
+to the ≤52-char mono rule). Rules + canon copy now in marketing/video/CLAUDE.md; timelines
+untouched (scores valid); all 12 re-rendered. `public/shots/run.png` still pre-rename ("MACRO
+ASYMMETRY") — site reshoot pending.
 Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

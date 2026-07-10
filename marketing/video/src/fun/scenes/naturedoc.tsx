@@ -251,7 +251,7 @@ export const N1_Field: React.FC = () => {
       <Watcher x={300} red={red} />
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 216, opacity: lerp(frame, [4, 16], [0, 1])}}>
-          <Eyebrow color={C.dim}>A STOCK PICKER’S NATURE DOCUMENTARY</Eyebrow>
+          <Eyebrow color={C.muted}>A STOCK PICKER’S NATURE DOCUMENTARY</Eyebrow>
         </div>
       </AbsoluteFill>
       <Caption at={26} out={84}>

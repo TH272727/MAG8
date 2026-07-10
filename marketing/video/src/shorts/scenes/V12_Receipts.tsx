@@ -51,7 +51,7 @@ export const V12_Receipts: React.FC = () => {
           fontFamily: F.mono,
           fontSize: 24,
           letterSpacing: '0.12em',
-          color: C.dim,
+          color: C.muted,
           opacity: lerp(frame, [152, 166], [0, 1]),
         }}
       >

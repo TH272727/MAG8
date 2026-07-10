@@ -215,7 +215,7 @@ export const V04_Lanes: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 24,
             letterSpacing: '0.1em',
-            color: focusT > 0.4 ? LENS[short].color : C.dim,
+            color: focusT > 0.4 ? LENS[short].color : C.muted,
             opacity: lerp(frame, [92, 106], [0, 1]),
           }}
         >

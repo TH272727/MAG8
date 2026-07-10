@@ -110,7 +110,7 @@ export const VC2_Desks: React.FC = () => {
               ${d.lo} – ${d.hi}
             </div>
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 14}}>
-              <span style={{fontFamily: F.mono, fontSize: 20, letterSpacing: '0.1em', color: C.dim}}>
+              <span style={{fontFamily: F.mono, fontSize: 20, letterSpacing: '0.1em', color: C.muted}}>
                 AS OF {d.asOf}
               </span>
               <span
@@ -183,7 +183,7 @@ export const VC3_Band: React.FC = () => {
         {[210, 230, 250, 270].map((v) => (
           <g key={v} opacity={lerp(frame, [18, 30], [0, 1])}>
             <line x1={toX(v)} x2={toX(v)} y1={SCALE_Y - 7} y2={SCALE_Y + 7} stroke={C.hairline2} strokeWidth={2} />
-            <text x={toX(v)} y={SCALE_Y + 34} textAnchor="middle" fill={C.dim} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
+            <text x={toX(v)} y={SCALE_Y + 34} textAnchor="middle" fill={C.muted} style={{fontFamily: "'JetBrains Mono', monospace", fontSize: 21}}>
               ${v}
             </text>
           </g>
@@ -269,7 +269,7 @@ export const VC3_Band: React.FC = () => {
           </ReadoutRow>
         </div>
       </Instrument>
-      <VFoot at={158}>THE SPREAD IS SIGNAL TOO — WIDE MEANS THE STREET ISN'T SURE</VFoot>
+      <VFoot at={158}>THE SPREAD IS SIGNAL · WIDE MEANS UNSURE</VFoot>
     </Void>
   );
 };

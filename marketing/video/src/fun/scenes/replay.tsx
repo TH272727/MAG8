@@ -80,7 +80,7 @@ const ScoreBug: React.FC<{market: number; flipAt?: number}> = ({market, flipAt})
           transform: `translateY(${(1 - s) * -26}px)`,
         }}
       >
-        <span style={{fontFamily: F.mono, fontSize: 22, letterSpacing: '0.16em', color: C.dim}}>
+        <span style={{fontFamily: F.mono, fontSize: 22, letterSpacing: '0.16em', color: C.muted}}>
           FRIDAY NIGHT STOCKS
         </span>
         <span

@@ -78,7 +78,7 @@ export const SP1_Title: React.FC = () => {
           </Chip>
         </div>
         <div style={{marginTop: 30, opacity: lerp(frame, [58, 72], [0, 1])}}>
-          <Chip color={C.dim} border={C.hairline} size={22}>
+          <Chip color={C.muted} border={C.hairline} size={22}>
             RULES: NO RESEARCH ALLOWED
           </Chip>
         </div>

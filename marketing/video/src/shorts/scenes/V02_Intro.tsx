@@ -66,7 +66,7 @@ export const V02_Intro: React.FC = () => {
           </div>
           <div style={{marginTop: 10}}>
             <Kinetic
-              text={'One scout. Three lenses.\nOne verdict.'}
+              text={'One scout for trillion-dollar DNA.\nThree lenses. One verdict.'}
               delay={80}
               size={50}
               weight={500}

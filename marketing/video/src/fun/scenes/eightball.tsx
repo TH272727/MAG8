@@ -224,7 +224,7 @@ export const E1_Ask: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 25,
             letterSpacing: '0.14em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [96, 110], [0, 1]),
           }}
         >
@@ -268,7 +268,7 @@ export const E2_Shake: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 27,
             letterSpacing: '0.14em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [200, 212], [0, 1]),
           }}
         >

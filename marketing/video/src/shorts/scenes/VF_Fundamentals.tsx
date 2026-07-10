@@ -134,7 +134,7 @@ export const VF2_Quality: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <span style={{fontFamily: F.mono, fontSize: 20, color: C.dim}}>{i + 1}</span>
+                <span style={{fontFamily: F.mono, fontSize: 20, color: C.muted}}>{i + 1}</span>
               </div>
             );
           })}
@@ -146,7 +146,7 @@ export const VF2_Quality: React.FC = () => {
               fontSize: 23,
               letterSpacing: '0.1em',
               lineHeight: 1.45,
-              color: C.dim,
+              color: C.muted,
               maxWidth: 620,
               opacity: lerp(frame, [100, 112], [0, 1]),
             }}
@@ -218,7 +218,7 @@ export const VF2_Quality: React.FC = () => {
               fontFamily: F.mono,
               fontSize: 23,
               letterSpacing: '0.1em',
-              color: C.dim,
+              color: C.muted,
               opacity: lerp(frame, [126, 140], [0, 1]),
             }}
           >
@@ -437,6 +437,7 @@ export const VF4_PricedIn: React.FC = () => {
               fontSize: 27,
               fontWeight: 700,
               letterSpacing: '0.08em',
+              whiteSpace: 'nowrap',
               color: G,
               opacity: gapOn,
               textShadow: `0 0 14px ${G}55`,
@@ -447,7 +448,7 @@ export const VF4_PricedIn: React.FC = () => {
         </div>
       </Instrument>
       <VFoot at={146} bottom={560}>
-        LOW EXPECTATIONS ARE THE ASYMMETRY — YOU BUY THE DIFFERENCE
+        LOW EXPECTATIONS = ASYMMETRY · YOU BUY THE DIFFERENCE
       </VFoot>
     </Void>
   );
@@ -479,7 +480,7 @@ export const VF5_Scenarios: React.FC = () => {
             const y = i * 96;
             return (
               <div key={s.key} style={{position: 'relative', height: 96, opacity: on}}>
-                <span style={{position: 'absolute', left: 0, top: 18, fontFamily: F.mono, fontSize: 25, letterSpacing: '0.1em', color: C.dim, width: 70}}>
+                <span style={{position: 'absolute', left: 0, top: 18, fontFamily: F.mono, fontSize: 25, letterSpacing: '0.1em', color: C.muted, width: 70}}>
                   {s.key}
                 </span>
                 <div style={{position: 'absolute', left: 90, right: 130, top: 26, height: 1.5, background: C.hairline}} />
@@ -523,7 +524,7 @@ export const VF5_Scenarios: React.FC = () => {
               PROBABILITY-WEIGHTED
             </span>
             <Roll target={40.5} delay={84} prefix="$" size={43} color={G} />
-            <span style={{fontFamily: F.mono, fontSize: 26, color: C.dim}}>vs spot $27</span>
+            <span style={{fontFamily: F.mono, fontSize: 26, color: C.muted}}>vs spot $27</span>
           </div>
         </div>
       </Instrument>

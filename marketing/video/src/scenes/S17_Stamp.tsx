@@ -99,6 +99,7 @@ export const S17_Stamp: React.FC = () => {
                     fontFamily: F.mono,
                     fontSize: 22,
                     letterSpacing: '0.1em',
+                    whiteSpace: 'nowrap',
                     color: '#b05f28',
                     opacity: Math.min(chipS * 1.5, 1),
                     transform: `scale(${1.45 - chipS * 0.45})`,

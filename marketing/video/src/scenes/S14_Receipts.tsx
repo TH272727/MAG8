@@ -84,6 +84,7 @@ export const S14_Receipts: React.FC = () => {
                   fontFamily: F.mono,
                   fontSize: 23,
                   letterSpacing: '0.08em',
+                  lineHeight: 1,
                   color: C.ink,
                   opacity: op,
                   transform: `scale(${1.32 - sp * 0.32})`,

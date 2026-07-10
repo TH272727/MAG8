@@ -212,7 +212,7 @@ export const S06_Lanes: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 25,
             letterSpacing: '0.1em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [112, 126], [0, 1]),
           }}
         >

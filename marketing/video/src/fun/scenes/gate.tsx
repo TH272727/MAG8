@@ -94,7 +94,7 @@ export const B1_Queue: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 25,
             letterSpacing: '0.14em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [18, 30], [0, 1]),
           }}
         >
@@ -147,7 +147,7 @@ export const B2_Checks: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 25,
             letterSpacing: '0.14em',
-            color: C.dim,
+            color: C.muted,
           }}
         >
           IN {passed} · OUT {vetoed}
@@ -210,7 +210,7 @@ export const B2_Checks: React.FC = () => {
                     fontFamily: F.mono,
                     fontSize: 23,
                     letterSpacing: '0.12em',
-                    color: C.dim,
+                    color: C.muted,
                     opacity: 0.5 + 0.5 * Math.abs(Math.sin(frame / 3)),
                   }}
                 >
@@ -299,7 +299,7 @@ export const B4_Board: React.FC = () => {
           fontFamily: F.mono,
           fontSize: 24,
           letterSpacing: '0.12em',
-          color: C.dim,
+          color: C.muted,
           opacity: lerp(frame, [96, 110], [0, 1]),
         }}
       >

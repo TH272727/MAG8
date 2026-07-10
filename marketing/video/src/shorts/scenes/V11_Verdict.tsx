@@ -63,7 +63,7 @@ const Row: React.FC<{
           opacity: cOp * (dim ? 0.6 : 1),
         }}
       >
-        <span style={{fontFamily: F.mono, fontSize: 29, color: C.dim}}>{rank}</span>
+        <span style={{fontFamily: F.mono, fontSize: 29, color: C.muted}}>{rank}</span>
         <Redacted dim={dim} scale={0.92} />
         <div style={{flex: 1}} />
         {confluence && (
@@ -200,7 +200,7 @@ export const V11_Verdict: React.FC = () => {
             fontFamily: F.mono,
             fontSize: 24,
             letterSpacing: '0.12em',
-            color: C.dim,
+            color: C.muted,
             opacity: lerp(frame, [126, 140], [0, 1]),
           }}
         >

@@ -7,7 +7,7 @@ export const NODE = {x: 1190, y: 540};
 export const BRAID_END = 1660;
 
 export const THREADS = [
-  {color: C.discovery, y0: 216, label: 'DISCOVERY SCOUT', seed: 71},
+  {color: C.discovery, y0: 216, label: 'TRILLION-DNA SCOUT', seed: 71},
   {color: C.fundamentals, y0: 432, label: 'FUNDAMENTALS', seed: 137},
   {color: C.macro, y0: 648, label: 'GAME THEORY', seed: 211},
   {color: C.consensus, y0: 864, label: 'STREET CONSENSUS', seed: 307},

@@ -71,7 +71,7 @@ export const VHead: React.FC<{
               fontFamily: F.mono,
               fontSize: 25,
               letterSpacing: '0.12em',
-              color: C.dim,
+              color: C.muted,
               opacity: lerp(frame, [delay + 44, delay + 58], [0, 1]),
             }}
           >
@@ -98,7 +98,7 @@ export const VFoot: React.FC<{children: React.ReactNode; at: number; bottom?: nu
           fontFamily: F.mono,
           fontSize: 24,
           letterSpacing: '0.12em',
-          color: C.dim,
+          color: C.muted,
           textAlign: 'center',
           opacity: lerp(frame, [at, at + 14], [0, 1]),
         }}

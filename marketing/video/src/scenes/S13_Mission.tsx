@@ -7,7 +7,7 @@ import {C, F} from '../theme';
 
 type FeedLine = {t: string; tag: string; tagColor: string; msg: string};
 const FEED: FeedLine[] = [
-  {t: '09:46:12', tag: 'scout', tagColor: C.discovery, msg: 'cohort locked · 8 names'},
+  {t: '09:46:12', tag: 'scout', tagColor: C.discovery, msg: 'trillion-DNA screen · 8 names'},
   {t: '09:47:03', tag: 'fundamentals', tagColor: C.fundamentals, msg: 'CRWV · reading the books'},
   {t: '09:47:41', tag: 'macro', tagColor: C.macro, msg: 'VRT · mapping positioning'},
   {t: '09:48:19', tag: 'consensus', tagColor: C.consensus, msg: 'CRDO · 18 sources cited'},
@@ -71,17 +71,19 @@ export const S13_Mission: React.FC = () => {
                   key={l.t}
                   style={{
                     display: 'flex',
-                    gap: 12,
-                    alignItems: 'baseline',
+                    flexDirection: 'column',
+                    gap: 4,
                     fontFamily: F.mono,
                     fontSize: 23,
                     opacity: op,
                     transform: `translateY(${rise}px)`,
                   }}
                 >
-                  <span style={{color: C.dim}}>{l.t}</span>
-                  <span style={{color: l.tagColor, minWidth: 180}}>{l.tag}</span>
-                  <span style={{color: C.muted}}>{l.msg}</span>
+                  <div style={{display: 'flex', gap: 14, alignItems: 'baseline'}}>
+                    <span style={{color: C.muted}}>{l.t}</span>
+                    <span style={{color: l.tagColor}}>{l.tag}</span>
+                  </div>
+                  <div style={{color: C.ink}}>{l.msg}</div>
                 </div>
               );
             })}

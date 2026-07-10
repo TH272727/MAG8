@@ -13,7 +13,7 @@ export const VNODE = {x: 540, y: 1010};
 export const VBRAID_END = 1450;
 
 export const VTHREADS = [
-  {color: C.discovery, x0: 216, label: 'SCOUT', seed: 71},
+  {color: C.discovery, x0: 216, label: 'TRILLION-DNA', seed: 71},
   {color: C.fundamentals, x0: 432, label: 'FUNDAMENTALS', seed: 137},
   {color: C.macro, x0: 648, label: 'GAME THEORY', seed: 211},
   {color: C.consensus, x0: 864, label: 'CONSENSUS', seed: 307},

@@ -100,7 +100,7 @@ export const V03_Scout: React.FC = () => {
       {/* headline */}
       <AbsoluteFill style={{alignItems: 'center'}}>
         <div style={{marginTop: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26}}>
-          <Kinetic text={'First, a scout\nscreens the field.'} delay={20} size={68} />
+          <Kinetic text={'First, a scout hunts\ntrillion-dollar DNA —\nbefore the trillion.'} delay={20} size={68} />
           <div style={{opacity: lerp(frame, [96, 108], [0, 1])}}>
             <Chip color={C.discovery} border="rgba(139,124,255,0.45)" bg="rgba(139,124,255,0.08)" size={24}>
               DISCOVERY SCOUT · 8 CANDIDATES
