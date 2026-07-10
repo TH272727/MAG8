@@ -2,6 +2,10 @@
 
 Standalone Remotion project (own package.json / node_modules; NOT part of the Next app build).
 Everything here is white-label: film sources speak public lens vocabulary only.
+**FORMULA.md (this dir) is the compounding owner rulebook** — every request the owner has made
+about the videos (hooks, copy canon, read time, type size, contrast, fit, endcard contract),
+provenance-tagged. Consult it BEFORE storyboarding and at QA; APPEND every new owner note to
+its changelog the day it lands. This file = the physics; FORMULA.md = the taste.
 
 ## Hard render-model constraints
 
@@ -63,8 +67,8 @@ Everything here is white-label: film sources speak public lens vocabulary only.
 
 ## Workflow gates (in order — full renders are the LAST step)
 
-1. Storyboard/shot-list sign-off before code (`marketing/video-prompts.md` pattern). Pacing and
-   structure problems are cheapest to fix here.
+1. Storyboard/shot-list sign-off before code (`marketing/video-prompts.md` pattern) — checked
+   against FORMULA.md first. Pacing and structure problems are cheapest to fix here.
 2. Stills sweep, then READ the PNGs: `npm run stills -- <CompId>` (12 evenly spaced) or
    `npm run stills -- <CompId> 30,300,800` (exact frames). Output: `out/stills/<CompId>/`.
 3. Encode-path check for DOM-reuse bugs: `npm run stills -- <CompId> seq 100-160`

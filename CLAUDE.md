@@ -114,7 +114,9 @@ ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any publ
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
 
-## State & open items (deep detail: `HANDOFF-*.md`; video rulebook: `marketing/video/CLAUDE.md`)
+## State & open items (deep detail: `HANDOFF-*.md`; video rulebook: `marketing/video/CLAUDE.md`;
+video OWNER FORMULA: `marketing/video/FORMULA.md` — every owner video request, compounding:
+consult before any film work, APPEND every new owner note to its changelog)
 W28 live clean: 2026-07-06 count=4 focus run (defense/dual-use autonomy; $8.70 notional, 10 min) + post-reset
 count=8 full run 2026-07-07 ($17.87, 13 min — VRT #1 at 49.1, zero confluence, 3 caution / 5 fail gates); two
 count=8 attempts died at the 5-hour plan limit (resets 9:30pm America/Denver; fast-abort worked as designed).
@@ -152,6 +154,8 @@ readable-copy bumps (state-dims kept), S16 white-chapter footnote → whiteMuted
 (S14 pills, S17/VF4/redflags nowrap, redflags stamps → empty band, VM2/VC3/VF4 footers shortened
 to the ≤52-char mono rule). Rules + canon copy now in marketing/video/CLAUDE.md; timelines
 untouched (scores valid); all 12 re-rendered. `public/shots/run.png` still pre-rename ("MACRO
-ASYMMETRY") — site reshoot pending.
+ASYMMETRY") — site reshoot pending. Same session: `marketing/video/FORMULA.md` CREATED (all
+owner video requests from 6 sessions, provenance-tagged, compounding changelog) + this pass's
+HANDOFF-2026-07-09-video-trillion-dna.md.
 Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
