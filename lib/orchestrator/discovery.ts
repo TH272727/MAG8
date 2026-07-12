@@ -1,5 +1,6 @@
 import { CONFIG } from "../config";
 import type { CoverageEntry } from "../db";
+import type { UniversePool } from "../universe";
 import {
   DISCOVERY_SKILL,
   DiscoveryResultSchema,
@@ -15,10 +16,15 @@ export async function runDiscovery(
   runId: string,
   count: number,
   signal: AbortSignal,
-  ctx: { coverage: CoverageEntry[]; modifier?: string },
+  ctx: { coverage: CoverageEntry[]; modifier?: string; pool?: UniversePool },
 ): Promise<{ discovery: DiscoveryResult; costUsd: number }> {
   const { data, costUsd } = await runAgentWithContract(DiscoveryResultSchema, {
-    prompt: discoveryPrompt(count, { dateLine: runDateLine(), coverage: ctx.coverage, modifier: ctx.modifier }),
+    prompt: discoveryPrompt(count, {
+      dateLine: runDateLine(),
+      coverage: ctx.coverage,
+      modifier: ctx.modifier,
+      pool: ctx.pool,
+    }),
     model: CONFIG.models.discovery,
     // Read included so the skill's own "read references/" instruction degrades
     // gracefully (the archive shipped without them); no Bash for discovery.

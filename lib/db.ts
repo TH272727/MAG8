@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { CONFIG } from "./config";
+import type { UniverseRow } from "./universe";
 import {
   type CompiledReport,
   type Confidence,
@@ -134,6 +135,13 @@ CREATE INDEX IF NOT EXISTS idx_events_run ON progress_events (run_id, id);
 CREATE TABLE IF NOT EXISTS email_signups (
   email TEXT PRIMARY KEY COLLATE NOCASE,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS universe_snapshots (
+  iso_week TEXT PRIMARY KEY,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  total_listed INTEGER NOT NULL,
+  rows_json TEXT NOT NULL
 );
 `;
 
@@ -739,6 +747,64 @@ export function getRunSnapshot(runId: string): RunSnapshot | null {
     report: run.report,
     lastEventId: getMaxEventId(runId),
   };
+}
+
+/* ============================================================================
+ * Universe snapshots (Stage-0 weekly cache — logic lives in lib/universe.ts)
+ * ========================================================================== */
+
+export interface UniverseSnapshotRow {
+  isoWeek: string;
+  fetchedAt: string;
+  /** Raw listings fetched across exchanges, pre-normalization. */
+  totalListed: number;
+  /** Normalized common-stock/ADR rows, ALL market caps — band filters apply on read. */
+  rows: UniverseRow[];
+}
+
+interface RawUniverseSnapshot {
+  iso_week: string;
+  fetched_at: string;
+  total_listed: number;
+  rows_json: string;
+}
+
+function toUniverseSnapshot(r: RawUniverseSnapshot): UniverseSnapshotRow | null {
+  const rows = parseJson<UniverseRow[]>(r.rows_json);
+  if (!rows) return null;
+  return { isoWeek: r.iso_week, fetchedAt: r.fetched_at, totalListed: r.total_listed, rows };
+}
+
+export function getUniverseSnapshot(isoWeek: string): UniverseSnapshotRow | null {
+  const r = getDb()
+    .prepare(`SELECT * FROM universe_snapshots WHERE iso_week=?`)
+    .get(isoWeek) as RawUniverseSnapshot | undefined;
+  return r ? toUniverseSnapshot(r) : null;
+}
+
+/** Most recent snapshot of any week — the stale fallback when a live refresh fails. */
+export function latestUniverseSnapshot(): UniverseSnapshotRow | null {
+  const r = getDb()
+    .prepare(`SELECT * FROM universe_snapshots ORDER BY iso_week DESC LIMIT 1`)
+    .get() as RawUniverseSnapshot | undefined;
+  return r ? toUniverseSnapshot(r) : null;
+}
+
+/** Snapshots run ~0.5 MB each; keep a fixed trailing window. */
+const UNIVERSE_KEEP_WEEKS = 12;
+
+export function saveUniverseSnapshot(isoWeek: string, totalListed: number, rows: UniverseRow[]): void {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare(
+      `INSERT OR REPLACE INTO universe_snapshots (iso_week, total_listed, rows_json) VALUES (?, ?, ?)`,
+    ).run(isoWeek, totalListed, JSON.stringify(rows));
+    db.prepare(
+      `DELETE FROM universe_snapshots WHERE iso_week NOT IN
+         (SELECT iso_week FROM universe_snapshots ORDER BY iso_week DESC LIMIT ?)`,
+    ).run(UNIVERSE_KEEP_WEEKS);
+  });
+  tx();
 }
 
 /* ============================================================================

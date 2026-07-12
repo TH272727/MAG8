@@ -1,6 +1,7 @@
-# Mag8 — agent notes, state 2026-07-09. README = user-facing; this file = authoritative. One commit per phase (`git log`).
-Three-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S1 `new-gen-stock`
-discovers N candidates (4–12, default 8; prompt carries the date, recent-coverage anti-repetition, optional
+# Mag8 — agent notes, state 2026-07-12. README = user-facing; this file = authoritative. One commit per phase (`git log`).
+Four-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S0 `lib/universe.ts`
+deterministic universe screen ($0, no model; weekly snapshot) hands S1 a ~300-name screened pool → S1 `new-gen-stock`
+discovers N candidates (4–12, default 8; prompt carries the date, the pool, recent-coverage anti-repetition, optional
 focus modifier) → S2 `stock-scanner`/`gt-predictor`/`institutional-forecast` per candidate, independently
 (3 candidates in flight, ≤9 sessions) → S3 tool-less compiler applies the Trillion-Dollar Confluence rubric;
 deterministic TS re-verifies gate/confluence/score and re-sorts. Lenses agreeing IS the product (+10 bonus when
@@ -18,6 +19,12 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   `/rankings` + home preview to no-focus runs (a lab run can never displace the weekly board)
 - `lib/ranking.ts` rubric constants + `buildRubricText()` → compiler prompt AND /methodology; `lib/citations.ts` 32-work
   registry → /methodology References AND all four skills' `references/bibliography.md` (`npm run gen:bib`) — can't drift
+- `lib/universe.ts` S0 single-source: Nasdaq screener JSON (keyless, Mozilla UA; NASDAQ+NYSE both-or-nothing,
+  ≥3000-row sanity) → common-stock/ADR normalize → CONFIG.universe band+liquidity ($1–50B, ≥$2M day value) →
+  week-seeded sector-stratified pool → `prompts.ts` poolBlock (off-pool picks need in-thesis justification);
+  `universeBandFlags` (±10% slack) join compiler extraGaps→gapsNoted; weekly cache `universe_snapshots` in db.ts
+  (12 kept, ~0.5MB/wk; stale-week fallback disclosed); fail-open null = unscreened run, mock runs skip S0 entirely;
+  MAG8_UNIVERSE=0 kill + MAG8_UNIVERSE_{MCAP_MIN,MCAP_MAX,MIN_DVOL,POOL,TIMEOUT_MS} knobs
 - `lib/orchestrator/`: `agent.ts` is the ONLY `query()` caller; `prompts.ts` stage wrappers (date, coverage,
   modifier, Sources, naming discipline); `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same
   persist+emit path; `index.ts` executeRun + `lib/price-sanity.ts` hook; `lib/fixtures.ts` seeds run REAL math
@@ -236,11 +243,24 @@ fun-dnatest auto-Reel Public (facebook.com/reel/1410937844199702), IG fun-groupc
 skipped (slate full). Extension file_upload's 10MB cap pre-validates a whole browser_batch (aborts before
 ANY chunk lands) — chunk-feed = standalone calls only; gc.00-02 (groupchat) added to .uploads-tmp;
 TikTok time picker takes plain clicks when target values are visible (JS pointer path only for off-screen).
+2026-07-12 (Code): STAGE 0 UNIVERSE SCREEN SHIPPED — audit first (owner asked): discovery was a ~24–40-name
+web-narrative hunt (prompt min(40,3N) + playbook 2–3×), and the sub-50 real-run ceiling is CALIBRATION, not
+arithmetic (recompute audit: 24/24 real rows match on gate+confluence, scores within 0.1 = inside the ±1
+drift tolerance; the scanner issued ZERO Buy across 24 real cells → no pass gate, no confluence ever; best
+real base 65.5×0.75=49.1=VRT exactly; fixture ASTS 90.3 proves the scale's top works). S0 fixes sourcing:
+~6.8k listings → 2,191 eligible → 300-name weekly pool into the S1 prompt (~4.9k-token prompt total); band
+flags retro-probed on the W28 cohort disclosed VRT $122.5B above / SERV $458M below (real runs had delivered
+$56–122B names into the $1–50B mandate unflagged). Verified: tsc, seed regression exact, next build, live
+probe (fetch 3.5s → cache 6ms, deterministic slice); W28 snapshot cached. NOT yet through a real discovery
+call — see Open (5). Rubric calibration levers (caution ×0.75, growth-stage gate metrics) deliberately
+untouched = owner decision.
 Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out;
 (3) YouTube one-time channel verification = the ONE unlock left (desc+channel links clickable,
 custom thumbnails, AND pin the posted comment) → then set the ready thumb set (marketing/
 youtube-thumbs/, 3-up Test & compare) + pin; (4) cross-post: all four platforms at 2+ videos
 live/scheduled (07-11 pass); remaining ≈12-13 shorts per platform + scheduling slate (IG business
 scheduler ready 75d; TikTok drag-then-schedule 10d — poker Jul 18 / gate Jul 20 drags next; X manual)
-still open. (Memory twin synced 2026-07-11, PRE-session-5 — next Code session re-syncs.)
+still open; (5) first post-S0 real run: verify the scout actually draws from the pool (else tighten
+poolBlock discipline) and that marketContext carries the screen-scale line; check the two S0
+`discovery_activity` lines render clean in Mission Control. (Memory twin synced 2026-07-12, incl. S0.)
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

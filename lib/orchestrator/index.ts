@@ -1,6 +1,7 @@
 import { CONFIG } from "../config";
 import { finishRun, getRecentCoverage, insertCandidates, insertRankings, setRunStage } from "../db";
 import { priceCheckEnabled, priceSanityFlags, type PriceCheckInput } from "../price-sanity";
+import { getWeeklyUniverse, universeBandFlags, universeEnabled, type UniverseResult } from "../universe";
 import { LENS_SKILLS, cellKey, type CellKey, type DiscoveryCandidate, type RunParams } from "../schemas";
 import { runAnalysisMatrix, type CellOutcome } from "./analysis";
 import { runCompiler } from "./compiler";
@@ -9,6 +10,29 @@ import { executeMockRun } from "./mock";
 import { emitProgress, nowIso } from "./progress";
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/**
+ * Stage 0: deterministic universe screen before discovery. Fail-open — any
+ * failure returns null and the scout hunts unscreened exactly as before;
+ * either way the outcome is disclosed on the activity feed.
+ */
+async function runUniverseScreen(runId: string, force: boolean): Promise<UniverseResult | null> {
+  if (!universeEnabled()) return null;
+  emitProgress(runId, {
+    type: "discovery_activity",
+    activity: "Refreshing this week's universe screen…",
+    at: nowIso(),
+  });
+  const universe = await getWeeklyUniverse(force);
+  emitProgress(runId, {
+    type: "discovery_activity",
+    activity: universe
+      ? `Universe screen: ${universe.pool.totalListed.toLocaleString("en-US")} US-listed names → ${universe.pool.eligibleCount.toLocaleString("en-US")} pass the size and liquidity bar; a ${universe.pool.shown.length}-name slice goes to the scout${universe.pool.stale ? " (carried forward from the last successful refresh)" : ""}.`
+      : "Universe screen unavailable this run — the scout proceeds unscreened.",
+    at: nowIso(),
+  });
+  return universe;
+}
 
 /**
  * Deterministic price grounding between analysis and compile: each ticker whose
@@ -64,9 +88,11 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
   try {
     setRunStage(runId, "discovery");
     emitProgress(runId, { type: "stage_start", stage: "discovery", at: nowIso() });
+    const universe = await runUniverseScreen(runId, params.force);
     const { discovery, costUsd: discoveryCost } = await runDiscovery(runId, params.count, watchdog.signal, {
       coverage: getRecentCoverage(5),
       modifier: params.modifier,
+      pool: universe?.pool,
     });
     totalCost += discoveryCost;
     insertCandidates(runId, discovery.candidates);
@@ -116,10 +142,18 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
 
     setRunStage(runId, "compile");
     emitProgress(runId, { type: "stage_start", stage: "compile", at: nowIso() });
+    const bandFlags = universe ? universeBandFlags(discovery.candidates, universe) : [];
+    if (bandFlags.length > 0) {
+      emitProgress(runId, {
+        type: "compile_activity",
+        activity: `Universe screen flagged ${bandFlags.length} pick${bandFlags.length === 1 ? "" : "s"} outside the discovery band — noted as data gaps.`,
+        at: nowIso(),
+      });
+    }
     const priceFlags = await runPriceSanity(runId, discovery.candidates, cells);
     const { report, costUsd: compileCost } = await runCompiler(runId, discovery, cells, watchdog.signal, {
       modifier: params.modifier,
-      extraGaps: priceFlags,
+      extraGaps: [...bandFlags, ...priceFlags],
     });
     totalCost += compileCost;
 

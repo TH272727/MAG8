@@ -1,5 +1,6 @@
 import { isoWeekKey, type CoverageEntry } from "../db";
 import { buildRubricText } from "../ranking";
+import type { UniversePool } from "../universe";
 import {
   DISCOVERY_SKILL,
   LENS_META,
@@ -25,6 +26,8 @@ export interface DiscoveryPromptContext {
   coverage: CoverageEntry[];
   /** Sanitized operator focus directive; scopes the hunt, never the rules. */
   modifier?: string;
+  /** Stage-0 screened universe slice — the scout's long-list (absent: unscreened hunt). */
+  pool?: UniversePool;
 }
 
 function coverageBlock(count: number, coverage: CoverageEntry[]): string {
@@ -37,6 +40,27 @@ Recently covered by prior runs (ISO week each was surfaced): ${list}.
 - Re-nominate a recently covered name ONLY on strong conviction that it is still among the very best candidates right now — and say inside its thesis why it earns the repeat.
 - At least ${minNew} of your ${count} candidates must be NEW names not on that list.
 - Breadth check: span at least ${minWaves} distinct secular waves, and do not default to consensus-crowded "next mega-cap" listicle names unless the mispricing case is explicit.
+`;
+}
+
+function poolBlock(pool: UniversePool | undefined): string {
+  if (!pool) return "";
+  const fmtCap = (c: number) => `$${(c / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
+  const rows = pool.shown.map((r) => `${r.t} | ${r.n.slice(0, 40)} | ${r.s} | ${fmtCap(r.c)}`).join("\n");
+  const sliceLine =
+    pool.shown.length === pool.eligibleCount
+      ? `All ${pool.eligibleCount} are listed below.`
+      : `The ${pool.shown.length} below are this week's sector-stratified rotation of that eligible set — the slice changes every week, so successive runs sweep the whole set over time.`;
+  return `
+Screened universe (week ${pool.weekKey}${pool.stale ? " snapshot, carried forward — this week's refresh was unavailable" : ""}): the platform mechanically screened ${pool.totalListed} US-exchange listings; ${pool.eligibleCount} meet the hard criteria (${pool.criteria}). ${sliceLine}
+
+TICKER | Company | Sector | Market cap
+${rows}
+
+Pool discipline:
+- Treat this pool as your primary long-list: cross-check it against your world-state wave map and source your candidates from it. Column figures are a mechanical snapshot — verify current price and market cap by live web search for every finalist.
+- You MAY deliver a candidate that is not listed (the list is a rotating sample, and very recent listings can be missing) ONLY if it satisfies every universe rule above; its thesis must then include one line on why it beats the pool names you passed over.
+- In marketContext, state the screen scale in plain language (e.g. "screened ${pool.totalListed} US-listed names; ${pool.eligibleCount} passed the size and liquidity bar") — never name data vendors or internal mechanics.
 `;
 }
 
@@ -65,7 +89,7 @@ Operative constraints (from the skill's own mandate):
 Resilience note: if the skill instructs you to read files under its references/ directory and any such file is missing, do not stall — proceed with the method described in the skill text itself plus the constraints above.
 
 Naming discipline: in marketContext and every thesis, write as the Mag8 discovery scout. Never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform in any output text.
-${coverageBlock(count, ctx.coverage)}${modifierBlock(ctx.modifier)}
+${poolBlock(ctx.pool)}${coverageBlock(count, ctx.coverage)}${modifierBlock(ctx.modifier)}
 Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.
 
 End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketContext (string) and candidates (array of { ticker, companyName, sector, thesis, matchedTraits }). Strict JSON only — no comments, no trailing commas; any prose belongs BEFORE the block, and nothing may follow the closing fence.`;
