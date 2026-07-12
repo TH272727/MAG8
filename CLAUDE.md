@@ -168,5 +168,79 @@ Baskerville + F.hand Caveat — google hosts still dead); FORMULA §B/§H + `[07
 gen-score-fun.ts gained argv filter; `render:engines` script; 16 films total, 12→16 in render:fun.
 QA: 48 stills read (3 fit bugs fixed: Y1 cover wrap, PK2 label column, DN2 gene-band min-span),
 4 encode-path seq windows clean, leak gate 62 files 0 hits, 4 renders exit 0 + ffprobe exact.
-Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out.
+2026-07-10 (Cowork, HANDOFF-2026-07-10-youtube-uploads.md): YOUTUBE LIVE — TheMAG8 channel
+(UCksCjqUEx1-FFOnXqEjpFdg): the-signal PUBLIC (youtu.be/OSAv2laZ6XM, Education/English/24 tags) +
+all 15 shorts SCHEDULED 2-day cadence Jul 12→Aug 9 @ 12:00PM local, story-arc order (dnatest opens,
+lens explainers woven between memes). Metadata pack marketing/youtube-upload-plan-2026-07-10.md
+(titles/descs/tags + video-ID link table; themag8.com = line 1 of EVERY description; white-label
+held — scout/lenses/engines/gates vocab, "Game Theory", safe cashtags, Bessembinder 4% only).
+Mechanics: chrome-extension file_upload caps 10MB/call → owner bulk-dragged the 16 mp4s once; then
+per-video automated loop via filtered Studio URLs + typed dates ("Jul 14, 2026"+Return commits) —
+full coordinate recipe in the handoff. Channel carries old PRIVATE shorts + one unlisted video
+(untouched; consider deleting for brand hygiene).
+2026-07-10 later (Cowork session 2, same handoff, "SAME-DAY SETTINGS PASS" section): MAX-REACH
+channel optimization SHIPPED — 15 shorts bulk-fixed Entertainment(12)/Education(3 lens)+English
+(filter Visibility: Has-schedule FIRST; bare select-all grabs the old private shorts); channel
+keywords replaced ("sad music/lofi/viral shorts" leftovers → 19 finance terms incl. next nvidia /
+trillion dollar stocks / game theory investing); upload defaults fixed (default Category was MUSIC —
+the-signal's wrong auto-guess explained — → Entertainment + English + themag8.com default desc);
+themag8.com added to channel Links; watermark End-of-video → Entire video; 3 public playlists w/
+scheduled videos pre-added (Three Lenses 4 / Engine Files 4 / MAG8 Memes 8; Studio bug: after
+Add-videos→Done a stale dialog re-renders — click CANCEL, a second Done duplicates); Home tab was
+OFF → ON + published (trailer=the-signal, playlist sections); waitlist comment POSTED on the-signal
+(owner-approved) — PIN blocked: pinning needs the one-time verification too. White-label: every new
+public string (keywords/playlists/comment) uses board vocab only, 0 leaks.
+2026-07-10 latest (Cowork session 3, owner AFK, HANDOFF-2026-07-10-crosspost.md): CROSS-POST LIVE —
+X the-signal (x.com/TheMAG8Stocks/status/2075715096454762550), IG Reel fun-dnatest
+(instagram.com/themag8stocks/reel/DaoUc_2gjzj/), FB Reel the-signal (facebook.com/reel/1863010218417309);
+pack captions, all verified rendering, leak-check clean. IG switched to BUSINESS (News & media website,
+contact info withheld) → native 75-day scheduler unlocked; FB default audience → Public (FB is a PROFILE,
+no Page = no scheduling); X free tier = post-now only (no scheduler; 140s cap fits the-signal). TIKTOK
+BLOCKED: Studio upload hard-requires a real OS file-pick (clean-probe-verified; synthetic input/drop
+feeds start the pipeline but never advance; account-type switch = mobile-app-only) → owner drags an mp4
+into tiktok.com/tiktokstudio/upload, then any session finishes (caption staged in handoff). KEY TECH
+(reusable): (a) Remotion/Chrome renders carry a malformed colr atom that HANGS TikTok's AND X's client
+mp4 parsers — fix = `-c copy -movflags +faststart` remux + moov colr→free rename (byte-lossless;
+`.uploads-tmp/r3-*.mp4`; r3-treat all 16 before future TikTok/X uploads); (b) extension 10MB attach cap
+falls to chunk-feed: split -b 9437184 → file_upload per call into a collector input on a STATIC
+same-origin page (robots.txt — SPA pages parse the chunks and lock) → JS reassembly → SHA-256 verify →
+IndexedDB handoff → inject into the app page's input (74–106MB OK on X/IG/FB). `.uploads-tmp/` (~600MB)
+owner-deletable; keep r3-*.
+Same evening: TIKTOK LIVE too — owner dragged fun-groupchat.mp4, session automated caption/settings/
+post (tiktok.com/@themag8stocks/video/7661107427600846093, Everyone, review cleared ~1 min); TikTok
+web Studio has native Now/Schedule for this account (NO Business switch needed; 10-day window) —
+future drags can be scheduled; NEVER touch the Location field (suggests owner's town); real file-pick
+uploads need NO colr treatment (bug only hits synthetic-feed client parsers on TikTok/X).
+2026-07-10 night (Cowork session 4, same handoff, "TIKTOK SCHEDULING PASS" section): TIKTOK SLATE
+STARTED — owner's 5-file drag yielded only 3 web-side (**multi-drag is LOSSY — drag ONE at a time,
+wait for Uploaded ✓**); fun-redflags SCHEDULED Jul 12 + fun-speedrun Jul 16 (12:00 PM, Everyone, HQ,
+pack captions + hook lines, leak-clean, verified on /tiktokstudio/content); fun-gate LOST mid-pass —
+TikTok's cleanup PURGED remaining IndexedDB temp drafts (`web_creation_draft`) when the other flows
+completed → **process ALL pending "Continue editing" drafts before posting ANY; dump local_draft rows
+first if >1 pending**; schedule consent dialog (first time) → Allow, remembered; time picker needs JS
+scrollIntoView+pointer events (wheel hits the page). Owner-picked refill: dnatest Jul 14 / poker
+Jul 18 / gate Jul 20 (captions staged in handoff) — drag didn't land before close, ANY session finishes.
+2026-07-11: the-signal THUMBNAIL SET (marketing/youtube-thumbs/: a-4pct giant-4%+DNA-helix /
+b-one-signal lens-braid→gold-90.3-node / c-next-one dimmed-winners→$-redacted-board-w/-gold-PASS;
+720p uploads 240–340KB + @2x masters) + 3 alt titles appended to the upload plan (§the-signal).
+Pipeline = scratch HTML (data-URI vendored app/fonts + brand/mark-ink) → headless Edge DSF2 →
+ffmpeg lanczos — the OG-image recipe generalized; FORMULA §J is now the packaging contract (one
+focal element ≤6 giant words, film laws bind, duration-badge corner clear, READ the PNGs, 3-up =
+Test & compare). Setting them is blocked on open (3).
+2026-07-11 later (Cowork session 5, crosspost handoff "DAILY CROSS-POST PASS"): one video per platform —
+X fun-dnatest LIVE (x.com/TheMAG8Stocks/status/2076012772731900093; **X synthetic injection: use the
+/compose/post MODAL — the inline home composer accepts the file but never starts APPENDMULTI**), FB
+fun-dnatest auto-Reel Public (facebook.com/reel/1410937844199702), IG fun-groupchat Reel
+(instagram.com/themag8stocks/reel/DaqcEVMJ41y), TikTok fun-dnatest (owner drag) SCHEDULED Jul 14
+12:00 PM → slate redflags 12 / dnatest 14 / speedrun 16; poker 18 + gate 20 still need drags. YouTube
+skipped (slate full). Extension file_upload's 10MB cap pre-validates a whole browser_batch (aborts before
+ANY chunk lands) — chunk-feed = standalone calls only; gc.00-02 (groupchat) added to .uploads-tmp;
+TikTok time picker takes plain clicks when target values are visible (JS pointer path only for off-screen).
+Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out;
+(3) YouTube one-time channel verification = the ONE unlock left (desc+channel links clickable,
+custom thumbnails, AND pin the posted comment) → then set the ready thumb set (marketing/
+youtube-thumbs/, 3-up Test & compare) + pin; (4) cross-post: all four platforms at 2+ videos
+live/scheduled (07-11 pass); remaining ≈12-13 shorts per platform + scheduling slate (IG business
+scheduler ready 75d; TikTok drag-then-schedule 10d — poker Jul 18 / gate Jul 20 drags next; X manual)
+still open. (Memory twin synced 2026-07-11, PRE-session-5 — next Code session re-syncs.)
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

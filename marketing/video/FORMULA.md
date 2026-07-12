@@ -10,7 +10,8 @@ to BE. Where they overlap, this file is the taste, CLAUDE.md is the physics.
 Provenance tags: `[07-07 film]` launch film · `[07-08 pace]` lens shorts + pacing ·
 `[07-08 fun]` intro rework + fun wave 1 (incl. hooks + text-size passes) · `[07-08 w2]`
 fun wave 2 + waitlist CTA · `[07-08 gt]` Game Theory rename · `[07-09 dna]` trillion-DNA +
-fit/contrast pass · `[07-09 engines]` engine specials (scout + Game Theory features).
+fit/contrast pass · `[07-09 engines]` engine specials (scout + Game Theory features) ·
+`[07-11 thumbs]` YouTube packaging (thumbnails + titles).
 Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 
 ---
@@ -147,6 +148,23 @@ Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 4. `npm run check:leak` → 0 hits, then full renders LAST. Timeline changes ⇒ regenerate the
    matching score; copy-only changes ⇒ scores stay valid. `[07-08 pace]`
 
+## J. Packaging — thumbnails & titles
+
+- A thumbnail is a film frame in spirit: house tokens, ONE focal element, ≤6 giant words. Every
+  film law binds — white-label, gold = verdict elements only, cashtags safe-framed, scored names
+  $-redacted, trillion-DNA scout framing. Secondary mono chips are texture (fine if unreadable at
+  168px preview); the hook words must survive that size. `[07-11 thumbs]`
+- Keep the bottom-right ~260×100 free of must-read content — YouTube stamps the duration badge
+  there. `[07-11 thumbs]`
+- Pipeline (zero-spend, repo-proven OG recipe): scratch HTML with data-URI vendored fonts +
+  `public/brand/mark-ink.png` → headless Edge `--headless=new --force-device-scale-factor=2
+  --window-size=1280,720 --virtual-time-budget=5000` → ffmpeg lanczos to 1280×720 PNG (<2MB
+  YouTube cap; keep the `@2x` master). READ the PNGs before shipping — same gate as stills.
+  `[07-11 thumbs]`
+- Ship THREE per video (YouTube "Test & compare" A/Bs exactly three); alt titles front-load the
+  hook inside ~60 chars (display truncation) and live in the platform metadata pack next to the
+  video's entry. Set lives in `marketing/youtube-thumbs/`. `[07-11 thumbs]`
+
 ## Changelog (append here — this is the compounding)
 
 | Date | Owner note | Landed as |
@@ -163,3 +181,4 @@ Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 | 2026-07-09 | Scout must carry the trillion-DNA framing everywhere | §B scout canon |
 | 2026-07-09 | All text fits its box; no overlap; no dark-on-dark / light-on-light | §E + §F, S13/S14/S17/VF4/VM2/VC3/redflags fixes |
 | 2026-07-09 | 4 films on the two engines (scout trillion-DNA + Game Theory — "the most interesting, original, unique features"); get creative, any free/open tools, no need to keep the same colors/designs/visuals | §B engine specials; §H per-episode identity freedom + vendored accent fonts; fun-{dnatest,yearbook,poker,forecast} |
+| 2026-07-11 | 3 thumbnails for the-signal + 3 more titles (third requested for thumb C) | §J packaging contract; `marketing/youtube-thumbs/` a-4pct / b-one-signal / c-next-one + alt titles 1–3 in the upload plan |
