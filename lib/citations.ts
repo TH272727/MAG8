@@ -28,7 +28,7 @@ export interface Citation {
 }
 
 export interface CitationGroup {
-  key: "fundamentals" | "macro" | "consensus" | "discovery" | "rubric";
+  key: "fundamentals" | "macro" | "consensus" | "discovery" | "universe" | "rubric";
   title: string;
   intro: string;
   works: Citation[];
@@ -381,6 +381,118 @@ export const CITATION_GROUPS: CitationGroup[] = [
     ],
   },
   {
+    key: "universe",
+    title: "Stage-0 universe screen",
+    intro:
+      "Before any judgment runs, a deterministic screen filters the whole US primary-exchange universe on exchange feeds and SEC filings data — no model involved. Every threshold is owner-tunable; the defaults come from this literature, and the current effective values are disclosed above.",
+    works: [
+      {
+        short: "Banz 1981",
+        authors: "Banz, R. W.",
+        year: "1981",
+        title: "The Relationship Between Return and Market Value of Common Stocks",
+        source: "Journal of Financial Economics, 9(1), 3–18",
+        url: "https://doi.org/10.1016/0304-405X(81)90018-0",
+        finding:
+          "Smaller NYSE firms earned higher risk-adjusted returns than larger firms over 1936–1975 — the original size effect — with the premium concentrated in the very smallest companies.",
+        usedFor:
+          "Why the hunt runs below mega-cap at all, and why the band has a floor: below it, the same size effect comes bundled with illiquidity and data quality too poor to screen mechanically.",
+      },
+      {
+        short: "Amihud 2002",
+        authors: "Amihud, Y.",
+        year: "2002",
+        title: "Illiquidity and Stock Returns: Cross-Section and Time-Series Effects",
+        source: "Journal of Financial Markets, 5(1), 31–56",
+        url: "https://doi.org/10.1016/S1386-4181(01)00024-6",
+        finding:
+          "Expected stock returns rise with illiquidity, measured as price impact per dollar of trading volume — thinly traded names carry a structural liquidity discount and outsized trading costs.",
+        usedFor: "The day-traded-value floor: names a retail reader could not actually trade at quoted prices are screened out.",
+      },
+      {
+        short: "Kumar 2009",
+        authors: "Kumar, A.",
+        year: "2009",
+        title: "Who Gambles in the Stock Market?",
+        source: "The Journal of Finance, 64(4), 1889–1933",
+        url: "https://doi.org/10.1111/j.1540-6261.2009.01483.x",
+        finding:
+          "Lottery-type stocks — low-priced, high idiosyncratic volatility and skewness — attract gambling-motivated retail flow and earn significantly negative average excess returns.",
+        usedFor: "The minimum-price screen: very low-priced shares behave like lottery tickets, not like early compounders.",
+      },
+      {
+        short: "Bali, Cakici & Whitelaw 2011",
+        authors: "Bali, T. G., Cakici, N., & Whitelaw, R. F.",
+        year: "2011",
+        title: "Maxing Out: Stocks as Lotteries and the Cross-Section of Expected Returns",
+        source: "Journal of Financial Economics, 99(2), 427–446",
+        url: "https://doi.org/10.1016/j.jfineco.2010.08.014",
+        finding:
+          "Stocks with extreme recent daily gains subsequently underperform — demand for lottery-like payoffs systematically overprices them.",
+        usedFor: "Corroborates the lottery-zone exclusion behind the minimum-price screen.",
+      },
+      {
+        short: "Ritter 1991",
+        authors: "Ritter, J. R.",
+        year: "1991",
+        title: "The Long-Run Performance of Initial Public Offerings",
+        source: "The Journal of Finance, 46(1), 3–27",
+        url: "https://doi.org/10.1111/j.1540-6261.1991.tb03743.x",
+        finding:
+          "IPOs from 1975–1984 substantially underperformed matched seasoned firms over the three years after issue — new listings arrive expensive on average.",
+        usedFor:
+          "The listing-age screen: brand-new listings wait out their first reporting cycle before joining the pool (the scout can still nominate one off-pool with an explicit justification).",
+      },
+      {
+        short: "Campbell, Hilscher & Szilagyi 2008",
+        authors: "Campbell, J. Y., Hilscher, J., & Szilagyi, J.",
+        year: "2008",
+        title: "In Search of Distress Risk",
+        source: "The Journal of Finance, 63(6), 2899–2939",
+        url: "https://doi.org/10.1111/j.1540-6261.2008.01416.x",
+        finding:
+          "Firms with high predicted failure probability earn anomalously LOW subsequent returns despite their higher risk — financial distress is not compensated.",
+        usedFor:
+          "The cash-runway and shell screens: names whose filings show they cannot fund their next twelve months without new money are excluded by arithmetic, not by judgment.",
+      },
+      {
+        short: "FASB 2014",
+        authors: "Financial Accounting Standards Board",
+        year: "2014",
+        title: "Presentation of Financial Statements — Going Concern (ASU 2014-15, Subtopic 205-40)",
+        source: "FASB Accounting Standards Update",
+        url: "https://www.fasb.org/page/document?pdf=ASU+2014-15.pdf",
+        finding:
+          "US GAAP requires management to evaluate every reporting period whether substantial doubt exists about the entity's ability to continue as a going concern within one year.",
+        usedFor: "Why the cash-runway screen's default horizon is one year — it mirrors the accounting standard's own solvency window.",
+      },
+      {
+        short: "Pontiff & Woodgate 2008",
+        authors: "Pontiff, J., & Woodgate, A.",
+        year: "2008",
+        title: "Share Issuance and Cross-Sectional Returns",
+        source: "The Journal of Finance, 63(2), 921–945",
+        url: "https://doi.org/10.1111/j.1540-6261.2008.01335.x",
+        finding:
+          "Net share issuance strongly and negatively predicts cross-sectional returns — in post-1970 data its power is comparable to momentum and greater than size or book-to-market.",
+        usedFor:
+          "The share-issuance check. Raw filing-to-filing share counts cannot distinguish dilution from splits or stock-funded acquisitions, so by default heavy issuance is disclosed as a flag on any delivered pick rather than silently screened — the screen itself is available and owner-tunable.",
+      },
+      {
+        short: "Grinold 1989",
+        authors: "Grinold, R. C.",
+        year: "1989",
+        title: "The Fundamental Law of Active Management",
+        source: "The Journal of Portfolio Management, 15(3), 30–37",
+        url: "https://doi.org/10.3905/jpm.1989.409211",
+        finding:
+          "The information ratio of an active process is approximately its edge per bet (the information coefficient) times the square root of the number of independent bets — breadth multiplies edge.",
+        usedFor:
+          "The pool-size default: the scout sees a wide, sector-stratified rotation of the eligible set rather than a handful of familiar names, so its judgment is applied across genuine breadth.",
+      },
+    ],
+  },
+  {
     key: "rubric",
     title: "The scoring rubric",
     intro:
@@ -434,6 +546,15 @@ export const CITATION_GROUPS: CitationGroup[] = [
     ],
   },
 ];
+
+/** Look up one work by its compact short cite (Stage-0 settings footnotes resolve through this). */
+export function findCitation(short: string): Citation | undefined {
+  for (const g of CITATION_GROUPS) {
+    const hit = g.works.find((w) => w.short === short);
+    if (hit) return hit;
+  }
+  return undefined;
+}
 
 /** Compact per-lens grounding line for cards, e.g. "Piotroski 2000 · Altman 1968 · …". */
 export function groundingShorts(key: CitationGroup["key"], n = 3): string {

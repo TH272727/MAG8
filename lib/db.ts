@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { CONFIG } from "./config";
-import type { UniverseRow } from "./universe";
+import type { UniverseExtras, UniverseRow } from "./universe";
 import {
   type CompiledReport,
   type Confidence,
@@ -141,7 +141,14 @@ CREATE TABLE IF NOT EXISTS universe_snapshots (
   iso_week TEXT PRIMARY KEY,
   fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   total_listed INTEGER NOT NULL,
-  rows_json TEXT NOT NULL
+  rows_json TEXT NOT NULL,
+  extra_json TEXT
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 `;
 
@@ -174,6 +181,15 @@ function migrate(db: Database.Database): void {
       db.exec(`ALTER TABLE lens_analyses ADD COLUMN num_turns INTEGER`);
     }
     db.pragma("user_version = 2");
+  }
+  if (v < 3) {
+    // Stage-0 v2: SEC-derived fundamentals ride the weekly snapshot (extra_json);
+    // app_settings is created by SCHEMA_SQL on both fresh and existing files.
+    const cols = db.prepare(`PRAGMA table_info(universe_snapshots)`).all() as { name: string }[];
+    if (cols.length > 0 && !cols.some((c) => c.name === "extra_json")) {
+      db.exec(`ALTER TABLE universe_snapshots ADD COLUMN extra_json TEXT`);
+    }
+    db.pragma("user_version = 3");
   }
 }
 
@@ -760,6 +776,8 @@ export interface UniverseSnapshotRow {
   totalListed: number;
   /** Normalized common-stock/ADR rows, ALL market caps — band filters apply on read. */
   rows: UniverseRow[];
+  /** SEC-derived fundamentals + source metadata (v2 snapshots; null on pre-v2 rows — screens fail open). */
+  extras: UniverseExtras | null;
 }
 
 interface RawUniverseSnapshot {
@@ -767,12 +785,19 @@ interface RawUniverseSnapshot {
   fetched_at: string;
   total_listed: number;
   rows_json: string;
+  extra_json: string | null;
 }
 
 function toUniverseSnapshot(r: RawUniverseSnapshot): UniverseSnapshotRow | null {
   const rows = parseJson<UniverseRow[]>(r.rows_json);
   if (!rows) return null;
-  return { isoWeek: r.iso_week, fetchedAt: r.fetched_at, totalListed: r.total_listed, rows };
+  return {
+    isoWeek: r.iso_week,
+    fetchedAt: r.fetched_at,
+    totalListed: r.total_listed,
+    rows,
+    extras: parseJson<UniverseExtras>(r.extra_json),
+  };
 }
 
 export function getUniverseSnapshot(isoWeek: string): UniverseSnapshotRow | null {
@@ -793,18 +818,45 @@ export function latestUniverseSnapshot(): UniverseSnapshotRow | null {
 /** Snapshots run ~0.5 MB each; keep a fixed trailing window. */
 const UNIVERSE_KEEP_WEEKS = 12;
 
-export function saveUniverseSnapshot(isoWeek: string, totalListed: number, rows: UniverseRow[]): void {
+export function saveUniverseSnapshot(
+  isoWeek: string,
+  totalListed: number,
+  rows: UniverseRow[],
+  extras: UniverseExtras | null,
+): void {
   const db = getDb();
   const tx = db.transaction(() => {
     db.prepare(
-      `INSERT OR REPLACE INTO universe_snapshots (iso_week, total_listed, rows_json) VALUES (?, ?, ?)`,
-    ).run(isoWeek, totalListed, JSON.stringify(rows));
+      `INSERT OR REPLACE INTO universe_snapshots (iso_week, total_listed, rows_json, extra_json) VALUES (?, ?, ?, ?)`,
+    ).run(isoWeek, totalListed, JSON.stringify(rows), extras ? JSON.stringify(extras) : null);
     db.prepare(
       `DELETE FROM universe_snapshots WHERE iso_week NOT IN
          (SELECT iso_week FROM universe_snapshots ORDER BY iso_week DESC LIMIT ?)`,
     ).run(UNIVERSE_KEEP_WEEKS);
   });
   tx();
+}
+
+/* ============================================================================
+ * App settings (owner-tunable knobs; namespaced JSON per key — the Stage-0
+ * screen stores its overrides under 'universe_settings')
+ * ========================================================================== */
+
+export function getAppSettingJson(key: string): unknown {
+  const r = getDb().prepare(`SELECT value_json FROM app_settings WHERE key=?`).get(key) as
+    | { value_json: string }
+    | undefined;
+  return r ? parseJson<unknown>(r.value_json) : null;
+}
+
+export function setAppSettingJson(key: string, value: unknown): void {
+  getDb()
+    .prepare(
+      `INSERT INTO app_settings (key, value_json, updated_at)
+       VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+       ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at`,
+    )
+    .run(key, JSON.stringify(value ?? null));
 }
 
 /* ============================================================================

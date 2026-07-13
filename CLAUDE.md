@@ -1,10 +1,11 @@
-# Mag8 — agent notes, state 2026-07-12. README = user-facing; this file = authoritative. One commit per phase (`git log`).
+# Mag8 — agent notes, state 2026-07-13. README = user-facing; this file = authoritative. One commit per phase (`git log`).
 Four-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S0 `lib/universe.ts`
-deterministic universe screen ($0, no model; weekly snapshot) hands S1 a ~300-name screened pool → S1 `new-gen-stock`
-discovers N candidates (4–12, default 8; prompt carries the date, the pool, recent-coverage anti-repetition, optional
-focus modifier) → S2 `stock-scanner`/`gt-predictor`/`institutional-forecast` per candidate, independently
-(3 candidates in flight, ≤9 sessions) → S3 tool-less compiler applies the Trillion-Dollar Confluence rubric;
-deterministic TS re-verifies gate/confluence/score and re-sorts. Lenses agreeing IS the product (+10 bonus when
+deterministic universe screen ($0, no model; weekly snapshot; NASDAQ+NYSE+AMEX + SEC XBRL fundamentals, every knob
+owner-tunable — see universe-settings entry) hands S1 a ~300-name screened pool AND injects per-ticker SEC ground
+truth into S2 prompts → S1 `new-gen-stock` discovers N candidates (4–12, default 8; prompt carries the date, the
+pool, recent-coverage anti-repetition, optional focus modifier) → S2 `stock-scanner`/`gt-predictor`/
+`institutional-forecast` per candidate, independently (3 candidates in flight, ≤9 sessions) → S3 tool-less compiler
+applies the Trillion-Dollar Confluence rubric; deterministic TS re-verifies gate/confluence/score and re-sorts. Lenses agreeing IS the product (+10 bonus when
 all three bullish). All stages `claude-sonnet-5` (`MAG8_{DISCOVERY,LENS,COMPILER}_MODEL`); effort high/**medium**/medium
 — the 2026-07-06 RKLB A/B killed lens-high (blew the $1/call cap; medium: 97s, ~$0.69, 18 sources, first-try
 handoff; raise `MAG8_LENS_EFFORT` + `MAG8_LENS_MAX_USD` together). WHITE-LABEL: nothing user-visible may name
@@ -19,12 +20,30 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   `/rankings` + home preview to no-focus runs (a lab run can never displace the weekly board)
 - `lib/ranking.ts` rubric constants + `buildRubricText()` → compiler prompt AND /methodology; `lib/citations.ts` 32-work
   registry → /methodology References AND all four skills' `references/bibliography.md` (`npm run gen:bib`) — can't drift
-- `lib/universe.ts` S0 single-source: Nasdaq screener JSON (keyless, Mozilla UA; NASDAQ+NYSE both-or-nothing,
-  ≥3000-row sanity) → common-stock/ADR normalize → CONFIG.universe band+liquidity ($1–50B, ≥$2M day value) →
-  week-seeded sector-stratified pool → `prompts.ts` poolBlock (off-pool picks need in-thesis justification);
-  `universeBandFlags` (±10% slack) join compiler extraGaps→gapsNoted; weekly cache `universe_snapshots` in db.ts
-  (12 kept, ~0.5MB/wk; stale-week fallback disclosed); fail-open null = unscreened run, mock runs skip S0 entirely;
-  MAG8_UNIVERSE=0 kill + MAG8_UNIVERSE_{MCAP_MIN,MCAP_MAX,MIN_DVOL,POOL,TIMEOUT_MS} knobs
+- `lib/universe.ts` S0 v2 (2026-07-13): Nasdaq screener JSON (keyless, Mozilla UA; NASDAQ+NYSE both-or-nothing,
+  AMEX additive-fail-open, ≥3000-row sanity) → common-stock/ADR normalize (+exchange/industry/ipoyear) →
+  screens IN ORDER: band → day-$vol → price floor → pooled-vehicle regex (probe-validated 11/11 CEFs, 0 false
+  pos) → listing-age (blank ipoyear passes) → SEC solvency: runway (cash+STI vs FY burn; Finance-sector exempt —
+  BDC/asset-mgr OCF is structurally negative), zombie (rev≤$1M AND ocf<0 AND eqy<0), dilution (default OFF —
+  share-count YoY is split/M&A-contaminated: PEGA +97%=2:1 split, AVAV +79%=merger; ALWAYS flags delivered
+  picks) → week-seeded sector-stratified pool. `screenUniverse()` = PURE fn(snapshot, settings) computed on
+  READ (tuning applies without refetch; weekly determinism intact). `universeScreenFlags` (band ±slack + price/
+  runway/zombie/dilution, cause-neutral public wording) join compiler extraGaps→gapsNoted; `lensGroundTruth` →
+  prompts.ts "Platform-verified reference data" block in every lens call (price/cap = scale anchors verify-spot-
+  live; SEC figures filing-anchored, cite "per SEC filings"; cache-safe — snapshot frozen per week). Weekly cache
+  `universe_snapshots` + `extra_json` (fundamentals; pre-v2 rows read fine, extras null → SEC screens skip);
+  fail-open null = unscreened run, mock runs skip S0 entirely; MAG8_UNIVERSE=0 kill (env-only, supreme)
+- `lib/universe-settings.ts` ALL 19 S0 knobs: spec registry (default/min/max/env/blurb/cites) + resolver
+  **DB(`app_settings`) > env > default** w/ provenance; defaults research-backed (citations registry 'universe'
+  group, 8 works, 32→40 total — homepage chip auto-updates); legacy MAG8_UNIVERSE_* env names kept. /admin panel
+  edits (save = diff-vs-baseline; preview cached ~10ms; refresh repersists snapshot); /methodology renders LIVE
+  effective values from the same resolver (can't drift). Defaults: $1–50B, ≥$2M/day, price ≥$2, age ≥1yr,
+  CEF+runway(1y)+zombie ON, dilution OFF@50%, pool 300, slack 10%
+- `lib/sec.ts` EDGAR (keyless, $0, identifying UA, MAG8_SEC_UA override): CIK map (covers 2118/2120 eligible) +
+  XBRL frames ~12-20 reqs ≈5-8s/wk — tag-drift chains (rev ×2, cash ×2, current securities ×3 MAX-not-sum: STI
+  tag alone false-killed biotech runway), dei share-frame = instant-period coverage oracle (just-ended quarter
+  sparse until 10-Qs land), same-quarter YoY shares, annual CY(y-1)+CY(y-2) merge. Fail-open per frame AND per
+  metric — missing data = PASS (IFRS/foreign filers unscreened, disclosed); coverage ~75-85% of band
 - `lib/orchestrator/`: `agent.ts` is the ONLY `query()` caller; `prompts.ts` stage wrappers (date, coverage,
   modifier, Sources, naming discipline); `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same
   persist+emit path; `index.ts` executeRun + `lib/price-sanity.ts` hook; `lib/fixtures.ts` seeds run REAL math
@@ -120,6 +139,8 @@ ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any publ
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
+NB the grep bans the bare ENGLISH words too — public copy must write around skill/agent vocabulary
+(Grinold citation reworded "skill"→"edge" 2026-07-13; blurbs on /admin are exempt, /methodology is not).
 
 ## State & open items (deep detail: `HANDOFF-*.md`; video rulebook: `marketing/video/CLAUDE.md`;
 video OWNER FORMULA: `marketing/video/FORMULA.md` — every owner video request, compounding:
@@ -243,6 +264,15 @@ fun-dnatest auto-Reel Public (facebook.com/reel/1410937844199702), IG fun-groupc
 skipped (slate full). Extension file_upload's 10MB cap pre-validates a whole browser_batch (aborts before
 ANY chunk lands) — chunk-feed = standalone calls only; gc.00-02 (groupchat) added to .uploads-tmp;
 TikTok time picker takes plain clicks when target values are visible (JS pointer path only for off-screen).
+2026-07-13 (Code): S0 v2 SHIPPED (HANDOFF-2026-07-13-universe-v2.md) — owner asked: more stocks free, dirty-data
+audit, max deterministic filtering off the scout/lenses (trust SEC over model recall), everything website-tunable
+w/ research-backed defaults. Audit: feed FRESH (12/12 quotes <1.4% vs Yahoo), but 11 CEFs + 48 same-yr IPOs +
+5 sub-$2 in the old pool, AMEX absent. Shipped: AMEX (+293), SEC XBRL enrichment, 5 new screens, 19-knob settings
+system (db>env>default, /admin panel + /methodology live disclosure), lens ground-truth blocks, extended pick
+flags, +8 citations (→40). Default funnel: 7,106 → 2,030 eligible (SEC data 1,840/2,067). Fixture cohort survives
+all defaults; IONQ +50.6% share growth grazes the 50% dilution knob = why that screen defaults OFF (flag-only).
+W29 snapshot cached. Verified: tsc, seed EXACT, gen:bib no-op, build, live E2E (7.4s/8ms cache, deterministic,
+override round-trip), leak probe 0-hit, Edge screenshots. NOT yet through a real run — Open (5).
 2026-07-12 (Code): STAGE 0 UNIVERSE SCREEN SHIPPED — audit first (owner asked): discovery was a ~24–40-name
 web-narrative hunt (prompt min(40,3N) + playbook 2–3×), and the sub-50 real-run ceiling is CALIBRATION, not
 arithmetic (recompute audit: 24/24 real rows match on gate+confluence, scores within 0.1 = inside the ±1
@@ -260,7 +290,8 @@ custom thumbnails, AND pin the posted comment) → then set the ready thumb set 
 youtube-thumbs/, 3-up Test & compare) + pin; (4) cross-post: all four platforms at 2+ videos
 live/scheduled (07-11 pass); remaining ≈12-13 shorts per platform + scheduling slate (IG business
 scheduler ready 75d; TikTok drag-then-schedule 10d — poker Jul 18 / gate Jul 20 drags next; X manual)
-still open; (5) first post-S0 real run: verify the scout actually draws from the pool (else tighten
-poolBlock discipline) and that marketContext carries the screen-scale line; check the two S0
-`discovery_activity` lines render clean in Mission Control. (Memory twin synced 2026-07-12, incl. S0.)
+still open; (5) first post-S0v2 real run: verify the scout draws from the pool (else tighten poolBlock
+discipline), marketContext carries the screen-scale line, the funnel `discovery_activity` line renders in
+Mission Control, lens write-ups cite "per SEC filings" from the ground blocks, and delivered-pick flags land
+in gapsNoted. (Memory twin synced 2026-07-13, incl. S0 v2.)
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

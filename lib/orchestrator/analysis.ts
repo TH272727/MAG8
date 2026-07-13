@@ -12,6 +12,7 @@ import {
   type LensStatusEvent,
 } from "../schemas";
 import { PUBLIC_LENS_LABEL } from "../public-view";
+import { lensGroundTruth, type UniverseResult } from "../universe";
 import { ContractError, runAgentWithContract } from "./agent";
 import { createLimiter } from "./limit";
 import { lensPrompt } from "./prompts";
@@ -74,7 +75,13 @@ function emitLens(
 export async function runAnalysisMatrix(
   runId: string,
   candidates: DiscoveryCandidate[],
-  opts: { force: boolean; signal: AbortSignal; onFatal?: (reason: string) => void },
+  opts: {
+    force: boolean;
+    signal: AbortSignal;
+    onFatal?: (reason: string) => void;
+    /** Stage-0 snapshot — per-ticker verified reference data for lens prompts (null: unscreened run). */
+    universe?: UniverseResult | null;
+  },
 ): Promise<AnalysisMatrixResult> {
   const week = isoWeekKey();
   const cells = new Map<CellKey, CellOutcome>();
@@ -111,7 +118,12 @@ async function runOneCell(
   candidate: DiscoveryCandidate,
   skill: LensSkill,
   week: string,
-  opts: { force: boolean; signal: AbortSignal; onFatal?: (reason: string) => void },
+  opts: {
+    force: boolean;
+    signal: AbortSignal;
+    onFatal?: (reason: string) => void;
+    universe?: UniverseResult | null;
+  },
 ): Promise<CellOutcome> {
   const { ticker } = candidate;
   const label = `lens:${ticker}:${skill}`;
@@ -134,8 +146,11 @@ async function runOneCell(
 
     emitLens(runId, ticker, skill, { status: "running", activity: "Starting analysis…" });
 
+    // Same-week ground truth is cache-safe: within an ISO week the snapshot is
+    // frozen, so an injected prompt and a cached cell describe the same data.
+    const ground = opts.universe ? lensGroundTruth(ticker, opts.universe) : null;
     const { data, costUsd, narrativeText, numTurns } = await runAgentWithContract(lensWireNoMarkdownSchema(skill), {
-      prompt: lensPrompt(skill, candidate),
+      prompt: lensPrompt(skill, candidate, undefined, ground),
       model: CONFIG.models.lens,
       allowedTools: ["WebSearch", "WebFetch", "Bash", "Read"],
       skills: [skill],

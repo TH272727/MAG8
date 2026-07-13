@@ -4,7 +4,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
+import { launchMode } from "@/lib/config";
 import { insertSignup } from "@/lib/db";
+import { getWeeklyUniverse, universeEnabled, type FunnelStep } from "@/lib/universe";
+import {
+  baselineUniverseSettings,
+  cleanOverrides,
+  saveUniverseOverrides,
+  type UniverseSettings,
+} from "@/lib/universe-settings";
 
 export interface ActionState {
   ok: boolean;
@@ -41,4 +49,91 @@ export async function adminLogin(_prev: ActionState, formData: FormData): Promis
 export async function adminLogout(): Promise<void> {
   (await cookies()).delete(ADMIN_COOKIE);
   redirect("/admin");
+}
+
+/* ----------------------------------------------------------------------------
+ * Stage-0 universe screen settings (admin-only; hidden behind the launch curtain
+ * like the run APIs — flip MAG8_SITE_MODE=full to operate)
+ * -------------------------------------------------------------------------- */
+
+async function adminAuthorized(): Promise<boolean> {
+  if (launchMode()) return false;
+  return tokenMatches((await cookies()).get(ADMIN_COOKIE)?.value ?? null);
+}
+
+/**
+ * Persist the owner's Stage-0 overrides. The client sends the full settings
+ * map; only values differing from the default/env baseline are stored, so a
+ * value typed back to its baseline reverts to default/env provenance.
+ * Pass {} to reset everything.
+ */
+export async function saveUniverseSettingsAction(
+  input: Record<string, number | boolean>,
+): Promise<ActionState> {
+  if (!(await adminAuthorized())) return { ok: false, message: "Not authorized." };
+  const cleaned = cleanOverrides(input);
+  const baseline = baselineUniverseSettings() as unknown as Record<string, number | boolean>;
+  const diff: Record<string, number | boolean> = {};
+  for (const [key, value] of Object.entries(cleaned)) {
+    if (value !== undefined && baseline[key] !== value) diff[key] = value;
+  }
+  saveUniverseOverrides(diff);
+  const n = Object.keys(diff).length;
+  return {
+    ok: true,
+    message: n === 0 ? "All values at their default/env baseline — no overrides stored." : `Saved ${n} override${n === 1 ? "" : "s"}. The next run uses them.`,
+  };
+}
+
+export interface UniversePreview {
+  weekKey: string;
+  fetchedAt: string;
+  stale: boolean;
+  totalListed: number;
+  normalized: number;
+  eligibleCount: number;
+  poolSize: number;
+  criteria: string;
+  funnel: FunnelStep[];
+  secCoverage: { withData: number; total: number } | null;
+  exchanges: string[];
+  sample: { t: string; n: string; s: string; capB: number }[];
+  settings: UniverseSettings;
+}
+
+export type UniversePreviewState =
+  | { ok: true; preview: UniversePreview }
+  | { ok: false; message: string };
+
+/**
+ * Run the screen with the CURRENT effective settings and report the funnel.
+ * force=true re-pulls this week's data (repersists the weekly snapshot — the
+ * pool the next run sees derives from it).
+ */
+export async function previewUniverseAction(force: boolean): Promise<UniversePreviewState> {
+  if (!(await adminAuthorized())) return { ok: false, message: "Not authorized." };
+  if (!universeEnabled()) return { ok: false, message: "Stage 0 is disabled by MAG8_UNIVERSE=0." };
+  const universe = await getWeeklyUniverse(force);
+  if (!universe) {
+    return { ok: false, message: "Screen unavailable — feed unreachable and no cached snapshot (or the knobs left fewer than 10 eligible names)." };
+  }
+  const { pool } = universe;
+  return {
+    ok: true,
+    preview: {
+      weekKey: pool.weekKey,
+      fetchedAt: pool.fetchedAt,
+      stale: pool.stale,
+      totalListed: pool.totalListed,
+      normalized: universe.rows.length,
+      eligibleCount: pool.eligibleCount,
+      poolSize: pool.shown.length,
+      criteria: pool.criteria,
+      funnel: pool.funnel,
+      secCoverage: pool.secCoverage,
+      exchanges: universe.extras?.exchanges ?? [],
+      sample: pool.shown.slice(0, 12).map((r) => ({ t: r.t, n: r.n, s: r.s, capB: Math.round(r.c / 1e8) / 10 })),
+      settings: universe.settings,
+    },
+  };
 }

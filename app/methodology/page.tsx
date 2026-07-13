@@ -7,6 +7,12 @@ import { CITATION_GROUPS, groundingShorts } from "@/lib/citations";
 import { launchMode } from "@/lib/config";
 import { buildRubricText } from "@/lib/ranking";
 import { PUBLIC_DISCOVERY, PUBLIC_LENS_META } from "@/lib/public-lens";
+import {
+  UNIVERSE_SETTING_GROUPS,
+  UNIVERSE_SETTINGS_SPEC,
+  effectiveUniverseSettings,
+  formatSettingValue,
+} from "@/lib/universe-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +22,11 @@ export const metadata: Metadata = {
 };
 
 const STAGES = [
+  {
+    n: "00",
+    name: "Universe screen",
+    body: "Before any judgment runs, deterministic code — no model — pulls every US primary-exchange listing and filters it on exchange feeds and SEC filings data: size band, liquidity, price and listing-age floors, pooled-vehicle hygiene, cash-runway and shell solvency. The survivors become the scout's weekly pool.",
+  },
   {
     n: "01",
     name: "Discovery",
@@ -73,6 +84,67 @@ const ACCENT_BORDER: Record<string, string> = {
   consensus: "border-t-consensus/70",
 };
 
+/**
+ * The Stage-0 disclosure renders the LIVE effective thresholds from the same
+ * resolver the pipeline screens with (defaults → env → operator overrides) —
+ * like the rubric, the page and the screen cannot drift apart.
+ */
+function UniverseScreenSection() {
+  const eff = effectiveUniverseSettings();
+  const shown = UNIVERSE_SETTINGS_SPEC.filter((s) => s.group !== "ops");
+  return (
+    <section id="universe-screen" className="mt-12 scroll-mt-24" aria-labelledby="universe-h">
+      <h2 id="universe-h" className="eyebrow">
+        Stage 0 — the universe screen, in the open
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        The scout&apos;s weekly pool is not curated by anyone&apos;s judgment. Deterministic code
+        pulls every listing on the US primary exchanges (~7,000 names), joins structured SEC
+        filings data — cash, operating cash flow, revenue, equity, share counts — and applies the
+        thresholds below mechanically. What survives becomes a sector-stratified, weekly-rotating
+        pool; the same data later cross-checks every delivered pick and hands each lens verified
+        reference figures, so grounding starts from filings rather than model recall.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {UNIVERSE_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((s) => s.group === g.key)
+                .map((s) => (
+                  <div key={s.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">
+                      {s.label}
+                      {s.cites.length > 0 && (
+                        <span className="ml-2 font-mono text-[11px] text-dim">{s.cites.join(" · ")}</span>
+                      )}
+                    </dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(s, eff.values[s.key as keyof typeof eff.values])}
+                      {eff.sources[s.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        Fail-open by construction: a name missing a data point passes the affected screen —
+        absence of data is never treated as evidence (foreign filers reporting under IFRS are the
+        main gap). Every threshold above is a live value from the running configuration, tunable by
+        the operator; the research behind each default is in the evidence base below. When a
+        delivered pick sits outside the band or trips a solvency check, the run says so in its
+        published gap notes.
+      </p>
+    </section>
+  );
+}
+
 export default function MethodologyPage() {
   // Pre-launch curtain: hidden like every other page — the homepage stands alone.
   if (launchMode()) notFound();
@@ -94,7 +166,7 @@ export default function MethodologyPage() {
         <h2 id="pipeline-h" className="eyebrow">
           The pipeline
         </h2>
-        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
           {STAGES.map((s) => (
             <div key={s.n} className="bg-panel p-5">
               <div className="font-mono text-[11px] tracking-[0.14em] text-dim">STAGE {s.n}</div>
@@ -104,6 +176,9 @@ export default function MethodologyPage() {
           ))}
         </div>
       </section>
+
+      {/* Stage-0 universe screen — live effective thresholds */}
+      <UniverseScreenSection />
 
       {/* Lenses */}
       <section className="mt-12" aria-labelledby="lenses-h">

@@ -134,19 +134,10 @@ export const CONFIG = {
   /** Multiplier for mock-run sleeps (0.2 = 5× faster demo). */
   mockSpeed: num(process.env.MAG8_MOCK_SPEED, 1),
 
-  /**
-   * Stage-0 deterministic universe screen (lib/universe.ts): hard-screen band
-   * and liquidity floor, size of the pool slice injected into the discovery
-   * prompt, and the feed fetch timeout. Kill switch (MAG8_UNIVERSE=0) lives in
-   * lib/universe.ts so it reads the env per call, like the price check.
-   */
-  universe: {
-    mcapMinUsd: num(process.env.MAG8_UNIVERSE_MCAP_MIN, 1_000_000_000),
-    mcapMaxUsd: num(process.env.MAG8_UNIVERSE_MCAP_MAX, 50_000_000_000),
-    minDollarVolumeUsd: num(process.env.MAG8_UNIVERSE_MIN_DVOL, 2_000_000),
-    poolSize: int(process.env.MAG8_UNIVERSE_POOL, 300),
-    fetchTimeoutMs: int(process.env.MAG8_UNIVERSE_TIMEOUT_MS, 25_000),
-  },
+  // Stage-0 universe screen knobs live in lib/universe-settings.ts — a
+  // registry with research-backed defaults, the same MAG8_UNIVERSE_* env
+  // overrides as before, and owner overrides persisted from /admin.
+  // Kill switch (MAG8_UNIVERSE=0) stays in lib/universe.ts, read per call.
 
   dbPath: process.env.MAG8_DB_PATH
     ? path.resolve(process.env.MAG8_DB_PATH)

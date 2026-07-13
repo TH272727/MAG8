@@ -6,9 +6,18 @@ import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
 import RunHistoryTable from "@/components/admin/RunHistoryTable";
+import UniverseSettingsPanel, { type PanelSetting } from "@/components/admin/UniverseSettingsPanel";
 import { ADMIN_COOKIE, adminConfigured, tokenMatches } from "@/lib/auth";
+import { findCitation } from "@/lib/citations";
 import { CONFIG, estimateRun, launchMode } from "@/lib/config";
 import { listRuns } from "@/lib/db";
+import { universeEnabled } from "@/lib/universe";
+import {
+  UNIVERSE_SETTING_GROUPS,
+  UNIVERSE_SETTINGS_SPEC,
+  effectiveUniverseSettings,
+  formatSettingValue,
+} from "@/lib/universe-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +60,27 @@ export default async function AdminPage() {
     estimates[c] = estimateRun(c);
   }
 
+  const universeEff = effectiveUniverseSettings();
+  const universePanel: PanelSetting[] = UNIVERSE_SETTINGS_SPEC.map((s) => ({
+    key: s.key,
+    label: s.label,
+    group: s.group,
+    kind: s.kind,
+    unit: s.kind === "number" ? s.unit : "",
+    scale: s.kind === "number" ? s.scale : 1,
+    min: s.kind === "number" ? s.min : 0,
+    max: s.kind === "number" ? s.max : 1,
+    step: s.kind === "number" ? s.step : 1,
+    value: universeEff.values[s.key as keyof typeof universeEff.values],
+    source: universeEff.sources[s.key as keyof typeof universeEff.sources],
+    defaultDisplay: formatSettingValue(s, s.default),
+    blurb: s.blurb,
+    cites: s.cites.map((short) => {
+      const url = findCitation(short)?.url;
+      return url ? { short, url } : { short };
+    }),
+  }));
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -77,6 +107,23 @@ export default async function AdminPage() {
           effortLine={`${CONFIG.effort.discovery} discovery · ${CONFIG.effort.lens} lens · ${CONFIG.effort.compiler} compile`}
         />
       </div>
+
+      <section className="mt-10" aria-labelledby="universe-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="universe-h" className="eyebrow">
+            Universe screen — Stage 0
+          </h2>
+          {!universeEnabled() && <span className="chip">DISABLED VIA MAG8_UNIVERSE=0</span>}
+        </div>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts the panel with fresh server truth. */}
+          <UniverseSettingsPanel
+            key={JSON.stringify(universeEff.values)}
+            groups={UNIVERSE_SETTING_GROUPS}
+            settings={universePanel}
+          />
+        </div>
+      </section>
 
       <section className="mt-10" aria-labelledby="history-h">
         <h2 id="history-h" className="eyebrow">

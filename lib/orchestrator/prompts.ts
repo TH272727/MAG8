@@ -1,6 +1,6 @@
 import { isoWeekKey, type CoverageEntry } from "../db";
 import { buildRubricText } from "../ranking";
-import type { UniversePool } from "../universe";
+import type { LensGroundTruth, UniversePool } from "../universe";
 import {
   DISCOVERY_SKILL,
   LENS_META,
@@ -60,7 +60,7 @@ ${rows}
 Pool discipline:
 - Treat this pool as your primary long-list: cross-check it against your world-state wave map and source your candidates from it. Column figures are a mechanical snapshot — verify current price and market cap by live web search for every finalist.
 - You MAY deliver a candidate that is not listed (the list is a rotating sample, and very recent listings can be missing) ONLY if it satisfies every universe rule above; its thesis must then include one line on why it beats the pool names you passed over.
-- In marketContext, state the screen scale in plain language (e.g. "screened ${pool.totalListed} US-listed names; ${pool.eligibleCount} passed the size and liquidity bar") — never name data vendors or internal mechanics.
+- In marketContext, state the screen scale in plain language (e.g. "screened ${pool.totalListed} US-listed names; ${pool.eligibleCount} passed the deterministic size, liquidity, and solvency bars") — never name data vendors or internal mechanics.
 `;
 }
 
@@ -95,14 +95,54 @@ Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), comp
 End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketContext (string) and candidates (array of { ticker, companyName, sector, thesis, matchedTraits }). Strict JSON only — no comments, no trailing commas; any prose belongs BEFORE the block, and nothing may follow the closing fence.`;
 }
 
-const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate, dateLine: string) =>
+/** Compact USD for prompt tables: $3.03B / $72M / $950K. */
+function fmtUsdCompact(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2).replace(/\.?0+$/, "")}B`;
+  if (abs >= 1e6) return `${sign}$${Math.round(abs / 1e6)}M`;
+  return `${sign}$${Math.round(abs / 1e3)}K`;
+}
+
+/**
+ * Deterministic reference block for lens prompts: exchange-feed snapshot plus
+ * SEC structured-filings figures. This is the anti-hallucination anchor — the
+ * lens verifies against filings data instead of re-deriving everything from
+ * search, and long-context drift cannot rewrite a number stated in the prompt.
+ */
+function groundBlock(g: LensGroundTruth | null | undefined): string {
+  if (!g) return "";
+  const lines = [
+    `- Weekly screen snapshot (${g.fetchedAt.slice(0, 10)}): last sale $${g.price} · market cap ${fmtUsdCompact(g.marketCap)} · day traded value ${fmtUsdCompact(g.dayDollarVolume)} · sector ${g.sector}. Prices move — verify the CURRENT spot by live search before any valuation math; treat these as scale anchors.`,
+  ];
+  if (g.sec) {
+    const s = g.sec;
+    const parts: string[] = [];
+    if (s.cash !== undefined) parts.push(`cash & equivalents ${fmtUsdCompact(s.cash)}`);
+    if (s.sti !== undefined) parts.push(`short-term investments ${fmtUsdCompact(s.sti)}`);
+    if (s.eqy !== undefined) parts.push(`stockholders' equity ${fmtUsdCompact(s.eqy)}`);
+    if (s.ocf !== undefined) parts.push(`operating cash flow (${s.fiscalLabel}) ${fmtUsdCompact(s.ocf)}`);
+    if (s.rev !== undefined) parts.push(`revenue (${s.fiscalLabel}) ${fmtUsdCompact(s.rev)}`);
+    if (s.runwayYears !== undefined) parts.push(`implied cash runway ≈ ${s.runwayYears} years at trailing burn`);
+    if (s.shGrowthPct !== undefined) parts.push(`share count ${s.shGrowthPct > 0 ? "+" : ""}${s.shGrowthPct}% YoY (${s.sharesLabel}; could reflect issuance, a split, or M&A)`);
+    if (parts.length > 0) {
+      lines.push(`- SEC structured filings (balance items as of ${s.instantLabel}): ${parts.join("; ")}. These are filing-anchored — safe to cite as "per SEC filings" and to prefer over memory or secondary sources; if your live research materially disagrees, report the discrepancy explicitly.`);
+    }
+  }
+  return `Platform-verified reference data (deterministic weekly screen — not model output):
+${lines.join("\n")}
+
+`;
+}
+
+const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate, dateLine: string, ground?: LensGroundTruth | null) =>
   `You are one of three INDEPENDENT Stage-2 lenses in the Mag8 research pipeline, analyzing ${c.ticker} (${c.companyName}, ${c.sector}). Use the "${skill}" skill — it is the only skill available to you. Do not reference or assume the other lenses' outputs; independence is the point.
 
 ${dateLine} Ground every figure in live web data retrieved this session and state its as-of date; where a value cannot be verified, use null rather than a guess.
 
 Public identity: to readers you are the "${LENS_META[skill].label}" lens. Title your report "${LENS_META[skill].label} — ${c.ticker}" and never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform anywhere in the write-up.
 
-Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
+${groundBlock(ground)}Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
 
 `;
 
@@ -118,10 +158,15 @@ Shape your FINAL message exactly like this:
 
 Wire-payload rules (a violation aborts this cell): strict JSON only — double-quoted strings, bare numbers, true/false booleans, null ONLY where a field is explicitly nullable; NO comments of any kind inside the JSON, NO trailing commas, NO placeholder text, enum values with EXACT casing as specified. Nothing may follow the closing fence.`;
 
-export function lensPrompt(skill: LensSkill, c: DiscoveryCandidate, dateLine: string = runDateLine()): string {
+export function lensPrompt(
+  skill: LensSkill,
+  c: DiscoveryCandidate,
+  dateLine: string = runDateLine(),
+  ground?: LensGroundTruth | null,
+): string {
   switch (skill) {
     case "stock-scanner":
-      return `${LENS_INTRO(skill, c, dateLine)}Run the skill's FULL Ticker Analysis framework on ${c.ticker}: hard gates (Piotroski F-Score, Altman Z-Score, quality, confirmation), deep research, reverse-DCF plus scenario valuation, the eight-dimension composite with the Financial-Strength veto, and the final verdict.
+      return `${LENS_INTRO(skill, c, dateLine, ground)}Run the skill's FULL Ticker Analysis framework on ${c.ticker}: hard gates (Piotroski F-Score, Altman Z-Score, quality, confirmation), deep research, reverse-DCF plus scenario valuation, the eight-dimension composite with the Financial-Strength veto, and the final verdict.
 
 Populate keyMetrics exactly with:
 - piotroskiF (0–9, null only if genuinely not computable)
@@ -138,7 +183,7 @@ Plus these OPTIONAL-but-preferred fields — include them when your analysis pro
 Map scannerVerdict to the top-level verdict: Buy → bullish, Watchlist → neutral, Pass → bearish (deviate only with strong reason, explained in summary).${LENS_OUTRO}`;
 
     case "gt-predictor":
-      return `${LENS_INTRO(skill, c, dateLine)}Run a GT analysis of the macro / game-theoretic situation AROUND ${c.ticker}: which structural theses and laws (if any) bear on its sector, the outside-view base rate, the steelmanned opposing case, and the asset implication for ${c.ticker} specifically — with an Asymmetry Score and falsification conditions per the skill. Ground everything in live web data; a mostly-idiosyncratic read ("low structural setup, no macro edge") is a perfectly valid output.
+      return `${LENS_INTRO(skill, c, dateLine, ground)}Run a GT analysis of the macro / game-theoretic situation AROUND ${c.ticker}: which structural theses and laws (if any) bear on its sector, the outside-view base rate, the steelmanned opposing case, and the asset implication for ${c.ticker} specifically — with an Asymmetry Score and falsification conditions per the skill. Ground everything in live web data; a mostly-idiosyncratic read ("low structural setup, no macro edge") is a perfectly valid output.
 
 Populate keyMetrics exactly with:
 - asymmetryScore (1–10; 10 = maximum mispricing)
@@ -153,7 +198,7 @@ Plus these OPTIONAL-but-preferred fields — include them when your analysis pro
 Map the VERDICT direction to the top-level verdict: Bullish → bullish, Neutral → neutral, Bearish → bearish.${LENS_OUTRO}`;
 
     case "institutional-forecast":
-      return `${LENS_INTRO(skill, c, dateLine)}Run the skill in DEEP mode for ${c.ticker} equity. Live-verify every target and stance per the skill's sourcing rules; omit anything you cannot verify this session and say so. Build the Consensus Dashboard, base/bull/bear cases, and the institution-by-institution table.
+      return `${LENS_INTRO(skill, c, dateLine, ground)}Run the skill in DEEP mode for ${c.ticker} equity. Live-verify every target and stance per the skill's sourcing rules; omit anything you cannot verify this session and say so. Build the Consensus Dashboard, base/bull/bear cases, and the institution-by-institution table.
 
 Populate keyMetrics exactly with:
 - currentPrice (spot, USD, null if unverifiable)
