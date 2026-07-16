@@ -1,7 +1,8 @@
 # Mag8 — agent notes, state 2026-07-13. README = user-facing; this file = authoritative. One commit per phase (`git log`).
 Four-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S0 `lib/universe.ts`
 deterministic universe screen ($0, no model; weekly snapshot; NASDAQ+NYSE+AMEX + SEC XBRL fundamentals, every knob
-owner-tunable — see universe-settings entry) hands S1 a ~300-name screened pool AND injects per-ticker SEC ground
+owner-tunable — see universe-settings entry) hands S1 a ~300-name screened pool (top-100 fundamentals-RANKED head
+w/ filings digests + rotation, v3 2026-07-16) AND injects per-ticker SEC ground
 truth into S2 prompts → S1 `new-gen-stock` discovers N candidates (4–12, default 8; prompt carries the date, the
 pool, recent-coverage anti-repetition, optional focus modifier) → S2 `stock-scanner`/`gt-predictor`/
 `institutional-forecast` per candidate, independently (3 candidates in flight, ≤9 sessions) → S3 tool-less compiler
@@ -26,21 +27,34 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   pos) → listing-age (blank ipoyear passes) → SEC solvency: runway (cash+STI vs FY burn; Finance-sector exempt —
   BDC/asset-mgr OCF is structurally negative), zombie (rev≤$1M AND ocf<0 AND eqy<0), dilution (default OFF —
   share-count YoY is split/M&A-contaminated: PEGA +97%=2:1 split, AVAV +79%=merger; ALWAYS flags delivered
-  picks) → week-seeded sector-stratified pool. `screenUniverse()` = PURE fn(snapshot, settings) computed on
+  picks) → RANKED pool v3 (2026-07-16): `rankEligible()` pure fn — fixed-weight composite (rev growth .35 /
+  OCF margin .20 / margin trajectory .15 / share discipline .15 / survivability .15; percentile-in-eligible,
+  missing datum = neutral 50; margin factors need rev≥$25M — stub-tag guard, probe caught a $5B driller tagged
+  $12M rev) orders eligible; top `rankTopN` lead the discovery prompt w/ one-line filings digests, remainder
+  stays week-seeded sector-stratified rotation (SEC absent → pure rotation, rankedCount 0; filings rank buries
+  pre-revenue burners BY DESIGN — RKLB #1611/2071 — rotation + scout judgment cover that archetype; Finance OCF
+  misread mirrors runway-exempt = future knob). `screenUniverse()` = PURE fn(snapshot, settings) computed on
   READ (tuning applies without refetch; weekly determinism intact). `universeScreenFlags` (band ±slack + price/
   runway/zombie/dilution, cause-neutral public wording) join compiler extraGaps→gapsNoted; `lensGroundTruth` →
   prompts.ts "Platform-verified reference data" block in every lens call (price/cap = scale anchors verify-spot-
   live; SEC figures filing-anchored, cite "per SEC filings"; cache-safe — snapshot frozen per week). Weekly cache
   `universe_snapshots` + `extra_json` (fundamentals; pre-v2 rows read fine, extras null → SEC screens skip);
   fail-open null = unscreened run, mock runs skip S0 entirely; MAG8_UNIVERSE=0 kill (env-only, supreme)
-- `lib/universe-settings.ts` ALL 19 S0 knobs: spec registry (default/min/max/env/blurb/cites) + resolver
+- `lib/universe-settings.ts` ALL 21 S0 knobs: spec registry (default/min/max/env/blurb/cites) + resolver
   **DB(`app_settings`) > env > default** w/ provenance; defaults research-backed (citations registry 'universe'
-  group, 8 works, 32→40 total — homepage chip auto-updates); legacy MAG8_UNIVERSE_* env names kept. /admin panel
+  group, 10 works, →42 total — homepage chip auto-updates); legacy MAG8_UNIVERSE_* env names kept. /admin panel
   edits (save = diff-vs-baseline; preview cached ~10ms; refresh repersists snapshot); /methodology renders LIVE
   effective values from the same resolver (can't drift). Defaults: $1–50B, ≥$2M/day, price ≥$2, age ≥1yr,
-  CEF+runway(1y)+zombie ON, dilution OFF@50%, pool 300, slack 10%
+  CEF+runway(1y)+zombie ON, dilution OFF@50%, pool 300 (rankPool ON, rankTopN 100), slack 10%
+- `lib/salience.ts` model-memory baseline (200 tickers, cold TOOL-LESS Sonnet session 2026-07-16, ordered by
+  salience; refresh ~quarterly or on discovery-model change) + `npm run audit:salience` (raw READ-ONLY live-run
+  precheck BEFORE lib/db import — reconciliation would kill a live run): per-pick salience rank / eligibility /
+  fund-rank / cap-pct / desks vs random-from-eligible expectation. Baseline finding: 59/70 real pick-slots (84%)
+  sat inside the model's own famous-names prior vs ~6% random (07-07 run 8/8; coverage-blocking just slid picks
+  to tier-2 fame) — the measured bias the ranked pool attacks; re-run after every real run
 - `lib/sec.ts` EDGAR (keyless, $0, identifying UA, MAG8_SEC_UA override): CIK map (covers 2118/2120 eligible) +
-  XBRL frames ~12-20 reqs ≈5-8s/wk — tag-drift chains (rev ×2, cash ×2, current securities ×3 MAX-not-sum: STI
+  XBRL frames ~15-25 reqs ≈6-9s/wk — annual tags ALSO fetch the prior FY same-tag (rev0/ocf0 → growth/trajectory;
+  YoY math never mixes tag variants), tag-drift chains (rev ×2, cash ×2, current securities ×3 MAX-not-sum: STI
   tag alone false-killed biotech runway), dei share-frame = instant-period coverage oracle (just-ended quarter
   sparse until 10-Qs land), same-quarter YoY shares, annual CY(y-1)+CY(y-2) merge. Fail-open per frame AND per
   metric — missing data = PASS (IFRS/foreign filers unscreened, disclosed); coverage ~75-85% of band
@@ -131,6 +145,7 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 npm run pipeline -- --smoke                             # go/no-go probe (~$0.30 notional)
 npm run pipeline -- --full [--count N] [--force] [--mock] [--focus "…"]   # --mock=$0; MAG8_MOCK_SPEED=0.12 fast
 npm run pipeline -- --lens-probe TICKER [--effort L]    # one-cell A/B comparator
+npm run audit:salience                                  # fame-bias readout over all real runs ($0; between runs only)
 ```
 Fixture regression (`npm run seed`): ASTS 90.3 pass+confluence, RKLB 73.9, TMDX 69.5, SYM 51.5, IONQ 47.9,
 CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×gt cell (CRSP → 46.4 + gap note);
@@ -290,8 +305,20 @@ custom thumbnails, AND pin the posted comment) → then set the ready thumb set 
 youtube-thumbs/, 3-up Test & compare) + pin; (4) cross-post: all four platforms at 2+ videos
 live/scheduled (07-11 pass); remaining ≈12-13 shorts per platform + scheduling slate (IG business
 scheduler ready 75d; TikTok drag-then-schedule 10d — poker Jul 18 / gate Jul 20 drags next; X manual)
-still open; (5) first post-S0v2 real run: verify the scout draws from the pool (else tighten poolBlock
-discipline), marketContext carries the screen-scale line, the funnel `discovery_activity` line renders in
-Mission Control, lens write-ups cite "per SEC filings" from the ground blocks, and delivered-pick flags land
-in gapsNoted. (Memory twin synced 2026-07-13, incl. S0 v2.)
+still open; (5) first post-S0v3 real run: verify the scout draws from the RANKED head (else tighten poolBlock
+discipline), marketContext carries the screen-scale + ranked-long-list line, the funnel `discovery_activity`
+line renders in Mission Control, lens write-ups cite "per SEC filings" (now incl. rev growth) from the ground
+blocks, delivered-pick flags land in gapsNoted — then `npm run audit:salience` for the before/after delta
+(target: baseline overlap falling from 84%, fund-ranks strengthening; both honest either way).
+2026-07-16 (Code): RANKED POOL + SALIENCE AUDIT (HANDOFF-2026-07-16-ranked-pool-salience.md) — owner concern
+"discovery just picks article-famous names" VALIDATED with data, root cause = TRAINING-PRIOR salience, not
+runtime articles (disabling search would worsen it; coverage-blocking just slid picks down the same fame list).
+Instrument: cold tool-less Sonnet listed its own 200 "next mega-cap" names → 84% of 70 real pick-slots inside
+it vs ~6% random draw. Shipped: (B) S0 v3 — sec.ts annual() keeps prior-FY same-tag pairs, rankEligible()
+composite orders eligible, top-100 digest head in the prompt (~6.7k tok), rotation + off-pool escape intact,
+knobs rankPool/rankTopN (→21), citations +Sloan1996 +Chan-Karceski-Lakonishok2003 (→42), lens ground block
+gains rev-growth, playbook Step 2 inverted pool-first, /methodology + describeScreen disclose; (A) lib/
+salience.ts + npm run audit:salience. Gates: tsc, W29 re-probed (rev0 on 3,416; determinism IDENTICAL; VAL
+stub-rev artifact → $25M margin floor), seed EXACT, build ×2, leak 0-hit (homepage 26-AGENTS exception only).
+(Memory twin synced 2026-07-16.)
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
