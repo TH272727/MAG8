@@ -25,7 +25,7 @@ const STAGES = [
   {
     n: "00",
     name: "Universe screen",
-    body: "Before any judgment runs, deterministic code — no model — pulls every US primary-exchange listing and filters it on exchange feeds and SEC filings data: size band, liquidity, price and listing-age floors, pooled-vehicle hygiene, cash-runway and shell solvency. The survivors become the scout's weekly pool.",
+    body: "Before any judgment runs, deterministic code — no model — pulls every US primary-exchange listing and filters it on exchange feeds and SEC filings data: size band, liquidity, price and listing-age floors, pooled-vehicle hygiene, cash-runway and shell solvency. Survivors are then ranked by a fixed-weight fundamentals composite from the same filings; the ranked list becomes the scout's weekly pool.",
   },
   {
     n: "01",
@@ -100,9 +100,14 @@ function UniverseScreenSection() {
       <p className="mt-3 max-w-2xl text-sm text-muted">
         The scout&apos;s weekly pool is not curated by anyone&apos;s judgment. Deterministic code
         pulls every listing on the US primary exchanges (~7,000 names), joins structured SEC
-        filings data — cash, operating cash flow, revenue, equity, share counts — and applies the
-        thresholds below mechanically. What survives becomes a sector-stratified, weekly-rotating
-        pool; the same data later cross-checks every delivered pick and hands each lens verified
+        filings data — cash, operating cash flow, revenue and its growth, equity, share counts —
+        and applies the thresholds below mechanically. What survives is then <em>ranked</em> by a
+        fixed-weight fundamentals composite computed from the same filings (revenue growth,
+        cash-flow margin and its trajectory, share-count discipline, cash survivability — each a
+        percentile within the eligible set, missing data scoring neutral): the top of the ranking
+        leads the weekly pool with per-name filings digests, so selection evidence reaches the
+        scout before name familiarity can, and the rest rotates sector-stratified week to week.
+        The same data later cross-checks every delivered pick and hands each lens verified
         reference figures, so grounding starts from filings rather than model recall.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">

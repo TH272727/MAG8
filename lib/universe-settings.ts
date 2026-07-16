@@ -32,8 +32,8 @@ export const UNIVERSE_SETTING_GROUPS: { key: UniverseSettingGroupKey; title: str
   },
   {
     key: "pool",
-    title: "Pool & disclosure",
-    note: "How the eligible set becomes the scout's weekly long-list, and how far outside the band a delivered pick may sit before it is flagged.",
+    title: "Pool, ranking & disclosure",
+    note: "How the eligible set becomes the scout's weekly long-list — a fundamentals-ranked head plus a rotating sweep of the rest — and how far outside the band a delivered pick may sit before it is flagged.",
   },
   {
     key: "ops",
@@ -283,7 +283,32 @@ export const UNIVERSE_SETTINGS_SPEC: UniverseSettingSpec[] = [
     unit: "names",
     integer: true,
     blurb:
-      "The sector-stratified, week-seeded slice of the eligible set injected into the discovery prompt. Breadth multiplies edge — the fundamental law of active management — while the weekly rotation sweeps the whole eligible set over successive runs.",
+      "The total weekly long-list injected into the discovery prompt: the fundamentals-ranked segment plus a sector-stratified, week-seeded rotation of the rest of the eligible set. Breadth multiplies edge — the fundamental law of active management — while the rotation sweeps the whole eligible set over successive runs.",
+    cites: ["Grinold 1989"],
+  }),
+  bool({
+    key: "rankPool",
+    label: "Rank the pool by filings fundamentals",
+    group: "pool",
+    envVar: "MAG8_UNIVERSE_RANK",
+    default: true,
+    blurb:
+      "Orders the eligible set by a deterministic composite computed from structured SEC filings — revenue growth (35%), operating-cash-flow margin (20%) and its year-over-year trajectory (15%), share-count discipline (15%), cash survivability (15%) — each factor a percentile within the eligible set, missing data scoring neutral. The top of the ranking leads the pool with one-line filings digests, so filings-derived selection evidence sits in front of the scout before name familiarity can act. The ranking orders the reading list; it does not pick winners — growth persistence is rare, and the literature says so.",
+    cites: ["Novy-Marx 2013", "Sloan 1996", "Chan, Karceski & Lakonishok 2003", "Pontiff & Woodgate 2008"],
+  }),
+  num({
+    key: "rankTopN",
+    label: "Ranked segment size",
+    group: "pool",
+    envVar: "MAG8_UNIVERSE_RANK_TOP",
+    default: 100,
+    min: 25,
+    max: 500,
+    step: 25,
+    unit: "names",
+    integer: true,
+    blurb:
+      "How many top-ranked names lead the weekly pool with filings digests (capped by the pool size). The remaining slots stay a sector-stratified weekly rotation of the rest of the eligible set, so full-universe sweep is preserved underneath the ranking.",
     cites: ["Grinold 1989"],
   }),
   num({
@@ -355,6 +380,8 @@ export interface UniverseSettings {
   dilutionScreen: boolean;
   maxDilutionPct: number;
   poolSize: number;
+  rankPool: boolean;
+  rankTopN: number;
   bandSlackPct: number;
   fetchTimeoutMs: number;
   secTimeoutMs: number;

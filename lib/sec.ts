@@ -5,9 +5,11 @@
  *  - company_tickers_exchange.json — ticker → CIK for every SEC registrant
  *    (probe 2026-07-13: covers 2,118 of 2,120 band-eligible listings).
  *  - XBRL "frames" API — ONE request returns a concept for EVERY filer in a
- *    period (~0.1–0.9 MB each), so ~a dozen requests fundamentally screen the
+ *    period (~0.1–0.9 MB each), so ~15–25 requests fundamentally screen the
  *    whole universe: cash & short-term investments, operating cash flow,
- *    revenue, stockholders' equity, cover-page share counts.
+ *    revenue, stockholders' equity, cover-page share counts. Annual concepts
+ *    also fetch the fiscal year immediately prior (same tag), which is what
+ *    the pool ranking's growth and trajectory math runs on.
  *
  * Frames quirks handled here (all probe-verified):
  *  - Tag drift: revenue lives under 2–3 tags, cash under 2, current
@@ -33,8 +35,12 @@ export interface SecFundamentals {
   sti?: number;
   /** Net operating cash flow, latest full fiscal year (USD; negative = burn). */
   ocf?: number;
+  /** Operating cash flow, the fiscal year immediately before `ocf` (same tag; only set when `ocf` is). */
+  ocf0?: number;
   /** Revenue, latest full fiscal year (USD). */
   rev?: number;
+  /** Revenue, the fiscal year immediately before `rev` — SAME XBRL tag as `rev`, so growth math never mixes tag variants (only set when `rev` is). */
+  rev0?: number;
   /** Stockholders' equity (USD, latest instant). */
   eqy?: number;
   /** Cover-page share count growth, same quarter YoY (percent). */
@@ -188,20 +194,38 @@ export async function fetchSecEnrichment(tickers: string[], opts: SecFetchOption
     return merged;
   };
 
-  /** Annual concept: last full calendar year, one year further back merged in while 10-Ks are still landing. */
-  const annual = async (tag: string): Promise<{ byCik: Map<number, number>; label: string }> => {
+  /**
+   * Annual concept: latest full calendar year per CIK, PLUS the year
+   * immediately before it on the same tag (the growth/trajectory base — a
+   * skipped year or a tag switch would corrupt YoY math, so `prior` is only
+   * set when the consecutive same-tag year exists). One extra year of
+   * backfill applies while the newest 10-Ks are still landing, exactly as
+   * before.
+   */
+  const annual = async (
+    tag: string,
+  ): Promise<{ latest: Map<number, number>; prior: Map<number, number>; label: string }> => {
     const y1 = now.getUTCFullYear() - 1;
     const f1 = await frame(`us-gaap/${tag}/USD/CY${y1}`);
-    const merged = new Map<number, number>(f1?.byCik ?? []);
-    let label = `FY${y1}`;
-    if ((f1?.count ?? 0) < MIN_ANNUAL_ENTRIES) {
-      const f0 = await frame(`us-gaap/${tag}/USD/CY${y1 - 1}`);
-      if (f0) {
-        for (const [cik, val] of f0.byCik) if (!merged.has(cik)) merged.set(cik, val);
-        label = `FY${y1 - 1}–${y1}`;
+    const f0 = await frame(`us-gaap/${tag}/USD/CY${y1 - 1}`);
+    const y1Sparse = (f1?.count ?? 0) < MIN_ANNUAL_ENTRIES;
+    const fm1 = y1Sparse ? await frame(`us-gaap/${tag}/USD/CY${y1 - 2}`) : null;
+    const latest = new Map<number, number>();
+    const prior = new Map<number, number>();
+    for (const [cik, val] of f1?.byCik ?? []) {
+      latest.set(cik, val);
+      const p = f0?.byCik.get(cik);
+      if (p !== undefined) prior.set(cik, p);
+    }
+    if (y1Sparse && f0) {
+      for (const [cik, val] of f0.byCik) {
+        if (latest.has(cik)) continue;
+        latest.set(cik, val);
+        const p = fm1?.byCik.get(cik);
+        if (p !== undefined) prior.set(cik, p);
       }
     }
-    return { byCik: merged, label };
+    return { latest, prior, label: y1Sparse && f0 ? `FY${y1 - 1}–${y1}` : `FY${y1}` };
   };
 
   const cashPrimary = await instant("CashAndCashEquivalentsAtCarryingValue");
@@ -225,10 +249,24 @@ export async function fetchSecEnrichment(tickers: string[], opts: SecFetchOption
     if (cash !== undefined) f.cash = cash;
     const stis = [sti1.get(cik), sti2.get(cik), sti3.get(cik)].filter((x): x is number => x !== undefined);
     if (stis.length > 0) f.sti = Math.max(...stis);
-    const o = ocf.byCik.get(cik);
-    if (o !== undefined) f.ocf = o;
-    const r = revContract.byCik.get(cik) ?? revPlain.byCik.get(cik);
-    if (r !== undefined) f.rev = r;
+    const o = ocf.latest.get(cik);
+    if (o !== undefined) {
+      f.ocf = o;
+      const o0 = ocf.prior.get(cik);
+      if (o0 !== undefined) f.ocf0 = o0;
+    }
+    // Revenue chains stay tag-consistent: the prior year must come from the SAME tag as the latest.
+    const rc = revContract.latest.get(cik);
+    const rp = rc === undefined ? revPlain.latest.get(cik) : undefined;
+    if (rc !== undefined) {
+      f.rev = rc;
+      const r0 = revContract.prior.get(cik);
+      if (r0 !== undefined) f.rev0 = r0;
+    } else if (rp !== undefined) {
+      f.rev = rp;
+      const r0 = revPlain.prior.get(cik);
+      if (r0 !== undefined) f.rev0 = r0;
+    }
     const e = equity.get(cik);
     if (e !== undefined) f.eqy = e;
     const sNow = sharesNow?.byCik.get(cik);
@@ -270,4 +308,13 @@ export function runwayYears(f: SecFundamentals): number | null {
   const liquid = liquidAssets(f);
   if (liquid === null || f.ocf === undefined || f.ocf >= 0) return null;
   return liquid / -f.ocf;
+}
+
+/** Tiny-base floor for YoY growth math: below this, percentages are reclassification noise, not signal. */
+export const GROWTH_MIN_BASE_USD = 5_000_000;
+
+/** Same-tag, consecutive-fiscal-year revenue growth (percent); null when either year is missing or the base year is tiny. */
+export function revGrowthPct(f: SecFundamentals): number | null {
+  if (f.rev === undefined || f.rev0 === undefined || f.rev0 < GROWTH_MIN_BASE_USD) return null;
+  return ((f.rev - f.rev0) / f.rev0) * 100;
 }

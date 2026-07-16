@@ -1,6 +1,6 @@
 import { isoWeekKey, type CoverageEntry } from "../db";
 import { buildRubricText } from "../ranking";
-import type { LensGroundTruth, UniversePool } from "../universe";
+import { fmtUsdCompact, type LensGroundTruth, type UniversePool, type UniverseRow } from "../universe";
 import {
   DISCOVERY_SKILL,
   LENS_META,
@@ -46,21 +46,43 @@ Recently covered by prior runs (ISO week each was surfaced): ${list}.
 function poolBlock(pool: UniversePool | undefined): string {
   if (!pool) return "";
   const fmtCap = (c: number) => `$${(c / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
-  const rows = pool.shown.map((r) => `${r.t} | ${r.n.slice(0, 40)} | ${r.s} | ${fmtCap(r.c)}`).join("\n");
-  const sliceLine =
-    pool.shown.length === pool.eligibleCount
-      ? `All ${pool.eligibleCount} are listed below.`
-      : `The ${pool.shown.length} below are this week's sector-stratified rotation of that eligible set — the slice changes every week, so successive runs sweep the whole set over time.`;
-  return `
-Screened universe (week ${pool.weekKey}${pool.stale ? " snapshot, carried forward — this week's refresh was unavailable" : ""}): the platform mechanically screened ${pool.totalListed} US-exchange listings; ${pool.eligibleCount} meet the hard criteria (${pool.criteria}). ${sliceLine}
+  const row = (r: UniverseRow) => `${r.t} | ${r.n.slice(0, 40)} | ${r.s} | ${fmtCap(r.c)}`;
+  const rankedRows = pool.shown.slice(0, pool.rankedCount);
+  const rotationRows = pool.shown.slice(pool.rankedCount);
+
+  const header = `
+Screened universe (week ${pool.weekKey}${pool.stale ? " snapshot, carried forward — this week's refresh was unavailable" : ""}): the platform mechanically screened ${pool.totalListed} US-exchange listings; ${pool.eligibleCount} meet the hard criteria (${pool.criteria}).`;
+
+  let tables: string;
+  let rankedDiscipline = "";
+  if (rankedRows.length > 0) {
+    tables = ` The first ${rankedRows.length} below are the TOP of a deterministic fundamental ranking of that eligible set, computed from structured SEC filings (weighted blend: revenue growth, operating-cash-flow margin and its trajectory, share-count discipline, cash survivability) — best first, each with a one-line filings digest. The remaining ${rotationRows.length} are this week's sector-stratified rotation of the rest, so successive runs sweep the whole eligible set over time.
+
+RANKED SEGMENT — TICKER | Company | Sector | Market cap | Filings digest
+${rankedRows.map((r) => `${row(r)} | ${pool.digests[r.t] || "filings data n/a"}`).join("\n")}
+
+ROTATION SEGMENT — TICKER | Company | Sector | Market cap
+${rotationRows.map(row).join("\n")}
+`;
+    rankedDiscipline = `- Work the ranked segment TOP-DOWN as your default reading list: the ordering is filings arithmetic, not familiarity — a name you have never heard of outranking one you know is the screen working as designed, and it deserves the same depth of research as a famous one. Use the rotation segment and your world-state wave map to catch what filings cannot yet show (brand-new inflections, pre-revenue category creators).
+`;
+  } else {
+    const sliceLine =
+      pool.shown.length === pool.eligibleCount
+        ? ` All ${pool.eligibleCount} are listed below.`
+        : ` The ${pool.shown.length} below are this week's sector-stratified rotation of that eligible set — the slice changes every week, so successive runs sweep the whole set over time.`;
+    tables = `${sliceLine}
 
 TICKER | Company | Sector | Market cap
-${rows}
+${pool.shown.map(row).join("\n")}
+`;
+  }
 
+  return `${header}${tables}
 Pool discipline:
-- Treat this pool as your primary long-list: cross-check it against your world-state wave map and source your candidates from it. Column figures are a mechanical snapshot — verify current price and market cap by live web search for every finalist.
-- You MAY deliver a candidate that is not listed (the list is a rotating sample, and very recent listings can be missing) ONLY if it satisfies every universe rule above; its thesis must then include one line on why it beats the pool names you passed over.
-- In marketContext, state the screen scale in plain language (e.g. "screened ${pool.totalListed} US-listed names; ${pool.eligibleCount} passed the deterministic size, liquidity, and solvency bars") — never name data vendors or internal mechanics.
+${rankedDiscipline}- Treat this pool as your primary long-list: cross-check it against your world-state wave map and source your candidates from it. Column figures and digests are a mechanical snapshot — verify current price and market cap by live web search for every finalist.
+- You MAY deliver a candidate that is not listed (the list is a rotating sample, and very recent listings can be missing) ONLY if it satisfies every universe rule above; its thesis must then include one line on why it beats the ranked names you passed over.
+- In marketContext, state the screen scale in plain language (e.g. "screened ${pool.totalListed} US-listed names; ${pool.eligibleCount} passed the deterministic size, liquidity, and solvency bars${rankedRows.length > 0 ? "; candidates were read from a fundamentals-ranked long-list of that set" : ""}") — never name data vendors or internal mechanics.
 `;
 }
 
@@ -95,15 +117,6 @@ Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), comp
 End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketContext (string) and candidates (array of { ticker, companyName, sector, thesis, matchedTraits }). Strict JSON only — no comments, no trailing commas; any prose belongs BEFORE the block, and nothing may follow the closing fence.`;
 }
 
-/** Compact USD for prompt tables: $3.03B / $72M / $950K. */
-function fmtUsdCompact(n: number): string {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2).replace(/\.?0+$/, "")}B`;
-  if (abs >= 1e6) return `${sign}$${Math.round(abs / 1e6)}M`;
-  return `${sign}$${Math.round(abs / 1e3)}K`;
-}
-
 /**
  * Deterministic reference block for lens prompts: exchange-feed snapshot plus
  * SEC structured-filings figures. This is the anti-hallucination anchor — the
@@ -122,7 +135,15 @@ function groundBlock(g: LensGroundTruth | null | undefined): string {
     if (s.sti !== undefined) parts.push(`short-term investments ${fmtUsdCompact(s.sti)}`);
     if (s.eqy !== undefined) parts.push(`stockholders' equity ${fmtUsdCompact(s.eqy)}`);
     if (s.ocf !== undefined) parts.push(`operating cash flow (${s.fiscalLabel}) ${fmtUsdCompact(s.ocf)}`);
-    if (s.rev !== undefined) parts.push(`revenue (${s.fiscalLabel}) ${fmtUsdCompact(s.rev)}`);
+    if (s.rev !== undefined) {
+      parts.push(
+        `revenue (${s.fiscalLabel}) ${fmtUsdCompact(s.rev)}${
+          s.revGrowthPct !== undefined
+            ? ` — ${s.revGrowthPct >= 0 ? "+" : ""}${s.revGrowthPct}% vs the prior fiscal year, same filings basis`
+            : ""
+        }`,
+      );
+    }
     if (s.runwayYears !== undefined) parts.push(`implied cash runway ≈ ${s.runwayYears} years at trailing burn`);
     if (s.shGrowthPct !== undefined) parts.push(`share count ${s.shGrowthPct > 0 ? "+" : ""}${s.shGrowthPct}% YoY (${s.sharesLabel}; could reflect issuance, a split, or M&A)`);
     if (parts.length > 0) {

@@ -5,7 +5,14 @@ import {
   saveUniverseSnapshot,
   type UniverseSnapshotRow,
 } from "./db";
-import { fetchSecEnrichment, liquidAssets, runwayYears, type SecEnrichment, type SecFundamentals } from "./sec";
+import {
+  fetchSecEnrichment,
+  liquidAssets,
+  revGrowthPct,
+  runwayYears,
+  type SecEnrichment,
+  type SecFundamentals,
+} from "./sec";
 import { universeSettings, type UniverseSettings } from "./universe-settings";
 
 /* ============================================================================
@@ -95,8 +102,17 @@ export interface UniversePool {
   funnel: FunnelStep[];
   /** SEC fundamentals coverage across the band-eligible set. */
   secCoverage: { withData: number; total: number } | null;
-  /** The sector-stratified, week-seeded slice shown to the scout. */
+  /**
+   * The slice shown to the scout. When ranking is on, the first `rankedCount`
+   * rows are the top of the deterministic fundamentals ranking (best first)
+   * and the remainder is the sector-stratified, week-seeded rotation of the
+   * rest of the eligible set.
+   */
   shown: UniverseRow[];
+  /** Leading `shown` rows that form the ranked segment (0 = ranking off or SEC data unavailable). */
+  rankedCount: number;
+  /** ticker → one-line filings digest, ranked segment only (public-safe wording). */
+  digests: Record<string, string>;
 }
 
 export interface UniverseResult {
@@ -110,6 +126,15 @@ export interface UniverseResult {
 
 export function fmtMarketCap(c: number): string {
   return c >= 1e9 ? `$${(c / 1e9).toFixed(1).replace(/\.0$/, "")}B` : `$${Math.round(c / 1e6)}M`;
+}
+
+/** Compact signed USD for digests and prompt tables: $3.03B / $72M / -$950K. */
+export function fmtUsdCompact(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2).replace(/\.?0+$/, "")}B`;
+  if (abs >= 1e6) return `${sign}$${Math.round(abs / 1e6)}M`;
+  return `${sign}$${Math.round(abs / 1e3)}K`;
 }
 
 const fmtQuarters = (years: number) => {
@@ -408,6 +433,139 @@ function stratifiedSlice(eligible: UniverseRow[], size: number, seedKey: string)
 }
 
 /* ----------------------------------------------------------------------------
+ * Deterministic fundamental ranking — pure fn(eligible, extras); $0, no model.
+ *
+ * Orders the eligible set by a fixed-weight composite computed from the same
+ * SEC filings data the solvency screens use. Purpose: put filings-derived
+ * selection evidence in front of the scout BEFORE name familiarity can act —
+ * the ranking orders the reading list, it does not pick winners. Percentile
+ * factors rank within the eligible set; a name missing a datum scores the
+ * neutral 50 on that factor (absence of data is never evidence). Weights are
+ * fixed and disclosed on /methodology.
+ * -------------------------------------------------------------------------- */
+
+const RANK_WEIGHTS = {
+  /** Revenue growth YoY (same-tag consecutive fiscal years). */
+  growth: 0.35,
+  /** Operating-cash-flow margin, latest fiscal year. */
+  margin: 0.2,
+  /** OCF-margin trajectory (this year's margin minus last year's). */
+  trajectory: 0.15,
+  /** Share-count discipline (lower YoY growth ranks higher). */
+  dilution: 0.15,
+  /** Cash survivability (self-funding, or runway vs burn). */
+  survival: 0.15,
+} as const;
+
+/**
+ * Margin/trajectory factors need a REAL denominator: XBRL revenue tags
+ * occasionally hold a stub value (probe 2026-07-16: a $5B+ driller tagged
+ * $12M revenue against $546M OCF → an absurd margin ratio). Below this floor
+ * the margin factors score neutral; the growth factor keeps its own smaller
+ * base floor, since growth off a small real base is exactly what the hunt
+ * wants to see.
+ */
+const MARGIN_MIN_REV_USD = 25_000_000;
+
+/** Survival sub-score: self-funding = 100; burning maps runway linearly with 4+ years = 100; unknown = null (neutral). */
+function survivalScore(f: SecFundamentals): number | null {
+  if (f.ocf === undefined) return null;
+  if (f.ocf >= 0) return 100;
+  const ry = runwayYears(f);
+  if (ry === null) return null;
+  return (Math.min(ry, 4) / 4) * 100;
+}
+
+/** Percentile scorer over the defined values (0–100; ties share a score). Fewer than 2 defined values → everything neutral. */
+function percentiler(values: number[]): (v: number) => number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  if (n < 2) return () => 50;
+  return (v) => {
+    let lo = 0;
+    let hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (sorted[mid] < v) lo = mid + 1;
+      else hi = mid;
+    }
+    return (lo / (n - 1)) * 100;
+  };
+}
+
+/** One-line filings digest for a ranked pool row (public-safe wording; empty when the name has no SEC data). */
+function digestOf(f: SecFundamentals | undefined): string {
+  if (!f) return "";
+  const parts: string[] = [];
+  if (f.rev !== undefined) {
+    const g = revGrowthPct(f);
+    parts.push(`rev ${fmtUsdCompact(f.rev)}${g !== null ? ` (${g >= 0 ? "+" : ""}${Math.round(g)}% YoY)` : ""}`);
+  }
+  if (f.ocf !== undefined) parts.push(`OCF ${fmtUsdCompact(f.ocf)}`);
+  const ry = runwayYears(f);
+  if (ry !== null) parts.push(`runway ${ry >= 10 ? "10+" : (Math.round(ry * 10) / 10).toFixed(1)}y`);
+  else if (f.ocf !== undefined && f.ocf >= 0) parts.push("self-funding");
+  if (f.shGrowthPct !== undefined) {
+    parts.push(`shares ${f.shGrowthPct >= 0 ? "+" : ""}${Math.round(f.shGrowthPct)}% YoY`);
+  }
+  return parts.join(" · ");
+}
+
+export interface RankedName {
+  row: UniverseRow;
+  /** Composite 0–100 (fixed weights above). */
+  score: number;
+  /** One-line filings digest (empty = no SEC data). */
+  digest: string;
+}
+
+/**
+ * Rank the eligible set by the fundamentals composite, best first (ties break
+ * on ticker). Null when SEC enrichment is unavailable — the pool then falls
+ * back to the pure rotation, disclosed via rankedCount 0.
+ */
+export function rankEligible(eligible: UniverseRow[], extras: UniverseExtras | null): RankedName[] | null {
+  const sec = extras?.sec;
+  if (!sec) return null;
+  const funds = eligible.map((r) => sec.byTicker[r.t]);
+
+  const growth = funds.map((f) => (f ? revGrowthPct(f) : null));
+  const margin = funds.map((f) =>
+    f && f.ocf !== undefined && f.rev !== undefined && f.rev >= MARGIN_MIN_REV_USD ? f.ocf / f.rev : null,
+  );
+  const trajectory = funds.map((f) => {
+    if (!f || f.ocf === undefined || f.ocf0 === undefined) return null;
+    if (f.rev === undefined || f.rev0 === undefined) return null;
+    if (f.rev < MARGIN_MIN_REV_USD || f.rev0 < MARGIN_MIN_REV_USD) return null;
+    return f.ocf / f.rev - f.ocf0 / f.rev0;
+  });
+  const dilution = funds.map((f) => f?.shGrowthPct ?? null);
+  const survival = funds.map((f) => (f ? survivalScore(f) : null));
+
+  const defined = (xs: (number | null)[]) => xs.filter((v): v is number => v !== null);
+  const pGrowth = percentiler(defined(growth));
+  const pMargin = percentiler(defined(margin));
+  const pTraj = percentiler(defined(trajectory));
+  const pDil = percentiler(defined(dilution));
+
+  return eligible
+    .map((row, i) => {
+      const g = growth[i];
+      const m = margin[i];
+      const tj = trajectory[i];
+      const d = dilution[i];
+      const score =
+        RANK_WEIGHTS.growth * (g !== null ? pGrowth(g) : 50) +
+        RANK_WEIGHTS.margin * (m !== null ? pMargin(m) : 50) +
+        RANK_WEIGHTS.trajectory * (tj !== null ? pTraj(tj) : 50) +
+        RANK_WEIGHTS.dilution * (d !== null ? 100 - pDil(d) : 50) +
+        RANK_WEIGHTS.survival * (survival[i] ?? 50);
+      return { row, score: Math.round(score * 10) / 10, digest: digestOf(funds[i]) };
+    })
+    .sort((a, b) => b.score - a.score || a.row.t.localeCompare(b.row.t));
+}
+
+/* ----------------------------------------------------------------------------
  * Entry points
  * -------------------------------------------------------------------------- */
 
@@ -415,6 +573,28 @@ function buildResult(snap: UniverseSnapshotRow, u: UniverseSettings, week: strin
   const screened = screenUniverse(snap.rows, snap.extras, u);
   // A pool this thin means broken feed data or nonsensical knobs — run unscreened.
   if (screened.eligible.length < 10) return null;
+
+  // Pool assembly: ranked head (fundamentals composite, best first) + week-seeded
+  // sector-stratified rotation of the rest. Ranking off / SEC missing → pure rotation.
+  const ranked = u.rankPool ? rankEligible(screened.eligible, snap.extras) : null;
+  let shown: UniverseRow[];
+  let rankedCount = 0;
+  const digests: Record<string, string> = {};
+  if (ranked && ranked.length > 0) {
+    const head = ranked.slice(0, Math.min(u.rankTopN, u.poolSize));
+    rankedCount = head.length;
+    const headSet = new Set<string>();
+    for (const r of head) {
+      headSet.add(r.row.t);
+      if (r.digest) digests[r.row.t] = r.digest;
+    }
+    const rest = screened.eligible.filter((r) => !headSet.has(r.t));
+    const rotation = stratifiedSlice(rest, Math.max(0, u.poolSize - rankedCount), snap.isoWeek);
+    shown = [...head.map((r) => r.row), ...rotation];
+  } else {
+    shown = stratifiedSlice(screened.eligible, u.poolSize, snap.isoWeek);
+  }
+
   return {
     pool: {
       weekKey: snap.isoWeek,
@@ -425,7 +605,9 @@ function buildResult(snap: UniverseSnapshotRow, u: UniverseSettings, week: strin
       criteria: criteriaText(u, Boolean(snap.extras?.sec), new Date()),
       funnel: screened.funnel,
       secCoverage: screened.secCoverage,
-      shown: stratifiedSlice(screened.eligible, u.poolSize, snap.isoWeek),
+      shown,
+      rankedCount,
+      digests,
     },
     rows: snap.rows,
     extras: snap.extras,
@@ -477,11 +659,15 @@ export function describeScreen(pool: UniversePool): string {
   const sec = pool.secCoverage
     ? `; SEC filings data on ${pool.secCoverage.withData.toLocaleString("en-US")} of ${pool.secCoverage.total.toLocaleString("en-US")}`
     : "";
+  const slice =
+    pool.rankedCount > 0
+      ? `; a ${pool.shown.length}-name slice goes to the scout (top ${pool.rankedCount} ranked by filings fundamentals, the rest a weekly rotation)`
+      : `; a ${pool.shown.length}-name slice goes to the scout`;
   return (
     `${pool.totalListed.toLocaleString("en-US")} US-listed names → ${pool.eligibleCount.toLocaleString("en-US")} eligible` +
     (screens.length > 0 ? ` (${screens.join(", ")})` : "") +
     sec +
-    `; a ${pool.shown.length}-name slice goes to the scout` +
+    slice +
     (pool.stale ? " (carried forward from the last successful refresh)" : "")
   );
 }
@@ -557,6 +743,8 @@ export interface LensGroundTruth {
     sti?: number;
     ocf?: number;
     rev?: number;
+    /** Same-filings-basis revenue growth vs the prior fiscal year, percent. */
+    revGrowthPct?: number;
     eqy?: number;
     shGrowthPct?: number;
     runwayYears?: number;
@@ -581,11 +769,13 @@ export function lensGroundTruth(ticker: string, universe: UniverseResult): LensG
   const meta = universe.extras?.sec?.meta;
   if (f && meta) {
     const ry = runwayYears(f);
+    const g = revGrowthPct(f);
     out.sec = {
       ...(f.cash !== undefined ? { cash: f.cash } : {}),
       ...(f.sti !== undefined ? { sti: f.sti } : {}),
       ...(f.ocf !== undefined ? { ocf: f.ocf } : {}),
       ...(f.rev !== undefined ? { rev: f.rev } : {}),
+      ...(g !== null ? { revGrowthPct: Math.round(g * 10) / 10 } : {}),
       ...(f.eqy !== undefined ? { eqy: f.eqy } : {}),
       ...(f.shGrowthPct !== undefined ? { shGrowthPct: f.shGrowthPct } : {}),
       ...(ry !== null ? { runwayYears: Math.round(ry * 100) / 100 } : {}),

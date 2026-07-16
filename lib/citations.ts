@@ -384,7 +384,7 @@ export const CITATION_GROUPS: CitationGroup[] = [
     key: "universe",
     title: "Stage-0 universe screen",
     intro:
-      "Before any judgment runs, a deterministic screen filters the whole US primary-exchange universe on exchange feeds and SEC filings data — no model involved. Every threshold is owner-tunable; the defaults come from this literature, and the current effective values are disclosed above.",
+      "Before any judgment runs, a deterministic screen filters — and then ranks — the whole US primary-exchange universe on exchange feeds and SEC filings data — no model involved. Every threshold is owner-tunable; the defaults come from this literature, and the current effective values are disclosed above.",
     works: [
       {
         short: "Banz 1981",
@@ -477,6 +477,30 @@ export const CITATION_GROUPS: CitationGroup[] = [
           "Net share issuance strongly and negatively predicts cross-sectional returns — in post-1970 data its power is comparable to momentum and greater than size or book-to-market.",
         usedFor:
           "The share-issuance check. Raw filing-to-filing share counts cannot distinguish dilution from splits or stock-funded acquisitions, so by default heavy issuance is disclosed as a flag on any delivered pick rather than silently screened — the screen itself is available and owner-tunable.",
+      },
+      {
+        short: "Sloan 1996",
+        authors: "Sloan, R. G.",
+        year: "1996",
+        title: "Do Stock Prices Fully Reflect Information in Accruals and Cash Flows About Future Earnings?",
+        source: "The Accounting Review, 71(3), 289–315",
+        url: "https://www.jstor.org/stable/248290",
+        finding:
+          "The cash-flow component of earnings is markedly more persistent than the accrual component, and prices act as if investors miss the difference — high-accrual firms subsequently underperform.",
+        usedFor:
+          "Why the pool ranking reads operating cash flow rather than reported earnings: the cash component is the persistent one.",
+      },
+      {
+        short: "Chan, Karceski & Lakonishok 2003",
+        authors: "Chan, L. K. C., Karceski, J., & Lakonishok, J.",
+        year: "2003",
+        title: "The Level and Persistence of Growth Rates",
+        source: "The Journal of Finance, 58(2), 643–684",
+        url: "https://doi.org/10.1111/1540-6261.00540",
+        finding:
+          "Past growth rates show little persistence and are close to unpredictable at long horizons — sustained high growth is far rarer than valuations typically imply.",
+        usedFor:
+          "The honest caveat on the ranking's revenue-growth weight: growth is evidence of an engine today, not a forecast that it persists — the ranking orders the scout's reading list, it does not pick winners.",
       },
       {
         short: "Grinold 1989",
