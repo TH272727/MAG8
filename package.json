@@ -13,6 +13,7 @@
     "setup:skills": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-skills.ps1",
     "pipeline": "tsx scripts/run-pipeline.ts",
     "seed": "tsx scripts/seed-fixture.ts",
+    "audit:salience": "tsx scripts/audit-salience.ts",
     "gen:bib": "tsx scripts/gen-bibliographies.ts",
     "gen:logo": "tsx scripts/gen-logo.ts"
   },
