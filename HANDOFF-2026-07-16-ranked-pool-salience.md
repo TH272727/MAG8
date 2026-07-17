@@ -4,6 +4,23 @@ Owner question that started it: *"my biggest concern is that mag8 just analyzes 
 first few articles the model reads — RKLB was a top pick because of how often it's mentioned. I want
 it to find great stocks on its own, without article influence."*
 
+## 0. Session log (one Code session, 2026-07-16)
+
+1. **Assessment first** (owner asked "is the concern valid?"): read the discovery skill + playbook +
+   prompts + universe/sec code, probed the DB for every real run's delivered picks → diagnosis in §1,
+   improvement ladder A–E delivered; owner picked **A+B**.
+2. Generated the **salience baseline** via a background tool-less Sonnet subagent (200 names, zero
+   tool uses — the instrument in §2).
+3. Built **B** (§3): sec.ts prior-FY pairs → rankEligible composite → digest pool assembly →
+   poolBlock/groundBlock rewrites → playbook Step-2 inversion → 2 knobs → 2 citations →
+   /methodology prose. Live probe caught the VAL stub-revenue artifact → `MARGIN_MIN_REV_USD` fix.
+4. Built **A** (§2): lib/salience.ts + scripts/audit-salience.ts + `npm run audit:salience`;
+   ran the retro-audit (results §2).
+5. Gates (§5), docs (CLAUDE.md v3 entries, memory twin synced), this handoff.
+6. Commits on main: `21bf3d6` (B — Stage-0 v3 ranked pool), `a81e797` (A — salience baseline +
+   audit), `5bd5c40` (docs sync), plus this handoff amendment; pushed to github.com/TH272727/MAG8
+   at owner request — **push = Railway auto-deploy**; see §5 note re /admin refresh after deploy.
+
 ## 1. The diagnosis (validated with data, mechanism corrected)
 
 - The concern is **valid** but the mechanism is deeper than runtime articles: the driver is the
@@ -109,6 +126,15 @@ Note: W29 refetch was safe — no real W29 run had consumed the cached snapshot;
   blind-vs-sighted on the same snapshot = the cleanest measurement. Knob-gated experiment.
 - Momentum factor (needs per-ticker price history — Yahoo v8 works here but 2k reqs/wk is a new
   failure surface); Finance-sector rank exemption; ranked-head sector caps.
+
+**E — what NOT to do (assessment conclusions, keep these):** don't blind the LENSES (the consensus
+lens's whole job is reading the street; the scanner is already filings-anchored); don't disable
+discovery web search thinking it removes article influence (the training prior IS distilled
+articles — search-off makes picks MORE prior-driven); don't go 100% deterministic (a pure factor
+screen is a commodity — the model's cross-wave synthesis is the differentiation; C's quota gives a
+"pure math half" without losing it). And the goal is honest framing, not zero: a generative model
+cannot un-know RKLB — fame influence gets **capped, measured, and disclosed**, never zeroed; the
+achievable target is pre-CONSENSUS (selection from primary data), not pre-information.
 
 ## 7. Next session quick-start
 
