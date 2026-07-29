@@ -61,6 +61,26 @@ export const DiscoveryResultSchema = z.object({
 });
 export type DiscoveryResult = z.infer<typeof DiscoveryResultSchema>;
 
+/* ----------------------------------------------------------------------------
+ * Blind-selection lab (D). Phase 1a returns a shortlist of anonymized data-card
+ * IDs chosen from filings alone — no ticker or company name is ever shown, so
+ * the SELECTION decision is made without name recognition. String elements
+ * ("C07") and {id,reason} objects are both tolerated.
+ * -------------------------------------------------------------------------- */
+const BlindPickSchema = z.preprocess(
+  (v) => (typeof v === "string" ? { id: v } : v),
+  z.object({
+    id: z.string().min(1).describe("The anonymized card ID, e.g. 'C07'"),
+    reason: z.string().optional().catch(undefined).describe("One-line, data-only rationale"),
+  }),
+);
+export const BlindSelectionSchema = z.object({
+  selections: z
+    .preprocess((v) => (Array.isArray(v) ? v.slice(0, 40) : v), z.array(BlindPickSchema).min(1))
+    .describe("The chosen card IDs, best first"),
+});
+export type BlindSelection = z.infer<typeof BlindSelectionSchema>;
+
 /* ============================================================================
  * Stage 2 — Lens analyses
  * ========================================================================== */
@@ -414,6 +434,11 @@ export const RunParamsSchema = z.object({
   mock: z.boolean().default(false),
   /** Operator focus directive — scopes discovery only; rides in params_json. */
   modifier: z.string().min(1).max(MODIFIER_MAX_LENGTH).optional(),
+  /**
+   * Blind-selection experiment (D): pick the cohort from anonymized filings
+   * cards (no ticker/name) before any research. Lab-only, non-canonical.
+   */
+  blind: z.boolean().default(false),
 });
 export type RunParams = z.infer<typeof RunParamsSchema>;
 

@@ -8,6 +8,7 @@ import {
   type DiscoveryCandidate,
   type LensSkill,
 } from "../schemas";
+import type { SelectionQuota } from "./selection";
 
 /* ============================================================================
  * Thin call-time wrapper prompts. Each prompt names exactly one skill
@@ -28,6 +29,8 @@ export interface DiscoveryPromptContext {
   modifier?: string;
   /** Stage-0 screened universe slice — the scout's long-list (absent: unscreened hunt). */
   pool?: UniversePool;
+  /** Selection-discipline quota (floor/ceiling); verified deterministically on the delivered cohort. */
+  quota?: SelectionQuota;
 }
 
 function coverageBlock(count: number, coverage: CoverageEntry[]): string {
@@ -94,6 +97,35 @@ The directive narrows the search space only. It can NEVER override the universe 
 `;
 }
 
+/**
+ * Selection-discipline expectations, stated qualitatively for the scout. The
+ * platform re-checks them deterministically on the delivered cohort — the
+ * ceiling is measured against an internal salience reference the scout is not
+ * shown (naming it would let the model game the count, and it is anti-white-
+ * label). Renders only when a floor or ceiling actually binds this run.
+ */
+function selectionQuotaBlock(count: number, pool: UniversePool | undefined, quota: SelectionQuota | undefined): string {
+  if (!quota) return "";
+  const floor = Math.min(Math.max(0, quota.rankedFloor), pool?.rankedCount ?? 0, count);
+  const capBinds = quota.salienceCap < count;
+  if (floor <= 0 && !capBinds) return "";
+  const lines: string[] = [];
+  if (floor > 0) {
+    lines.push(
+      `- At least ${floor} of your ${count} picks MUST come from the RANKED SEGMENT above — the fundamentals-ranked head of the pool. Work those names first and let the filings data, not familiarity, drive the choice.`,
+    );
+  }
+  if (capBinds) {
+    lines.push(
+      `- No more than ${quota.salienceCap} of your ${count} picks may be widely-covered, consensus-crowded "next-mega-cap" names — the handful that headline every listicle and retail feed. Favor under-covered names, where the mispricing more often hides; a famous name earns a slot only with an explicit, data-grounded edge the crowd is missing.`,
+    );
+  }
+  return `
+Selection discipline (the platform verifies these on your delivered cohort and discloses any miss):
+${lines.join("\n")}
+`;
+}
+
 export function discoveryPrompt(count: number, ctx: DiscoveryPromptContext): string {
   return `You are Stage 1 of Mag8, a three-stage equity research pipeline. Your job: discover exactly ${count} candidate stocks with a credible path to trillion-dollar scale — the NEXT generation of mega-caps, found before they are obvious.
 
@@ -111,10 +143,93 @@ Operative constraints (from the skill's own mandate):
 Resilience note: if the skill instructs you to read files under its references/ directory and any such file is missing, do not stall — proceed with the method described in the skill text itself plus the constraints above.
 
 Naming discipline: in marketContext and every thesis, write as the Mag8 discovery scout. Never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform in any output text.
-${poolBlock(ctx.pool)}${coverageBlock(count, ctx.coverage)}${modifierBlock(ctx.modifier)}
-Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.
+${poolBlock(ctx.pool)}${selectionQuotaBlock(count, ctx.pool, ctx.quota)}${coverageBlock(count, ctx.coverage)}${modifierBlock(ctx.modifier)}
+${discoveryOutputContract(count)}`;
+}
+
+/** The Stage-1 wire contract, shared by the normal and blind-research prompts so they cannot drift. */
+function discoveryOutputContract(count: number): string {
+  return `Deliver exactly ${count} distinct candidates. For each: ticker (uppercase), companyName, sector (short secular-wave label), a 2–4 sentence thesis, and the matched mega-cap DNA traits. Also provide a brief marketContext summarizing the secular waves behind this scan. Do not include disclaimers inside individual fields; the platform renders its own.
 
 End your FINAL message with exactly ONE fenced code block labeled json containing the payload: marketContext (string) and candidates (array of { ticker, companyName, sector, thesis, matchedTraits }). Strict JSON only — no comments, no trailing commas; any prose belongs BEFORE the block, and nothing may follow the closing fence.`;
+}
+
+/* ============================================================================
+ * Blind-selection lab (D). Two-phase discovery: the scout picks a shortlist
+ * from anonymized data cards (no ticker/name), then researches the un-blinded
+ * shortlist. The selection decision is made without name recognition — the
+ * cleanest measurement of how much name familiarity drives the cohort.
+ * ========================================================================== */
+
+/** One anonymized data card, as the scout sees it in phase 1a (identity withheld). */
+export interface BlindCardView {
+  id: string;
+  sector: string;
+  capBucket: string;
+  digest: string;
+}
+
+/** Phase 1a — pick a shortlist from filings data alone, no identities shown. Tool-less. */
+export function blindSelectPrompt(cards: BlindCardView[], shortlistN: number, dateLine: string = runDateLine()): string {
+  const rows = cards.map((c) => `${c.id} | ${c.sector} | ${c.capBucket} | ${c.digest || "limited filings data"}`).join("\n");
+  return `You are the blind-selection stage of Mag8, a multi-stage equity research pipeline. Below are ${cards.length} anonymized company data cards. Each is a REAL US-listed company whose identity — ticker and company name — has been withheld ON PURPOSE, so your choice is driven by the data alone, never by how famous a name is.
+
+${dateLine}
+
+Task: choose the ${shortlistN} cards whose FUNDAMENTALS give the most credible path toward eventual trillion-dollar scale — the profile today's mega-caps shared before they were big. Judge each card only on what it shows:
+- durable, high revenue growth off a real base;
+- cash economics that already work or are clearly improving (operating cash flow and its trend);
+- survivability — self-funding, or ample runway, not about to run out of money;
+- capital discipline — not diluting shareholders heavily.
+Spread the shortlist across DIFFERENT sectors; breadth beats piling into one theme. You cannot look anything up and must not try to guess identities — work the numbers.
+
+CARD | Sector | Size | Filings snapshot
+${rows}
+
+End your FINAL message with exactly ONE fenced code block labeled json: { "selections": [ { "id": "<card id>", "reason": "<one short data-only line>" } ] } — exactly ${shortlistN} entries, best first, each id copied verbatim from the list above. Strict JSON only, no comments, no trailing commas; nothing may follow the closing fence.`;
+}
+
+/** One un-blinded shortlist row handed to phase 1b for research. */
+export interface BlindShortlistRow {
+  ticker: string;
+  companyName: string;
+  sector: string;
+  capDisplay: string;
+  digest: string;
+}
+
+/** Phase 1b — research the un-blinded shortlist and deliver the best `count`. Uses the discovery skill + web. */
+export function blindResearchPrompt(
+  count: number,
+  shortlist: BlindShortlistRow[],
+  dateLine: string = runDateLine(),
+): string {
+  const rows = shortlist
+    .map((r) => `${r.ticker} | ${r.companyName.slice(0, 40)} | ${r.sector} | ${r.capDisplay} | ${r.digest || "filings data n/a"}`)
+    .join("\n");
+  return `You are Stage 1 of Mag8, a three-stage equity research pipeline. From the pre-selected shortlist below, research and deliver exactly ${count} candidate stocks with a credible path to trillion-dollar scale — the NEXT generation of mega-caps.
+
+${dateLine} Anchor every "current" claim to live web data retrieved today and state as-of dates for figures.
+
+Use the "${DISCOVERY_SKILL}" skill. It is the only skill available to you.
+
+HOW THIS SHORTLIST WAS BUILT — read carefully: every name below was selected from its structured SEC filings ALONE, with its ticker and company name hidden, specifically so that name recognition played no part in the selection. Your job now is to research them with identities revealed and keep the best ${count} — narrowing on what your research actually finds (traction, moat, secular-wave fit, path to scale, red flags), NEVER on how familiar or famous a name is. Treat an unfamiliar name and a famous one identically; that discipline is the entire point of this run.
+
+Operative constraints (from the skill's own mandate):
+- US-listed and buyable on mainstream retail brokerages like Robinhood: NYSE/Nasdaq common stock or ADR.
+- Bias toward small/mid-caps early in their curve; the point is what comes NEXT, not of today's mega-caps.
+- Match each candidate to the traits today's mega-caps shared BEFORE they were big, and to where durable secular waves are heading.
+- Search the web aggressively to VERIFY and deepen each name's current price, financials, and world-state fit. Never rely on memorized figures. If your research materially contradicts a card's figures, trust your live findings and say so.
+
+Resilience note: if the skill instructs you to read files under its references/ directory and any such file is missing, proceed with the method described in the skill text plus the constraints above.
+
+Naming discipline: in marketContext and every thesis, write as the Mag8 discovery scout. Never mention internal tool, skill, plugin, or file names, session mechanics, or the AI platform. In marketContext, note in plain language that this cohort was selected blind from anonymized fundamentals data before any research.
+
+SHORTLIST — research these; you may NOT introduce names outside this list:
+TICKER | Company | Sector | Market cap | Filings digest
+${rows}
+
+${discoveryOutputContract(count)}`;
 }
 
 /**

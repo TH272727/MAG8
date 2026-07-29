@@ -14,6 +14,8 @@ const BodySchema = z.object({
   mock: z.boolean().optional(),
   // Raw focus text; sanitized (fences stripped, whitespace collapsed, capped) below.
   modifier: z.string().max(400).optional(),
+  // Blind-selection experiment (D): pick the cohort from anonymized filings cards first.
+  blind: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -44,6 +46,7 @@ export async function POST(req: NextRequest) {
     count: parsed.data.count ?? CONFIG.candidates.default,
     force: parsed.data.force ?? false,
     mock: parsed.data.mock ?? false,
+    blind: parsed.data.blind ?? false,
     ...(modifier ? { modifier } : {}),
   };
 

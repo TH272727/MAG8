@@ -34,10 +34,12 @@ export default async function LabPage() {
       </h1>
       <p className="mt-4 max-w-2xl text-muted">
         The weekly MAG8 board stays canonical — same universe, same rubric, every run. A lab run adds
-        one thing: a <span className="text-ink">focus directive</span> that scopes which stocks the
-        discovery scout hunts (&ldquo;small cap only&rdquo;, &ldquo;tech stocks only&rdquo;, &ldquo;energy
-        transition under $10B&rdquo;). The three lenses and the scoring arithmetic are untouched, so a
-        focused board is directly comparable to the main one.
+        a <span className="text-ink">focus directive</span> that scopes which stocks the discovery
+        scout hunts (&ldquo;small cap only&rdquo;, &ldquo;tech stocks only&rdquo;, &ldquo;energy
+        transition under $10B&rdquo;), and an optional <span className="text-ink">blind-selection</span>{" "}
+        experiment that picks the cohort from anonymized fundamentals cards before any research. The
+        three lenses and the scoring arithmetic are untouched, so a lab board is directly comparable to
+        the main one.
       </p>
       <p className="mt-3 max-w-2xl text-sm text-dim">
         Focused runs consume real research capacity, so launching one requires the operator token for
@@ -54,7 +56,7 @@ export default async function LabPage() {
         />
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="panel p-5">
           <h2 className="font-display text-base font-semibold">Scopes discovery only</h2>
           <p className="mt-2 text-sm text-muted">
@@ -65,15 +67,24 @@ export default async function LabPage() {
         <div className="panel p-5">
           <h2 className="font-display text-base font-semibold">Same rigor per ticker</h2>
           <p className="mt-2 text-sm text-muted">
-            Every focused candidate still gets all three independent lenses and the deterministic
+            Every lab candidate still gets all three independent lenses and the deterministic
             arithmetic re-check. Cells completed earlier this week are reused at no extra cost.
+          </p>
+        </div>
+        <div className="panel p-5">
+          <h2 className="font-display text-base font-semibold">Blind selection</h2>
+          <p className="mt-2 text-sm text-muted">
+            Optional: the scout picks its shortlist from anonymized fundamentals cards — no ticker or
+            name — then researches the un-blinded names. It measures how much name recognition, not
+            data, drives a normal cohort. It reduces name-bias; a distinctive profile can still hint a
+            name, so it does not erase it.
           </p>
         </div>
         <div className="panel p-5">
           <h2 className="font-display text-base font-semibold">Labeled everywhere</h2>
           <p className="mt-2 text-sm text-muted">
-            Focused runs carry a FOCUS chip on the live view and in history, so a scoped board is
-            never mistaken for the canonical weekly one.
+            Lab runs carry a FOCUS or BLIND chip on the live view and in history, and stay off the
+            canonical weekly board, so a scoped or experimental board is never mistaken for it.
           </p>
         </div>
       </div>

@@ -12,7 +12,7 @@ import { getAppSettingJson, setAppSettingJson } from "./db";
  * stays env-only and supreme (lib/universe.ts reads it per call).
  * ========================================================================== */
 
-export type UniverseSettingGroupKey = "listing" | "size" | "solvency" | "pool" | "ops";
+export type UniverseSettingGroupKey = "listing" | "size" | "solvency" | "pool" | "selection" | "ops";
 
 export const UNIVERSE_SETTING_GROUPS: { key: UniverseSettingGroupKey; title: string; note: string }[] = [
   {
@@ -34,6 +34,11 @@ export const UNIVERSE_SETTING_GROUPS: { key: UniverseSettingGroupKey; title: str
     key: "pool",
     title: "Pool, ranking & disclosure",
     note: "How the eligible set becomes the scout's weekly long-list — a fundamentals-ranked head plus a rotating sweep of the rest — and how far outside the band a delivered pick may sit before it is flagged.",
+  },
+  {
+    key: "selection",
+    title: "Selection discipline — the anti-familiarity floor",
+    note: "How the scout must draw from the ranked pool. A generative model cannot un-know the famous names; these levers cap, measure, and disclose that pull rather than pretend to erase it — a floor on picks taken from the fundamentals-ranked head and a ceiling on how many widely-covered consensus names a cohort may contain. Off by default (a floor of 0 and a ceiling at the full cohort size do nothing); turn them on to bias selection toward data over name recognition.",
   },
   {
     key: "ops",
@@ -326,6 +331,48 @@ export const UNIVERSE_SETTINGS_SPEC: UniverseSettingSpec[] = [
     cites: [],
   }),
 
+  /* ---- Selection discipline (anti-familiarity) ---- */
+  num({
+    key: "rankedFloor",
+    label: "Ranked-head selection floor",
+    group: "selection",
+    envVar: "MAG8_SELECT_RANKED_FLOOR",
+    default: 0,
+    min: 0,
+    max: 12,
+    step: 1,
+    unit: "picks",
+    integer: true,
+    blurb:
+      "The minimum number of the delivered cohort that must come from the fundamentals-ranked head of the pool — the deterministic counterweight to name familiarity, checked after discovery on the actual picks. 0 disables the floor (the scout draws freely, as before). When the hard gate below is on, a shortfall is corrected by substituting top-ranked names; otherwise it is disclosed as a gap note. Never applies when the ranked head is unavailable (SEC data down) — the run simply proceeds unscreened.",
+    cites: ["Grinold 1989", "Bessembinder 2018"],
+  }),
+  num({
+    key: "salienceCap",
+    label: "Consensus-name ceiling",
+    group: "selection",
+    envVar: "MAG8_SELECT_SALIENCE_CAP",
+    default: 12,
+    min: 0,
+    max: 12,
+    step: 1,
+    unit: "picks",
+    integer: true,
+    blurb:
+      "The maximum number of delivered picks that may be widely-covered, consensus-crowded 'next-mega-cap' names — the ones that headline financial media and retail feeds. Measured against a fixed reference list of the most salient such names, checked after discovery. At the default (the full cohort size) it never binds; lower it to force the scout toward under-covered names, where the asymmetry more often hides. A generative model cannot forget these names, so the ceiling caps and discloses their share rather than pretending to zero it.",
+    cites: ["Barber & Odean 2008", "Bessembinder 2018"],
+  }),
+  bool({
+    key: "selectionHardGate",
+    label: "Enforce selection discipline (reject & replace)",
+    group: "selection",
+    envVar: "MAG8_SELECT_HARD_GATE",
+    default: false,
+    blurb:
+      "When on, a cohort that misses the floor or exceeds the consensus ceiling is not just flagged — the platform deterministically substitutes names from the fundamentals-ranked head to bring it into line, and discloses each substitution in the gap notes (judgment proposes, code enforces). When off (the default), a miss is disclosed only, and the scout's picks stand. The floor and ceiling still bound how aggressively selection can be corrected; the scout keeps the rest of the cohort.",
+    cites: [],
+  }),
+
   /* ---- Operational ---- */
   num({
     key: "fetchTimeoutMs",
@@ -383,6 +430,9 @@ export interface UniverseSettings {
   rankPool: boolean;
   rankTopN: number;
   bandSlackPct: number;
+  rankedFloor: number;
+  salienceCap: number;
+  selectionHardGate: boolean;
   fetchTimeoutMs: number;
   secTimeoutMs: number;
 }

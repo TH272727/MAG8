@@ -34,6 +34,7 @@ export default function LabPanel({
   const router = useRouter();
   const [count, setCount] = useState(defaultCount);
   const [focus, setFocus] = useState("");
+  const [blind, setBlind] = useState(false);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState<null | "real" | "mock">(null);
   const [msg, setMsg] = useState<Message | null>(null);
@@ -49,7 +50,7 @@ export default function LabPanel({
           "Content-Type": "application/json",
           ...(token.trim() ? { "x-admin-token": token.trim() } : {}),
         },
-        body: JSON.stringify({ count, mock, ...(focus.trim() ? { modifier: focus.trim() } : {}) }),
+        body: JSON.stringify({ count, mock, blind, ...(focus.trim() ? { modifier: focus.trim() } : {}) }),
       });
       const data = (await res.json().catch(() => ({}))) as { runId?: string; error?: string; activeRunId?: string };
       if (res.status === 202 && data.runId) {
@@ -107,6 +108,27 @@ export default function LabPanel({
               />
               <span className="tabular w-10 text-right font-mono text-2xl font-bold">{count}</span>
             </div>
+          </div>
+
+          <div className="mt-5">
+            <label htmlFor="lab-blind" className="flex cursor-pointer items-start gap-3">
+              <input
+                id="lab-blind"
+                type="checkbox"
+                checked={blind}
+                onChange={(e) => setBlind(e.target.checked)}
+                className="mt-0.5 accent-[var(--color-discovery)]"
+              />
+              <span className="min-w-0">
+                <span className="text-sm text-ink">Blind selection (experiment)</span>
+                <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+                  The scout picks its shortlist from anonymized fundamentals cards — no ticker or
+                  company name — before researching the un-blinded names. A clean read on how much
+                  name recognition drives a normal cohort. Live runs only; kept off the canonical
+                  board.
+                </span>
+              </span>
+            </label>
           </div>
 
           {!adminUnlocked && (

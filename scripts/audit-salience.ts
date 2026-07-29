@@ -152,8 +152,9 @@ async function main() {
     }
 
     const focus = run.params.modifier ? ` focus="${run.params.modifier}"` : "";
+    const blind = run.params.blind ? " BLIND" : "";
     console.log(
-      `Run ${run.createdAt.slice(0, 10)} (${run.status}, count=${candidates.length}${focus})` +
+      `Run ${run.createdAt.slice(0, 10)} (${run.status}, count=${candidates.length}${blind}${focus})` +
         (ctx ? `  [universe ${ctx.week}${ctx.approx ? " approx" : ""}, ${ctx.eligibleCount} eligible]` : ""),
     );
 

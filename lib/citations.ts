@@ -514,6 +514,19 @@ export const CITATION_GROUPS: CitationGroup[] = [
         usedFor:
           "The pool-size default: the scout sees a wide, sector-stratified rotation of the eligible set rather than a handful of familiar names, so its judgment is applied across genuine breadth.",
       },
+      {
+        short: "Barber & Odean 2008",
+        authors: "Barber, B. M., & Odean, T.",
+        year: "2008",
+        title:
+          "All That Glitters: The Effect of Attention and News on the Buying Behavior of Individual and Institutional Investors",
+        source: "The Review of Financial Studies, 21(2), 785–818",
+        url: "https://doi.org/10.1093/rfs/hhm079",
+        finding:
+          "Individual investors are net buyers of attention-grabbing stocks — those in the news, with extreme one-day returns, or unusually high volume — and this attention-driven buying does not earn superior subsequent returns.",
+        usedFor:
+          "The consensus-name ceiling: the most attention-grabbing 'next-mega-cap' names are exactly the ones a familiarity-driven selection over-weights, so their share of a cohort is capped, measured, and disclosed rather than trusted.",
+      },
     ],
   },
   {

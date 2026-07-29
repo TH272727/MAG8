@@ -34,7 +34,7 @@ function main() {
 
   console.log(`Seeding fixture run "${FIXTURE_RUN_ID}" (${COUNT} candidates)…`);
   deleteRun(FIXTURE_RUN_ID);
-  createRun(FIXTURE_RUN_ID, { count: COUNT, force: false, mock: true });
+  createRun(FIXTURE_RUN_ID, { count: COUNT, force: false, mock: true, blind: false });
   setRunStage(FIXTURE_RUN_ID, "discovery");
 
   insertCandidates(FIXTURE_RUN_ID, fixtureCandidates(COUNT));
