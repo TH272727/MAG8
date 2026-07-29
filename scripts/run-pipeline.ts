@@ -7,6 +7,8 @@
  *   npm run pipeline -- --full --mock      whole pipeline through the mock path (zero spend)
  *   npm run pipeline -- --full --count 4 --focus "small cap defense"
  *                                          focus-scoped run (modifier scopes discovery only)
+ *   npm run pipeline -- --resume RUN_ID    finish a run that stopped mid-flight, IN PLACE:
+ *                                          same cohort, banked cells kept, only the gap + compile run
  *   npm run pipeline -- --lens-probe RKLB [--effort medium]
  *                                          ONE fundamentals lens cell, no run row, no cache —
  *                                          the effort A/B comparator (cost/turns/quality metrics)
@@ -18,10 +20,11 @@ import path from "node:path";
 import { z } from "zod";
 import { CONFIG, estimateRun, type EffortLevel } from "../lib/config";
 import { createRun, getRunSnapshot } from "../lib/db";
-import { executeRun } from "../lib/orchestrator";
+import { executeResume, executeRun } from "../lib/orchestrator";
 import { runAgentWithContract } from "../lib/orchestrator/agent";
 import { bus, runChannel, type BusEvent } from "../lib/orchestrator/progress";
 import { ALL_SKILLS, lensPrompt } from "../lib/orchestrator/prompts";
+import { planResume } from "../lib/orchestrator/resume";
 import { LENS_SKILLS, lensWireNoMarkdownSchema, sanitizeModifier, type RunParams } from "../lib/schemas";
 
 // tsx does not auto-load env files the way Next does.
@@ -176,9 +179,10 @@ async function full(): Promise<number> {
   );
   const focusRaw = argValue("--focus");
   const modifier = focusRaw ? sanitizeModifier(focusRaw) : undefined;
-  const params: RunParams = { count, force: args.has("--force"), mock, ...(modifier ? { modifier } : {}) };
+  const blind = args.has("--blind");
+  const params: RunParams = { count, force: args.has("--force"), mock, blind, ...(modifier ? { modifier } : {}) };
 
-  banner(`MAG8 FULL PIPELINE — count=${count} force=${params.force} mock=${mock}${modifier ? ` focus="${modifier}"` : ""}`);
+  banner(`MAG8 FULL PIPELINE — count=${count} force=${params.force} mock=${mock}${blind ? " blind" : ""}${modifier ? ` focus="${modifier}"` : ""}`);
   if (!mock) {
     const est = estimateRun(count);
     console.log(
@@ -199,6 +203,53 @@ async function full(): Promise<number> {
   bus().on(runChannel(runId), renderEvent);
   const started = Date.now();
   await executeRun(runId, params);
+  bus().off(runChannel(runId), renderEvent);
+
+  const snapshot = getRunSnapshot(runId);
+  console.log(
+    `\n  Finished in ${((Date.now() - started) / 60000).toFixed(1)} min — status=${snapshot?.run.status}, cells ok=${snapshot?.cells.filter((c) => c.status === "ok").length}/${snapshot?.cells.length}, ranked=${snapshot?.rankings.length}`,
+  );
+  console.log(`  View at /runs/${runId} once the app is up.`);
+  return snapshot?.run.status === "complete" ? 0 : 1;
+}
+
+/* ============================================================================
+ * --resume: finish a run that stopped mid-flight, in place. Same run id, same
+ * cohort, banked cells carried through — the plan window pays for the gap only.
+ * The headless twin of the desk's Resume button (identical code path).
+ * ========================================================================== */
+
+async function resume(): Promise<number> {
+  const runId = (argValue("--resume") ?? "").trim();
+  if (!runId || runId.startsWith("--")) {
+    console.log("Usage: npm run pipeline -- --resume RUN_ID");
+    return 2;
+  }
+
+  const check = planResume(runId);
+  if (!check.ok) {
+    console.log(` FAIL  cannot resume ${runId} — ${check.error} (${check.code})`);
+    return 2;
+  }
+  const { plan } = check;
+
+  banner(`MAG8 RESUME — run ${plan.run.id}`);
+  console.log(` INFO  started ${plan.run.createdAt}, stopped as "${plan.run.status}" after $${plan.run.totalCostUsd ?? 0} (notional on subscription auth)`);
+  console.log(` INFO  cohort ${plan.candidates.length}: ${plan.candidates.map((c) => c.ticker).join(", ")}`);
+  console.log(` INFO  ${plan.banked.size}/${plan.total} lens cells banked — ${plan.remaining} to run + 1 compile`);
+  if (plan.staleWeeks.length > 0) {
+    console.log(` WARN  banked cells date from ${plan.staleWeeks.join(", ")}, not the current week — the report will disclose it`);
+  }
+  const auth = CONFIG.authMode();
+  if (auth === "subscription") {
+    console.log(" INFO  auth: Claude subscription — plan usage, no API billing; $ figures are notional.");
+  } else if (auth === "none") {
+    console.log(" WARN  no credentials detected — the first call will fail.");
+  }
+
+  bus().on(runChannel(runId), renderEvent);
+  const started = Date.now();
+  await executeResume(runId, plan);
   bus().off(runChannel(runId), renderEvent);
 
   const snapshot = getRunSnapshot(runId);
@@ -289,8 +340,11 @@ async function lensProbe(): Promise<number> {
 async function main() {
   if (args.has("--smoke")) process.exit(await smoke());
   if (args.has("--full")) process.exit(await full());
+  if (args.has("--resume")) process.exit(await resume());
   if (args.has("--lens-probe")) process.exit(await lensProbe());
-  console.log("Usage: npm run pipeline -- --smoke | --full [--count N] [--force] [--mock] | --lens-probe TICKER [--effort LEVEL]");
+  console.log(
+    "Usage: npm run pipeline -- --smoke | --full [--count N] [--force] [--mock] | --resume RUN_ID | --lens-probe TICKER [--effort LEVEL]",
+  );
   process.exit(2);
 }
 

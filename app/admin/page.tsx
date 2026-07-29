@@ -10,7 +10,7 @@ import UniverseSettingsPanel, { type PanelSetting } from "@/components/admin/Uni
 import { ADMIN_COOKIE, adminConfigured, tokenMatches } from "@/lib/auth";
 import { findCitation } from "@/lib/citations";
 import { CONFIG, estimateRun, launchMode } from "@/lib/config";
-import { listRuns } from "@/lib/db";
+import { listRuns, runTallies } from "@/lib/db";
 import { universeEnabled } from "@/lib/universe";
 import {
   UNIVERSE_SETTING_GROUPS,
@@ -129,8 +129,12 @@ export default async function AdminPage() {
         <h2 id="history-h" className="eyebrow">
           Run history
         </h2>
+        <p className="mt-1 text-[13px] text-muted">
+          A run that stopped mid-flight — plan limit, watchdog, server restart — can be finished in place:
+          Resume keeps its cohort and every lens cell it already completed, and only re-runs the gap.
+        </p>
         <div className="mt-3">
-          <RunHistoryTable runs={listRuns(30)} />
+          <RunHistoryTable runs={listRuns(30)} tallies={runTallies()} />
         </div>
       </section>
     </main>

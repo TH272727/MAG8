@@ -276,7 +276,7 @@ const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate, dateLine: string, g
 
 ${dateLine} Ground every figure in live web data retrieved this session and state its as-of date; where a value cannot be verified, use null rather than a guess.
 
-Public identity: to readers you are the "${LENS_META[skill].label}" lens. Title your report "${LENS_META[skill].label} — ${c.ticker}" and never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform anywhere in the write-up.
+Public identity: to readers you are the "${LENS_META[skill].label}" lens. Title your report "${LENS_META[skill].label} — ${c.ticker}" and never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform anywhere in the write-up. That ban covers GENERIC self-reference too: never write "the skill" / "this skill" / "per the skill's rules" — if you need to cite your own methodology, call it "the playbook" or just state the rule. (Writing about agents or skills as SUBJECT MATTER — an AI-agent software market, a workforce skills gap — is fine; it is describing yourself that is not.)
 
 ${groundBlock(ground)}Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
 

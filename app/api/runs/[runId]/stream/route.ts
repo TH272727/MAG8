@@ -39,9 +39,15 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ runId: stri
 
   let cleanupRef: (() => void) | null = null;
 
+  // A RESUMED run's log still carries the terminal event of its earlier attempt.
+  // While the run is live again that row is history, not the end of the stream —
+  // so terminal events only close the stream once the replay is behind us.
+  const liveOnConnect = run.status === "running" || run.status === "pending";
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       let closed = false;
+      let replaying = true;
       let maxSentId = lastEventId;
       let heartbeat: ReturnType<typeof setInterval> | null = null;
 
@@ -75,7 +81,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ runId: stri
         maxSentId = id;
         // Public-view boundary: internal skill ids / engine jargon never leave the server.
         write(`id: ${id}\ndata: ${JSON.stringify(toPublicEvent(event))}\n\n`);
-        if (TERMINAL.has(event.type)) cleanup();
+        if (TERMINAL.has(event.type) && !(replaying && liveOnConnect)) cleanup();
       };
 
       // Subscribe, then replay — no await between them, so no gap and no dupes.
@@ -85,6 +91,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ runId: stri
         send(row.id, row.event);
         if (closed) return;
       }
+      replaying = false;
 
       // Already-terminal run whose replay lacked a terminal event (defensive).
       const current = getRun(runId);

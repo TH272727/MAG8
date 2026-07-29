@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import ConfluenceLine, { type ThreadState } from "@/components/confluence/ConfluenceLine";
 import type { ThreadKey } from "@/components/confluence/paths";
+import ResumeRunButton from "@/components/ResumeRunButton";
 import CandidateCard from "./CandidateCard";
 import CompilerPanel from "./CompilerPanel";
 import DiscoveryFeed from "./DiscoveryFeed";
@@ -79,7 +80,14 @@ const STAGE_LABEL: Record<Stage, string> = {
   compile: "Stage 3 — compile and verify",
 };
 
-export default function RunView({ snapshot }: { snapshot: PublicRunSnapshot }) {
+export default function RunView({
+  snapshot,
+  resume = null,
+}: {
+  snapshot: PublicRunSnapshot;
+  /** Set by the server ONLY for an unlocked desk on a stopped run — otherwise null. */
+  resume?: { remaining: number; total: number } | null;
+}) {
   const { run } = snapshot;
   const live = run.status === "pending" || run.status === "running";
   const stream = useRunStream(run.id, live);
@@ -138,6 +146,14 @@ export default function RunView({ snapshot }: { snapshot: PublicRunSnapshot }) {
                 <span className="truncate">FOCUS · {run.params.modifier.toUpperCase()}</span>
               </span>
             )}
+            {run.params.blind && (
+              <span
+                className="chip border-discovery/40 text-discovery"
+                title="Blind selection: the cohort was chosen from anonymized fundamentals cards (no ticker or name) before any research."
+              >
+                BLIND
+              </span>
+            )}
             {cost !== null && <span className="chip tabular">COST {fmtMoney(cost)}</span>}
           </div>
         </div>
@@ -172,9 +188,20 @@ export default function RunView({ snapshot }: { snapshot: PublicRunSnapshot }) {
           <p className="eyebrow text-danger">{interrupted ? "Run interrupted" : "Run error"}</p>
           <p className="mt-1 font-mono text-[13px] text-ink/90">{state.error}</p>
           <p className="mt-2 text-[13px] text-muted">
-            Completed lens cells are kept and will be reused from cache within the week. Start a fresh
-            run from the admin desk.
+            {resume
+              ? "Completed lens cells are kept. Resuming picks this run up where it stopped — same cohort, same run, only the unfinished cells."
+              : "Completed lens cells are kept and will be reused from cache within the week. Start a fresh run from the admin desk."}
           </p>
+          {resume && (
+            <div className="mt-3">
+              <ResumeRunButton
+                runId={run.id}
+                remaining={resume.remaining}
+                total={resume.total}
+                className="btn btn-primary"
+              />
+            </div>
+          )}
         </div>
       )}
 

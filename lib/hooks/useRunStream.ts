@@ -83,7 +83,9 @@ export function runStreamReducer(state: RunStreamState, action: Action): RunStre
 
   switch (event.type) {
     case "stage_start":
-      return { ...s, stage: event.stage };
+      // Re-entering a stage means the run is live again — a resume clears the
+      // previous attempt's ending, which the replay put on screen moments ago.
+      return { ...s, stage: event.stage, error: null, terminal: false };
     case "discovery_activity":
       return { ...s, discoveryActivity: push(state.discoveryActivity, event.activity) };
     case "discovery_complete":
@@ -124,17 +126,24 @@ export function useRunStream(runId: string, enabled: boolean): RunStreamState {
   useEffect(() => {
     if (!enabled) return;
     const es = new EventSource(`/api/runs/${encodeURIComponent(runId)}/stream`);
+    // A resumed run replays its earlier attempt's terminal frame MID-stream, so
+    // a terminal frame is only the end when nothing follows it — which the
+    // server signals by closing the body right after sending a final one.
+    let lastWasTerminal = false;
     es.onopen = () => dispatch({ kind: "connected" });
     es.onmessage = (m: MessageEvent<string>) => {
       try {
         const event = JSON.parse(m.data) as PublicProgressEvent;
         dispatch({ kind: "event", id: Number(m.lastEventId) || 0, event });
-        if (event.type === "run_complete" || event.type === "run_error") es.close();
+        lastWasTerminal = event.type === "run_complete" || event.type === "run_error";
       } catch {
         // malformed frame — ignore
       }
     };
-    es.onerror = () => dispatch({ kind: "disconnected" }); // EventSource auto-reconnects with Last-Event-ID
+    es.onerror = () => {
+      if (lastWasTerminal) es.close(); // the run really ended; do not reconnect
+      else dispatch({ kind: "disconnected" }); // transient — EventSource retries with Last-Event-ID
+    };
     return () => es.close();
   }, [runId, enabled]);
 

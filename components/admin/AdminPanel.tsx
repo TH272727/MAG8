@@ -79,7 +79,9 @@ export default function AdminPanel({
           <span className="text-[12px] text-dim">
             Real runs use your logged-in Claude credentials — no API billing; usage draws on your plan&apos;s
             5-hour window. Size runs to the window: 4–8 candidates is realistic, 12 has exhausted it mid-run.
-            Completed cells cache for the ISO week, so a follow-up run finishes the remainder.
+            If one does run out, don&apos;t start over — Resume it from the history below: the cohort and every
+            finished cell are kept, and only the gap re-runs. The window refills as older usage ages out, so a
+            resume is worth retrying within the hour.
           </span>
         </div>
       ) : (

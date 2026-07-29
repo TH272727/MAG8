@@ -259,7 +259,7 @@ function toRunRow(r: RawRunRow): RunRow {
     id: r.id,
     status: r.status,
     stage: r.stage,
-    params: parseJson<RunParams>(r.params_json) ?? { count: 8, force: false, mock: false },
+    params: parseJson<RunParams>(r.params_json) ?? { count: 8, force: false, mock: false, blind: false },
     error: r.error,
     report: parseJson<CompiledReport>(r.report_json),
     totalCostUsd: r.total_cost_usd,
@@ -357,6 +357,17 @@ export function finishRun(
     );
 }
 
+/**
+ * Resume: clear a terminal run's ending so the same row can carry on in place.
+ * The stage that picks it up sets `stage` (setRunStage); the earlier attempt's
+ * cost stays put — a resume adds to the running total, it does not restart it.
+ */
+export function reopenRun(runId: string): void {
+  getDb()
+    .prepare(`UPDATE runs SET status='running', error=NULL, finished_at=NULL WHERE id=?`)
+    .run(runId);
+}
+
 export function getRun(runId: string): RunRow | null {
   const r = getDb().prepare(`SELECT * FROM runs WHERE id=?`).get(runId) as RawRunRow | undefined;
   return r ? toRunRow(r) : null;
@@ -400,6 +411,48 @@ export function listRuns(limit = 50): RunRow[] {
 
 export function deleteRun(runId: string): void {
   getDb().prepare(`DELETE FROM runs WHERE id=?`).run(runId);
+}
+
+export interface RunTally {
+  /** Candidates the run's discovery stage delivered (0 = it never got that far). */
+  cohort: number;
+  /** Lens cells already banked (status ok) — what a resume would NOT have to re-run. */
+  banked: number;
+}
+
+const EMPTY_TALLY: RunTally = { cohort: 0, banked: 0 };
+
+/**
+ * How far a run actually got, without loading a single lens payload — two
+ * grouped counts. Powers the desk's resume affordance ("16 of 24 cells left")
+ * across the whole history list.
+ */
+export function runTallies(): Record<string, RunTally> {
+  const db = getDb();
+  const out: Record<string, RunTally> = {};
+  const at = (id: string) => (out[id] ??= { ...EMPTY_TALLY });
+  for (const r of db.prepare(`SELECT run_id, COUNT(*) AS n FROM candidates GROUP BY run_id`).all() as {
+    run_id: string;
+    n: number;
+  }[]) {
+    at(r.run_id).cohort = r.n;
+  }
+  for (const r of db
+    .prepare(`SELECT run_id, SUM(status='ok') AS n FROM lens_analyses GROUP BY run_id`)
+    .all() as { run_id: string; n: number | null }[]) {
+    at(r.run_id).banked = r.n ?? 0;
+  }
+  return out;
+}
+
+/** Single-run flavour of runTallies() — one run page, two counts. */
+export function runTally(runId: string): RunTally {
+  const db = getDb();
+  const c = db.prepare(`SELECT COUNT(*) AS n FROM candidates WHERE run_id=?`).get(runId) as { n: number };
+  const l = db
+    .prepare(`SELECT SUM(status='ok') AS n FROM lens_analyses WHERE run_id=?`)
+    .get(runId) as { n: number | null };
+  return { cohort: c.n, banked: l.n ?? 0 };
 }
 
 /* ============================================================================
@@ -601,11 +654,13 @@ export function latestRunForTicker(ticker: string): RunRow | null {
 
 /* ============================================================================
  * All-time boards — the rankings table aggregated per ticker across completed
- * runs, split by run kind. 'canonical' = no focus directive (the untouched
- * weekly pipeline); 'focused' = operator/user-focused lab runs. The modifier's
- * presence in params_json is the classifier (sanitizeModifier never persists
- * an empty one), so historical rows sort themselves with no DDL. Computed on
- * read: a board can only move when a run of its own kind completes.
+ * runs, split by run kind. 'canonical' = the untouched weekly pipeline (no
+ * focus directive AND not a blind-selection experiment); 'focused' = any
+ * operator/user lab run (a focus directive OR blind mode). Both classifiers
+ * live in params_json (sanitizeModifier never persists an empty one; blind
+ * defaults false/absent), so historical rows sort themselves with no DDL.
+ * Computed on read: a board can only move when a run of its own kind completes.
+ * A blind experiment can therefore never displace the canonical weekly board.
  * ========================================================================== */
 
 export type BoardKind = "canonical" | "focused";
@@ -613,7 +668,10 @@ export type BoardKind = "canonical" | "focused";
 /** SQL predicate for a run kind; `col` is the params_json column reference. */
 function kindClause(kind: BoardKind, col = "params_json"): string {
   const m = `json_extract(${col},'$.modifier')`;
-  return kind === "canonical" ? `(${m} IS NULL OR ${m} = '')` : `(${m} IS NOT NULL AND ${m} != '')`;
+  const blind = `COALESCE(json_extract(${col},'$.blind'),0)`;
+  return kind === "canonical"
+    ? `((${m} IS NULL OR ${m} = '') AND ${blind} = 0)`
+    : `((${m} IS NOT NULL AND ${m} != '') OR ${blind} = 1)`;
 }
 
 export interface BoardEntry {
@@ -739,6 +797,22 @@ export function getEventsSince(runId: string, afterId: number): { id: number; ev
     if (event) out.push({ id: r.id, event });
   }
   return out;
+}
+
+/**
+ * The market framing this run's discovery stage delivered, recovered from its
+ * own event log (the only place it is persisted). A resume feeds it back to the
+ * compiler verbatim, so a finished-later report reads exactly as it would have.
+ */
+export function getRunMarketContext(runId: string): string | null {
+  const r = getDb()
+    .prepare(
+      `SELECT payload_json FROM progress_events WHERE run_id=? AND type='discovery_complete'
+       ORDER BY id DESC LIMIT 1`,
+    )
+    .get(runId) as { payload_json: string } | undefined;
+  const text = r ? parseJson<{ marketContext?: string }>(r.payload_json)?.marketContext : null;
+  return text && text.trim() ? text.trim() : null;
 }
 
 export function getMaxEventId(runId: string): number {

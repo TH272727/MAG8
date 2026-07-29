@@ -36,7 +36,7 @@ export function countSourceLinks(markdown: string): number {
 const MIN_SOURCE_LINKS = 3;
 
 /** A write-up citing almost no sources earns a caution flag; applies to cached cells too. */
-function groundingFlags(ticker: string, skill: LensSkill, analysis: LensAnalysis): string[] | undefined {
+export function groundingFlags(ticker: string, skill: LensSkill, analysis: LensAnalysis): string[] | undefined {
   const n = countSourceLinks(analysis.fullAnalysisMarkdown);
   if (n >= MIN_SOURCE_LINKS) return undefined;
   return [
@@ -71,6 +71,11 @@ function emitLens(
  * maxConcurrentStocks; each admitted candidate fans out its 3 lens calls, so
  * at most 3×maxConcurrentStocks SDK sessions run at once by construction.
  * A cell failure never fails the run — it becomes an error cell.
+ *
+ * `banked` (resume only) is work this same run already did: those cells are
+ * carried straight through — not re-run, not re-billed, not even queued — so a
+ * resumed matrix only pays for its gaps. A candidate whose row is fully banked
+ * never takes a concurrency slot.
  */
 export async function runAnalysisMatrix(
   runId: string,
@@ -81,6 +86,8 @@ export async function runAnalysisMatrix(
     onFatal?: (reason: string) => void;
     /** Stage-0 snapshot — per-ticker verified reference data for lens prompts (null: unscreened run). */
     universe?: UniverseResult | null;
+    /** Cells an earlier attempt of THIS run banked — see lib/orchestrator/resume.ts. */
+    banked?: Map<CellKey, CellOutcome>;
   },
 ): Promise<AnalysisMatrixResult> {
   const week = isoWeekKey();
@@ -89,24 +96,38 @@ export async function runAnalysisMatrix(
 
   for (const c of candidates) {
     for (const skill of LENS_SKILLS) {
-      emitLens(runId, c.ticker, skill, { status: "queued" });
+      const key = cellKey(c.ticker, skill);
+      const done = opts.banked?.get(key);
+      if (done?.ok && done.analysis) {
+        cells.set(key, done);
+        emitLens(runId, c.ticker, skill, {
+          status: "done",
+          verdict: done.analysis.verdict,
+          confidence: done.analysis.confidence,
+          headline: lensHeadline(skill, done.analysis.keyMetrics),
+        });
+      } else {
+        emitLens(runId, c.ticker, skill, { status: "queued" });
+      }
     }
   }
 
   const admit = createLimiter(CONFIG.maxConcurrentStocks);
 
   await Promise.all(
-    candidates.map((candidate) =>
-      admit(async () => {
+    candidates.map((candidate) => {
+      const todo = LENS_SKILLS.filter((skill) => !cells.has(cellKey(candidate.ticker, skill)));
+      if (todo.length === 0) return Promise.resolve();
+      return admit(async () => {
         await Promise.allSettled(
-          LENS_SKILLS.map(async (skill) => {
+          todo.map(async (skill) => {
             const outcome = await runOneCell(runId, candidate, skill, week, opts);
             cells.set(cellKey(candidate.ticker, skill), outcome);
             costUsd += outcome.costUsd;
           }),
         );
-      }),
-    ),
+      });
+    }),
   );
 
   return { cells, costUsd };

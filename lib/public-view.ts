@@ -50,6 +50,21 @@ const EXACT_TOKENS: [RegExp, string][] = [
   [/\bmacro[- ]asymmetry\b/g, "game theory"],
   [/\binstitutional[- ]forecast\b/gi, "the street-consensus lens"],
   [/\bSKILL\.md\b/g, "the playbook"],
+  // A lens write-up sometimes cites its own instructions as "the skill" ("per
+  // the skill's pre-profit edge case") — a direct architecture disclosure, and
+  // the one bare-word case that IS ours. Deliberately anchored on the
+  // self-reference: the same word as SUBJECT MATTER ("agentic AI", "AI agents",
+  // a source URL containing ai-agents) is the market talking, not us, and
+  // rewriting it would falsify analysis prose and break real links.
+  // Capitalized forms first — these land mid-report, so sentence case survives.
+  [/\bThe skill's\b/g, "The playbook's"],
+  [/\bThis skill's\b/g, "This playbook's"],
+  [/\bThe skill\b/g, "The playbook"],
+  [/\bThis skill\b/g, "This playbook"],
+  [/\bthe skill's\b/gi, "the playbook's"],
+  [/\bthis skill's\b/gi, "this playbook's"],
+  [/\bthe skill\b/gi, "the playbook"],
+  [/\bthis skill\b/gi, "this playbook"],
   [/\bClaude Code\b/g, "the research engine"],
   [/\bClaude\b/g, "the research engine"],
   [/\bAnthropic\b/g, "the research provider"],

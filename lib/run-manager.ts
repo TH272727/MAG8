@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import { createRun, finishRun, getActiveRun } from "./db";
-import { executeRun } from "./orchestrator";
+import { executeResume, executeRun } from "./orchestrator";
 import { emitProgress, nowIso } from "./orchestrator/progress";
+import { planResume, type ResumeBlock } from "./orchestrator/resume";
 import type { RunParams } from "./schemas";
 
 /* ============================================================================
@@ -46,6 +47,49 @@ export function startRun(params: RunParams): StartRunResult {
       // executeRun catches internally; this is the absolute last resort.
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[mag8] executeRun escaped for ${runId}:`, err);
+      try {
+        finishRun(runId, { status: "error", error: message });
+        emitProgress(runId, { type: "run_error", error: message, at: nowIso() });
+      } catch {
+        /* nothing left to do */
+      }
+    })
+    .finally(() => {
+      if (s.activeRunId === runId) s.activeRunId = null;
+    });
+
+  return { ok: true, runId };
+}
+
+export type ResumeRunResult =
+  | { ok: true; runId: string }
+  | { ok: false; code: "active_run"; activeRunId: string }
+  | { ok: false; code: ResumeBlock; error: string };
+
+/**
+ * Finish a stopped run in place. Takes the same single-active-run lock as
+ * startRun — the difference is that the id it locks is one that already exists.
+ */
+export function resumeRun(runId: string): ResumeRunResult {
+  const s = state();
+  if (s.activeRunId) {
+    return { ok: false, code: "active_run", activeRunId: s.activeRunId };
+  }
+  const dbActive = getActiveRun();
+  if (dbActive) {
+    return { ok: false, code: "active_run", activeRunId: dbActive.id };
+  }
+
+  const check = planResume(runId);
+  if (!check.ok) return { ok: false, code: check.code, error: check.error };
+
+  s.activeRunId = runId;
+
+  void executeResume(runId, check.plan)
+    .catch((err: unknown) => {
+      // executeResume catches internally; this is the absolute last resort.
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[mag8] executeResume escaped for ${runId}:`, err);
       try {
         finishRun(runId, { status: "error", error: message });
         emitProgress(runId, { type: "run_error", error: message, at: nowIso() });

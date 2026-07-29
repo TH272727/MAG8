@@ -1,10 +1,12 @@
-# Mag8 — agent notes, state 2026-07-13. README = user-facing; this file = authoritative. One commit per phase (`git log`).
+# Mag8 — agent notes, state 2026-07-26. README = user-facing; this file = authoritative. One commit per phase (`git log`).
 Four-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S0 `lib/universe.ts`
 deterministic universe screen ($0, no model; weekly snapshot; NASDAQ+NYSE+AMEX + SEC XBRL fundamentals, every knob
 owner-tunable — see universe-settings entry) hands S1 a ~300-name screened pool (top-100 fundamentals-RANKED head
 w/ filings digests + rotation, v3 2026-07-16) AND injects per-ticker SEC ground
 truth into S2 prompts → S1 `new-gen-stock` discovers N candidates (4–12, default 8; prompt carries the date, the
-pool, recent-coverage anti-repetition, optional focus modifier) → S2 `stock-scanner`/`gt-predictor`/
+pool, recent-coverage anti-repetition, optional focus modifier, optional selection-quota block) → deterministic
+selection discipline verifies the cohort (ranked-head floor + consensus ceiling, `lib/orchestrator/selection.ts`,
+default-off) → S2 `stock-scanner`/`gt-predictor`/
 `institutional-forecast` per candidate, independently (3 candidates in flight, ≤9 sessions) → S3 tool-less compiler
 applies the Trillion-Dollar Confluence rubric; deterministic TS re-verifies gate/confluence/score and re-sorts. Lenses agreeing IS the product (+10 bonus when
 all three bullish). All stages `claude-sonnet-5` (`MAG8_{DISCOVERY,LENS,COMPILER}_MODEL`); effort high/**medium**/medium
@@ -16,11 +18,13 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 - `lib/schemas.ts` all zod + `ProgressEvent` + `LENS_META` + `sanitizeModifier()`; `lib/config.ts` every knob, `estimateRun()`, `authMode()`, `siteMode()/launchMode()`
 - `lib/db.ts` ALL SQL, globalThis handle, boot reconciliation, `getRecentCoverage()` feeds discovery;
   `migrate()` = latest-shape `SCHEMA_SQL` + version-gated column-checked ALTERs (user_version 2: num_turns);
-  `getAllTimeBoard('canonical'|'focused')` all-time boards split on params_json modifier presence (per-ticker
-  best score, real runs only, mock fallback badged SAMPLE, computed on read); `latestCanonicalRun()` pins
-  `/rankings` + home preview to no-focus runs (a lab run can never displace the weekly board)
-- `lib/ranking.ts` rubric constants + `buildRubricText()` → compiler prompt AND /methodology; `lib/citations.ts` 32-work
-  registry → /methodology References AND all four skills' `references/bibliography.md` (`npm run gen:bib`) — can't drift
+  `getAllTimeBoard('canonical'|'focused')` all-time boards split on params_json `kindClause` (canonical = no
+  modifier AND blind!=1; focused = modifier OR blind — a blind run is never canonical) (per-ticker best score,
+  real runs only, mock fallback badged SAMPLE, computed on read); `latestCanonicalRun()` pins `/rankings` + home
+  preview to canonical runs (a lab/focused/blind run can never displace the weekly board)
+- `lib/ranking.ts` rubric constants + `buildRubricText()` → compiler prompt AND /methodology; `lib/citations.ts` 44-work
+  registry (universe group feeds /methodology only, NOT skill bibs → adds are gen:bib no-op; homepage chip auto-counts)
+  → /methodology References AND all four skills' `references/bibliography.md` (`npm run gen:bib`) — can't drift
 - `lib/universe.ts` S0 v2 (2026-07-13): Nasdaq screener JSON (keyless, Mozilla UA; NASDAQ+NYSE both-or-nothing,
   AMEX additive-fail-open, ≥3000-row sanity) → common-stock/ADR normalize (+exchange/industry/ipoyear) →
   screens IN ORDER: band → day-$vol → price floor → pooled-vehicle regex (probe-validated 11/11 CEFs, 0 false
@@ -40,18 +44,21 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   live; SEC figures filing-anchored, cite "per SEC filings"; cache-safe — snapshot frozen per week). Weekly cache
   `universe_snapshots` + `extra_json` (fundamentals; pre-v2 rows read fine, extras null → SEC screens skip);
   fail-open null = unscreened run, mock runs skip S0 entirely; MAG8_UNIVERSE=0 kill (env-only, supreme)
-- `lib/universe-settings.ts` ALL 21 S0 knobs: spec registry (default/min/max/env/blurb/cites) + resolver
-  **DB(`app_settings`) > env > default** w/ provenance; defaults research-backed (citations registry 'universe'
-  group, 10 works, →42 total — homepage chip auto-updates); legacy MAG8_UNIVERSE_* env names kept. /admin panel
-  edits (save = diff-vs-baseline; preview cached ~10ms; refresh repersists snapshot); /methodology renders LIVE
-  effective values from the same resolver (can't drift). Defaults: $1–50B, ≥$2M/day, price ≥$2, age ≥1yr,
-  CEF+runway(1y)+zombie ON, dilution OFF@50%, pool 300 (rankPool ON, rankTopN 100), slack 10%
+- `lib/universe-settings.ts` ALL 24 S0 knobs (groups listing|size|solvency|pool|**selection**|ops): spec registry
+  (default/min/max/env/blurb/cites) + resolver **DB(`app_settings`) > env > default** w/ provenance; defaults
+  research-backed (citations registry 'universe' group, 11 works, →44 total — homepage chip auto-updates); legacy
+  MAG8_UNIVERSE_* env names kept. /admin panel edits (save = diff-vs-baseline; preview cached ~10ms; refresh
+  repersists snapshot); /methodology renders LIVE effective values from the same resolver (can't drift). Defaults:
+  $1–50B, ≥$2M/day, price ≥$2, age ≥1yr, CEF+runway(1y)+zombie ON, dilution OFF@50%, pool 300 (rankPool ON,
+  rankTopN 100), slack 10%; **selection group (C, 2026-07-26): rankedFloor 0 / salienceCap 12 / selectionHardGate
+  OFF — all default-NEUTRAL (a no-op until the owner opts in), env MAG8_SELECT_{RANKED_FLOOR,SALIENCE_CAP,HARD_GATE}**
 - `lib/salience.ts` model-memory baseline (200 tickers, cold TOOL-LESS Sonnet session 2026-07-16, ordered by
   salience; refresh ~quarterly or on discovery-model change) + `npm run audit:salience` (raw READ-ONLY live-run
-  precheck BEFORE lib/db import — reconciliation would kill a live run): per-pick salience rank / eligibility /
-  fund-rank / cap-pct / desks vs random-from-eligible expectation. Baseline finding: 59/70 real pick-slots (84%)
-  sat inside the model's own famous-names prior vs ~6% random (07-07 run 8/8; coverage-blocking just slid picks
-  to tier-2 fame) — the measured bias the ranked pool attacks; re-run after every real run
+  precheck BEFORE lib/db import — reconciliation would kill a live run; audit tags blind runs): per-pick salience
+  rank / eligibility / fund-rank / cap-pct / desks vs random-from-eligible expectation. Baseline finding: 59/70
+  real pick-slots (84%) sat inside the model's own famous-names prior vs ~6% random (07-07 run 8/8; coverage-
+  blocking just slid picks to tier-2 fame) — the measured bias the ranked pool attacks; re-run after every real
+  run. `salienceRank()` also powers the selection-quota consensus ceiling (server-only; never client/public)
 - `lib/sec.ts` EDGAR (keyless, $0, identifying UA, MAG8_SEC_UA override): CIK map (covers 2118/2120 eligible) +
   XBRL frames ~15-25 reqs ≈6-9s/wk — annual tags ALSO fetch the prior FY same-tag (rev0/ocf0 → growth/trajectory;
   YoY math never mixes tag variants), tag-drift chains (rev ×2, cash ×2, current securities ×3 MAX-not-sum: STI
@@ -59,10 +66,35 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   sparse until 10-Qs land), same-quarter YoY shares, annual CY(y-1)+CY(y-2) merge. Fail-open per frame AND per
   metric — missing data = PASS (IFRS/foreign filers unscreened, disclosed); coverage ~75-85% of band
 - `lib/orchestrator/`: `agent.ts` is the ONLY `query()` caller; `prompts.ts` stage wrappers (date, coverage,
-  modifier, Sources, naming discipline); `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same
-  persist+emit path; `index.ts` executeRun + `lib/price-sanity.ts` hook; `lib/fixtures.ts` seeds run REAL math
-- `lib/run-manager.ts` single-active-run lock; `useRunStream` event-sourced reducer; `app/api/runs/*` POST
-  (202/400/401/409/503 + `code`), snapshot GET, SSE; `app/lab` token-gated public focus console
+  modifier, selection-quota, blind select/research, shared `discoveryOutputContract`, naming discipline);
+  `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same persist+emit path; `index.ts` executeRun
+  (branches blind vs normal discovery) + executeResume, both over ONE shared `analyzeAndCompile` (stages 2–3 —
+  matrix, grounding checks, compile, persist — so fresh and resumed runs can't drift) + `lib/price-sanity.ts`
+  hook; `lib/fixtures.ts` seeds run REAL math.
+  **`resume.ts` (E, 2026-07-28)** `planResume(runId)` — read-only, spends nothing, single source of truth for
+  "can this be finished?" (blocks: not_found/run_active/mock_run/already_complete/no_cohort) and for what's left:
+  the persisted cohort (Stage 1 NEVER repeats → a resume can't drift to other names) + every `ok` lens row of
+  THAT run rebuilt as banked `CellOutcome`s (costUsd 0 — already in the row's total; grounding flags recomputed).
+  `runAnalysisMatrix(…, {banked})` carries them through un-run/un-billed (a fully banked candidate takes no
+  concurrency slot) and only the gaps call out; remaining=0 is legal = re-compile only. Resume forces
+  `getWeeklyUniverse(false)` whatever the run's own force flag says (one cohort, one frozen ground truth);
+  marketContext is recovered from the run's own `discovery_complete` event (`getRunMarketContext`) so the compiler
+  reads what Stage 1 actually said; selection flags recomputed FLAG-ONLY (hardGate forced off — the cohort is
+  fixed); banked cells from an older ISO week → explicit gapsNoted disclosure. `reopenRun()` clears
+  status/error/finished_at in place; cost ACCUMULATES onto the existing row.
+  **`selection.ts` (C)** pure `applySelectionQuota(candidates,pool,quota)` — ranked-head floor + salience ceiling;
+  soft=flag-only, hard-gate=reject&replace from ranked head (synthetic digest-derived thesis), length-preserving,
+  flags→compiler extraGaps→gapsNoted; imports salience (server-only). **`blind.ts` (D)** `runBlindDiscovery` —
+  S1a tool-less pick from anonymized cards (deck=ranked head ≤60, week-seeded shuffle, id→row unblind map, size
+  bucketed) → S1b skill+web researches the un-blinded shortlist (≤count·1.75); fail-open→`runDiscovery` when no
+  ranked pool; enforces final⊆shortlist; same `{discovery,costUsd,selectionFlags}` return shape
+- `lib/run-manager.ts` single-active-run lock (`startRun` + `resumeRun` — resume locks an id that already
+  exists); `useRunStream` event-sourced reducer; `app/api/runs/*` POST (202/400/401/409/503 + `code`),
+  snapshot GET, SSE, `[runId]/resume` POST (admin-gated + curtained like every run route); `app/lab`
+  token-gated public focus console. RESUME BUTTON is admin-only and server-decided: `/admin` history gets a
+  Finish column (`runTallies()` = 2 grouped counts, no payload loads) and `/runs/<id>`'s error banner gets one
+  when the desk cookie checks out (`runTally()`), both via `components/ResumeRunButton.tsx` — a visitor's RSC
+  payload never carries it and the API re-checks the token anyway
 - `components/`: lens charts ALL null-safe (old rows render unchanged; error cells chartless); `HeroConfluence` WebGL (`?heroT=<s>` freeze)
 - Brand: `npm run gen:logo` regenerates `public/brand/*` + `app/{icon,apple-icon}.png` from `marketing/logo-source.png`
   (favicons = black mark on light badge; `components/logo.tsx` + `.mark-glow` ink rim — never gold — carries it on
@@ -73,6 +105,11 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 1. SSE plumbing: `next.config.ts` keeps `compress:false` (gzip would buffer SSE) + `serverExternalPackages`
    `['better-sqlite3','@anthropic-ai/claude-agent-sdk']`. Persist progress events (sync INSERT) BEFORE emit;
    `progress_events.rowid` IS the SSE id; SSE route subscribes THEN replays synchronously — no `await` between.
+   A RESUMED run's log carries its earlier attempt's terminal event MID-log, so neither end may treat a terminal
+   frame as the end unconditionally: the route suppresses cleanup for terminal frames seen while `replaying &&
+   liveOnConnect`, and `useRunStream` closes on `onerror` only when the LAST frame was terminal (else it lets
+   EventSource retry with Last-Event-ID — a blip must never strand a live run). Reducer: `stage_start` clears
+   `error`/`terminal` (re-entering a stage means the run is live again).
 2. Skills are EDITABLE; `.claude/skills/**` is source of truth (grounding edits + generated bibliographies live
    there). `*.skill` zips are vestigial seeds; `setup-skills.ps1` extracts only-if-missing (a re-extract loses
    edits; `git restore` recovers). Scope via SDK `skills:[name]`; never add `'Skill'` to `allowedTools`.
@@ -143,7 +180,8 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 ## Commands & gates
 ```bash
 npm run pipeline -- --smoke                             # go/no-go probe (~$0.30 notional)
-npm run pipeline -- --full [--count N] [--force] [--mock] [--focus "…"]   # --mock=$0; MAG8_MOCK_SPEED=0.12 fast
+npm run pipeline -- --full [--count N] [--force] [--mock] [--focus "…"] [--blind]   # --mock=$0; --blind=D two-phase
+npm run pipeline -- --resume RUN_ID                     # finish a stopped run IN PLACE (headless twin of the button)
 npm run pipeline -- --lens-probe TICKER [--effort L]    # one-cell A/B comparator
 npm run audit:salience                                  # fame-bias readout over all real runs ($0; between runs only)
 ```
@@ -299,6 +337,30 @@ $56–122B names into the $1–50B mandate unflagged). Verified: tsc, seed regre
 probe (fetch 3.5s → cache 6ms, deterministic slice); W28 snapshot cached. NOT yet through a real discovery
 call — see Open (5). Rubric calibration levers (caution ×0.75, growth-stage gate metrics) deliberately
 untouched = owner decision.
+2026-07-28 (Code): RESUME (E) SHIPPED + W31 RUN FINISHED OFF THE FLOOR — owner: "finish run faaa8ffe, I ran
+out of tokens, and add a resume button for admin testing on my subscription". Run faaa8ffe (2026-07-27, the
+FIRST post-S0v3/C+D real run, count=8 force) had died at the 5-hour plan limit with discovery complete + 8/24
+lens cells banked and $7.80 spent — no report, no rankings, and no way to continue: the only path was a fresh
+run that would re-spend Stage 1 and re-do finished cells. SHIPPED `lib/orchestrator/resume.ts` + `executeResume`
+(see Map) + admin-only button on /admin AND the run page's error banner + `POST /api/runs/[runId]/resume` +
+`npm run pipeline -- --resume RUN_ID`. Stages 2–3 were EXTRACTED into one shared `analyzeAndCompile` so fresh
+and resumed runs can't drift. Resume is idempotent and re-entrant BY DESIGN — proven the hard way: attempt 2
+banked 6 more cells (8→14, $12.88) before the window died again, attempt 3 picked up at 14/24 with zero
+re-spend. THE ROLLING WINDOW RECOVERS CONTINUOUSLY: a limit-abort is worth retrying within the hour, not only
+after the stated reset time. SSE had to be fixed for this to work at all: a resumed run's log carries its
+earlier attempt's terminal event MID-log and both ends treated it as end-of-stream (see invariant 1) — verified
+live, 98 frames streamed past the historical run_error that previously truncated the feed. WHITE-LABEL FIX
+found by the mandated leak probe (PRE-EXISTING, not from this change): lens write-ups cite their own
+instructions as "the skill" ("per the skill's pre-profit edge case" — FIG/SEI/SITM) and `sanitizeMarkdown`'s
+narrow pass never caught the bare word → 4 self-reference tokens added to EXACT_TOKENS (capitalized variants
+first, so sentence case survives) + the lens prompt's naming discipline now bans GENERIC self-reference, not
+just names. Deliberately NOT scrubbed: the same words as SUBJECT MATTER ("agentic AI", "AI agents", a source
+URL containing `ai-agents`) — that is the market talking, and rewriting it would falsify analysis prose and
+break real links. CONSEQUENCE: the leak grep as literally written still flags those; the gate now means ZERO
+ARCHITECTURE hits, with market-topic matches an owner-call false-positive class (§ open item 7).
+Gates: tsc clean, seed EXACT (ASTS 90.3 … ACHR 19.3 #8), gen:bib no-op, next build clean (route
+`/api/runs/[runId]/resume` registered), leak probe 0 architecture hits on /,/rankings,/methodology,/lab,
+/stocks/ASTS,/runs + snapshot + SSE.
 Open: (1) signups store, nothing sends; (2) Railway trial → Hobby before the credit runs out;
 (3) YouTube one-time channel verification = the ONE unlock left (desc+channel links clickable,
 custom thumbnails, AND pin the posted comment) → then set the ready thumb set (marketing/
@@ -310,6 +372,17 @@ discipline), marketContext carries the screen-scale + ranked-long-list line, the
 line renders in Mission Control, lens write-ups cite "per SEC filings" (now incl. rev growth) from the ground
 blocks, delivered-pick flags land in gapsNoted — then `npm run audit:salience` for the before/after delta
 (target: baseline overlap falling from 84%, fund-ranks strengthening; both honest either way).
+(6) C+D shipped but UNRUN live (owner: zero API spend): after the first post-B real run, if salience overlap
+stays high, turn ON the selection knobs (start ~rankedFloor 3–4 / salienceCap 3–4 via /admin, hard gate once
+soft flags look right) and/or run a `--blind` lab run — then `audit:salience` for the blind-vs-sighted delta on
+the SAME week (§7 of the 07-16 handoff). Note: blind mode does NOT also apply the selection quota (blind is the
+stronger discipline); Finance-sector OCF still misreads the ranked head (future exemption knob, same as runway).
+(7) LEAK-GATE FALSE POSITIVES — owner call: the grep bans the bare English words, but real 2026 market prose
+legitimately says "AI agents"/"agentic AI" and cites source URLs containing `ai-agents`. Architecture
+self-reference IS now scrubbed (2026-07-28); subject-matter uses are NOT. Pick one: (a) keep as-is and read
+the gate as "zero ARCHITECTURE hits" (current), (b) whitelist `agentic|AI agents|https?://\S+` in the grep
+before matching, or (c) scrub market prose too — rejected here: it falsifies analysis and would rewrite the
+real source links invariant 11 requires.
 2026-07-16 (Code): RANKED POOL + SALIENCE AUDIT (HANDOFF-2026-07-16-ranked-pool-salience.md) — owner concern
 "discovery just picks article-famous names" VALIDATED with data, root cause = TRAINING-PRIOR salience, not
 runtime articles (disabling search would worsen it; coverage-blocking just slid picks down the same fame list).
@@ -321,4 +394,20 @@ gains rev-growth, playbook Step 2 inverted pool-first, /methodology + describeSc
 salience.ts + npm run audit:salience. Gates: tsc, W29 re-probed (rev0 on 3,416; determinism IDENTICAL; VAL
 stub-rev artifact → $25M margin floor), seed EXACT, build ×2, leak 0-hit (homepage 26-AGENTS exception only).
 (Memory twin synced 2026-07-16.)
+2026-07-26 (Code): SELECTION DISCIPLINE (C) + BLIND LAB (D) shipped — the two ladder rungs the owner deferred
+in §6 of the 07-16 handoff (HANDOFF-2026-07-26-selection-blind.md). BOTH knob-gated & DEFAULT-NEUTRAL (zero
+behavior change until opted in — so all regressions held). (C) 3 selection knobs (rankedFloor 0 / salienceCap
+12 / selectionHardGate off) → `lib/orchestrator/selection.ts` `applySelectionQuota()`: ranked-head FLOOR +
+consensus CEILING (measured vs `salienceRank`), soft=flag-only / hard-gate=deterministic reject&replace from the
+ranked head (synthetic digest-derived thesis, length-preserved); `selectionQuotaBlock` in the discovery prompt
+(qualitative — the salience list is NEVER shown to the model, anti-gaming + white-label); flags→extraGaps→
+gapsNoted; probe-verified 8 scenarios (floor/ceiling/both/no-pool/no-dupes). (D) `blind` RunParams flag →
+`lib/orchestrator/blind.ts` `runBlindDiscovery`: S1a tool-less picks a shortlist from ANONYMIZED cards (no
+ticker/name — deck=ranked head ≤60, week-seeded shuffle, size-bucketed, id→row unblind map) → S1b skill+web
+researches the un-blinded shortlist (⊆shortlist enforced); fail-open→normal discovery w/o a ranked pool; lab
+toggle + BLIND chip (RunView/history) + `kindClause` excludes blind from canonical (never displaces the weekly
+board) + audit tags blind runs. Disclosure: selection group on /admin+/methodology (auto), lab-page copy, +1
+citation Barber&Odean2008 (universe group, gen:bib no-op, chip→44). Gates: tsc clean, gen:bib no-op, seed EXACT
+(ASTS 90.3…ACHR 19.3 #8), next build clean, leak probe 0-hit across /,/rankings,/methodology,/lab,/stocks/ASTS,
+/runs + snapshot + SSE (only the 26-AGENTS homepage exception). NOT yet through a real run — Open (6).
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
