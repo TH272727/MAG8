@@ -22,9 +22,16 @@
  *  - Coverage is ~75–85% of eligible names (foreign private issuers file
  *    under IFRS and are absent) — callers must treat missing data as PASS.
  *
- * SEC fair-access: ≤10 req/s with an identifying User-Agent. We run
- * sequentially with a gap, far under the limit. MAG8_SEC_UA overrides.
+ * SEC fair-access: ≤10 req/s with an identifying User-Agent. Transport (the
+ * User-Agent, the shared rate limiter, retries, error mapping) lives in
+ * lib/edgar.ts — this module only knows XBRL tag names and screening math.
+ * Frames are fetched with caching OFF: they are 0.1–0.9 MB each and already
+ * cached inside the weekly universe snapshot, so the Stage-0 path never touches
+ * the database through the EDGAR client. MAG8_EDGAR_UA / MAG8_SEC_UA override
+ * the identifying header.
  * ========================================================================== */
+
+import { edgarJson, getTickerCikMap } from "./edgar";
 
 /** Per-ticker fundamentals derived from the latest structured filings. All optional — never guessed. */
 export interface SecFundamentals {
@@ -62,43 +69,6 @@ export interface SecEnrichment {
   };
 }
 
-const SEC_UA = () =>
-  process.env.MAG8_SEC_UA?.trim() || "Mag8/1.0 (research pipeline; +https://themag8.com)";
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const GAP_MS = 120;
-
-async function secJson<T>(url: string, timeoutMs: number): Promise<T> {
-  await sleep(GAP_MS);
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(timeoutMs),
-    headers: { "User-Agent": SEC_UA(), Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as T;
-}
-
-/* ----------------------------------------------------------------------------
- * Ticker → CIK map
- * -------------------------------------------------------------------------- */
-
-async function fetchCikMap(timeoutMs: number): Promise<Map<string, number>> {
-  const body = await secJson<{ fields: string[]; data: (string | number)[][] }>(
-    "https://www.sec.gov/files/company_tickers_exchange.json",
-    timeoutMs,
-  );
-  const ti = body.fields.indexOf("ticker");
-  const ci = body.fields.indexOf("cik");
-  if (ti < 0 || ci < 0) throw new Error("cik map: unrecognized shape");
-  const map = new Map<string, number>();
-  for (const row of body.data) {
-    const ticker = String(row[ti]).toUpperCase();
-    const cik = Number(row[ci]);
-    if (ticker && Number.isFinite(cik) && !map.has(ticker)) map.set(ticker, cik);
-  }
-  return map;
-}
-
 /* ----------------------------------------------------------------------------
  * XBRL frames
  * -------------------------------------------------------------------------- */
@@ -109,9 +79,10 @@ interface Frame {
 }
 
 async function fetchFrame(path: string, timeoutMs: number): Promise<Frame> {
-  const body = await secJson<{ data?: { cik: number; val: number }[] }>(
+  const body = await edgarJson<{ data?: { cik: number; val: number }[] }>(
     `https://data.sec.gov/api/xbrl/frames/${path}.json`,
-    timeoutMs,
+    // Frames are huge and already cached in the weekly snapshot — no disk cache.
+    { timeoutMs, cache: false },
   );
   const byCik = new Map<number, number>();
   for (const d of body.data ?? []) {
@@ -156,7 +127,9 @@ export async function fetchSecEnrichment(tickers: string[], opts: SecFetchOption
   const { timeoutMs } = opts;
   const now = opts.now ?? new Date();
   const failures: string[] = [];
-  const cikMap = await fetchCikMap(timeoutMs);
+  // Same map, same first-wins ordering as before — now shared with the EDGAR
+  // client so the whole process resolves tickers from one cached copy.
+  const cikMap = await getTickerCikMap({ timeoutMs });
 
   const frame = async (path: string): Promise<Frame | null> => {
     try {

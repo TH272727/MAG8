@@ -150,6 +150,58 @@ CREATE TABLE IF NOT EXISTS app_settings (
   value_json TEXT NOT NULL,
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+/* ---------------------------------------------------------------------------
+ * Bottleneck desk — a separate research product sharing this database file.
+ * Deliberately carries NO foreign key into runs/candidates/lens_analyses/
+ * rankings: the desk can never write to, or cascade from, the pipeline.
+ * ------------------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS edgar_cache (
+  url TEXT PRIMARY KEY,
+  body TEXT NOT NULL,
+  content_type TEXT,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS bottleneck_filings (
+  cik INTEGER NOT NULL,
+  period TEXT NOT NULL,
+  accession TEXT NOT NULL,
+  filer_name TEXT NOT NULL,
+  filed_at TEXT NOT NULL,
+  rows_json TEXT NOT NULL,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (cik, period)
+);
+
+CREATE TABLE IF NOT EXISTS bottleneck_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL CHECK (kind IN ('demand','bottleneck')),
+  playbook_id TEXT NOT NULL,
+  taken_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  payload_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bn_snapshots ON bottleneck_snapshots (kind, playbook_id, taken_at DESC);
+
+CREATE TABLE IF NOT EXISTS bottleneck_supply (
+  series_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  value REAL NOT NULL,
+  unit TEXT NOT NULL,
+  source_url TEXT,
+  origin TEXT NOT NULL CHECK (origin IN ('api','scrape','manual','filing')),
+  entered_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (series_id, date)
+);
+
+CREATE TABLE IF NOT EXISTS bottleneck_cusips (
+  cusip TEXT PRIMARY KEY,
+  ticker TEXT,
+  name TEXT,
+  source TEXT NOT NULL,
+  resolved_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
 `;
 
 type GlobalWithDb = typeof globalThis & { __mag8_db?: Database.Database };
@@ -190,6 +242,13 @@ function migrate(db: Database.Database): void {
       db.exec(`ALTER TABLE universe_snapshots ADD COLUMN extra_json TEXT`);
     }
     db.pragma("user_version = 3");
+  }
+  if (v < 4) {
+    // Bottleneck desk: five additive tables, all created by SCHEMA_SQL above on
+    // fresh AND existing files (CREATE TABLE IF NOT EXISTS runs every boot), so
+    // there is no column to patch — only the version to record. Nothing here
+    // touches a pipeline table.
+    db.pragma("user_version = 4");
   }
 }
 
@@ -953,4 +1012,300 @@ export function listSignups(): { email: string; createdAt: string }[] {
   return getDb()
     .prepare(`SELECT email, created_at AS createdAt FROM email_signups ORDER BY created_at DESC, email`)
     .all() as { email: string; createdAt: string }[];
+}
+
+/* ============================================================================
+ * EDGAR response cache (lib/edgar.ts binds to this lazily)
+ * ========================================================================== */
+
+export interface EdgarCacheRow {
+  body: string;
+  contentType: string | null;
+  fetchedAt: string;
+}
+
+export function getEdgarCache(url: string): EdgarCacheRow | null {
+  const r = getDb()
+    .prepare(`SELECT body, content_type, fetched_at FROM edgar_cache WHERE url=?`)
+    .get(url) as { body: string; content_type: string | null; fetched_at: string } | undefined;
+  return r ? { body: r.body, contentType: r.content_type, fetchedAt: r.fetched_at } : null;
+}
+
+export function setEdgarCache(url: string, body: string, contentType: string | null): void {
+  getDb()
+    .prepare(
+      `INSERT INTO edgar_cache (url, body, content_type, fetched_at)
+       VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+       ON CONFLICT(url) DO UPDATE SET body=excluded.body, content_type=excluded.content_type,
+         fetched_at=excluded.fetched_at`,
+    )
+    .run(url, body, contentType);
+}
+
+/** Drop cached responses older than `maxAgeDays`. Called from the desk's refresh path, not per write. */
+export function sweepEdgarCache(maxAgeDays = 90): number {
+  const info = getDb()
+    .prepare(`DELETE FROM edgar_cache WHERE fetched_at < datetime('now', ?)`)
+    .run(`-${Math.max(1, Math.round(maxAgeDays))} days`);
+  return info.changes;
+}
+
+export function edgarCacheStats(): { rows: number; bytes: number } {
+  return getDb()
+    .prepare(`SELECT COUNT(*) AS rows, COALESCE(SUM(length(body)),0) AS bytes FROM edgar_cache`)
+    .get() as { rows: number; bytes: number };
+}
+
+/* ============================================================================
+ * Bottleneck desk — parsed 13F filings, dated snapshots, supply series, CUSIPs.
+ * Payloads stay opaque JSON here so lib/bottleneck owns every shape (and this
+ * file never imports from it, so there is no cycle).
+ * ========================================================================== */
+
+interface RawFilingSnapshot {
+  cik: number;
+  period: string;
+  accession: string;
+  filer_name: string;
+  filed_at: string;
+  rows_json: string;
+  fetched_at: string;
+}
+
+export interface FilingSnapshotRow<T = unknown> {
+  cik: number;
+  /** Period of report, YYYY-MM-DD. */
+  period: string;
+  accession: string;
+  filerName: string;
+  filedAt: string;
+  rows: T;
+  fetchedAt: string;
+}
+
+function toFilingSnapshot<T>(r: RawFilingSnapshot): FilingSnapshotRow<T> | null {
+  const rows = parseJson<T>(r.rows_json);
+  if (rows === null) return null;
+  return {
+    cik: r.cik,
+    period: r.period,
+    accession: r.accession,
+    filerName: r.filer_name,
+    filedAt: r.filed_at,
+    rows,
+    fetchedAt: r.fetched_at,
+  };
+}
+
+export function saveFilingSnapshot(input: {
+  cik: number;
+  period: string;
+  accession: string;
+  filerName: string;
+  filedAt: string;
+  rows: unknown;
+}): void {
+  getDb()
+    .prepare(
+      `INSERT INTO bottleneck_filings (cik, period, accession, filer_name, filed_at, rows_json, fetched_at)
+       VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+       ON CONFLICT(cik, period) DO UPDATE SET accession=excluded.accession, filer_name=excluded.filer_name,
+         filed_at=excluded.filed_at, rows_json=excluded.rows_json, fetched_at=excluded.fetched_at`,
+    )
+    .run(input.cik, input.period, input.accession, input.filerName, input.filedAt, JSON.stringify(input.rows));
+}
+
+export function getFilingSnapshot<T = unknown>(cik: number, period: string): FilingSnapshotRow<T> | null {
+  const r = getDb()
+    .prepare(`SELECT * FROM bottleneck_filings WHERE cik=? AND period=?`)
+    .get(cik, period) as RawFilingSnapshot | undefined;
+  return r ? toFilingSnapshot<T>(r) : null;
+}
+
+/** A filer's stored periods, newest first. */
+export function listFilingSnapshots<T = unknown>(cik: number, limit = 8): FilingSnapshotRow<T>[] {
+  const rows = getDb()
+    .prepare(`SELECT * FROM bottleneck_filings WHERE cik=? ORDER BY period DESC LIMIT ?`)
+    .all(cik, limit) as RawFilingSnapshot[];
+  return rows.map((r) => toFilingSnapshot<T>(r)).filter((x): x is FilingSnapshotRow<T> => x !== null);
+}
+
+export type BottleneckSnapshotKind = "demand" | "bottleneck";
+
+export interface BottleneckSnapshotRow<T = unknown> {
+  id: number;
+  kind: BottleneckSnapshotKind;
+  playbookId: string;
+  takenAt: string;
+  payload: T;
+}
+
+/** Snapshots run ~10–100 KB each; keep a trailing window per (kind, playbook). */
+const BOTTLENECK_KEEP_SNAPSHOTS = 24;
+
+export function saveBottleneckSnapshot(
+  kind: BottleneckSnapshotKind,
+  playbookId: string,
+  payload: unknown,
+): number {
+  const db = getDb();
+  let id = 0;
+  const tx = db.transaction(() => {
+    const info = db
+      .prepare(`INSERT INTO bottleneck_snapshots (kind, playbook_id, payload_json) VALUES (?, ?, ?)`)
+      .run(kind, playbookId, JSON.stringify(payload));
+    id = Number(info.lastInsertRowid);
+    db.prepare(
+      `DELETE FROM bottleneck_snapshots WHERE kind=? AND playbook_id=? AND id NOT IN
+         (SELECT id FROM bottleneck_snapshots WHERE kind=? AND playbook_id=? ORDER BY id DESC LIMIT ?)`,
+    ).run(kind, playbookId, kind, playbookId, BOTTLENECK_KEEP_SNAPSHOTS);
+  });
+  tx();
+  return id;
+}
+
+interface RawBottleneckSnapshot {
+  id: number;
+  kind: BottleneckSnapshotKind;
+  playbook_id: string;
+  taken_at: string;
+  payload_json: string;
+}
+
+function toBottleneckSnapshot<T>(r: RawBottleneckSnapshot): BottleneckSnapshotRow<T> | null {
+  const payload = parseJson<T>(r.payload_json);
+  if (payload === null) return null;
+  return { id: r.id, kind: r.kind, playbookId: r.playbook_id, takenAt: r.taken_at, payload };
+}
+
+/**
+ * The most recent `limit` snapshots of a kind, newest first. Two of these is
+ * what the desk's "tightening or easing?" comparison runs on.
+ */
+export function listBottleneckSnapshots<T = unknown>(
+  kind: BottleneckSnapshotKind,
+  playbookId: string,
+  limit = 2,
+): BottleneckSnapshotRow<T>[] {
+  const rows = getDb()
+    .prepare(`SELECT * FROM bottleneck_snapshots WHERE kind=? AND playbook_id=? ORDER BY id DESC LIMIT ?`)
+    .all(kind, playbookId, limit) as RawBottleneckSnapshot[];
+  return rows.map((r) => toBottleneckSnapshot<T>(r)).filter((x): x is BottleneckSnapshotRow<T> => x !== null);
+}
+
+export function latestBottleneckSnapshot<T = unknown>(
+  kind: BottleneckSnapshotKind,
+  playbookId: string,
+): BottleneckSnapshotRow<T> | null {
+  return listBottleneckSnapshots<T>(kind, playbookId, 1)[0] ?? null;
+}
+
+export interface SupplyPoint {
+  seriesId: string;
+  /** YYYY-MM-DD (month-end for monthly series). */
+  date: string;
+  value: number;
+  unit: string;
+  sourceUrl: string | null;
+  origin: "api" | "scrape" | "manual" | "filing";
+}
+
+/** Upsert points for any connector kind — scraped, API, manual, and filing-derived share one store. */
+export function saveSupplyPoints(points: SupplyPoint[]): number {
+  if (points.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO bottleneck_supply (series_id, date, value, unit, source_url, origin, entered_at)
+     VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(series_id, date) DO UPDATE SET value=excluded.value, unit=excluded.unit,
+       source_url=excluded.source_url, origin=excluded.origin, entered_at=excluded.entered_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const p of points) stmt.run(p.seriesId, p.date, p.value, p.unit, p.sourceUrl, p.origin);
+  });
+  tx();
+  return points.length;
+}
+
+interface RawSupplyPoint {
+  series_id: string;
+  date: string;
+  value: number;
+  unit: string;
+  source_url: string | null;
+  origin: SupplyPoint["origin"];
+}
+
+/** One series, oldest first (growth math wants chronological order). */
+export function getSupplySeries(seriesId: string, limit = 120): SupplyPoint[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT series_id, date, value, unit, source_url, origin FROM bottleneck_supply
+       WHERE series_id=? ORDER BY date DESC LIMIT ?`,
+    )
+    .all(seriesId, limit) as RawSupplyPoint[];
+  return rows
+    .map((r) => ({
+      seriesId: r.series_id,
+      date: r.date,
+      value: r.value,
+      unit: r.unit,
+      sourceUrl: r.source_url,
+      origin: r.origin,
+    }))
+    .reverse();
+}
+
+export function listSupplySeriesIds(): { seriesId: string; points: number; latest: string }[] {
+  return getDb()
+    .prepare(
+      `SELECT series_id AS seriesId, COUNT(*) AS points, MAX(date) AS latest
+       FROM bottleneck_supply GROUP BY series_id ORDER BY series_id`,
+    )
+    .all() as { seriesId: string; points: number; latest: string }[];
+}
+
+export function deleteSupplyPoint(seriesId: string, date: string): boolean {
+  return getDb().prepare(`DELETE FROM bottleneck_supply WHERE series_id=? AND date=?`).run(seriesId, date).changes > 0;
+}
+
+export interface CusipResolution {
+  cusip: string;
+  ticker: string | null;
+  name: string | null;
+  source: string;
+}
+
+/** Cached CUSIP → ticker rows for the given CUSIPs (misses simply absent). */
+export function getCusipResolutions(cusips: string[]): Map<string, CusipResolution> {
+  const out = new Map<string, CusipResolution>();
+  if (cusips.length === 0) return out;
+  const db = getDb();
+  // Chunked so a large 13F cannot exceed SQLite's bound-parameter limit.
+  for (let i = 0; i < cusips.length; i += 400) {
+    const chunk = cusips.slice(i, i + 400);
+    const rows = db
+      .prepare(
+        `SELECT cusip, ticker, name, source FROM bottleneck_cusips
+         WHERE cusip IN (${chunk.map(() => "?").join(",")})`,
+      )
+      .all(...chunk) as CusipResolution[];
+    for (const r of rows) out.set(r.cusip, r);
+  }
+  return out;
+}
+
+export function saveCusipResolutions(rows: CusipResolution[]): void {
+  if (rows.length === 0) return;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO bottleneck_cusips (cusip, ticker, name, source, resolved_at)
+     VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(cusip) DO UPDATE SET ticker=excluded.ticker, name=excluded.name,
+       source=excluded.source, resolved_at=excluded.resolved_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const r of rows) stmt.run(r.cusip, r.ticker, r.name, r.source);
+  });
+  tx();
 }
