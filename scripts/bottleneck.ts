@@ -154,6 +154,87 @@ async function probe(): Promise<number> {
 }
 
 /* ============================================================================
+ * --refresh: rebuild a playbook's demand snapshot from live filings.
+ * ========================================================================== */
+
+const usd = (n: number): string => {
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+};
+const num = (n: number): string =>
+  n >= 1000 ? Math.round(n).toLocaleString("en-US") : String(Math.round(n * 100) / 100);
+const pct = (p: number | null | undefined): string =>
+  p === null || p === undefined ? "n/a" : `${p >= 0 ? "+" : ""}${p.toFixed(1)}%`;
+
+async function refresh(playbookId: string, dry: boolean): Promise<number> {
+  const { getPlaybook } = await import("../lib/bottleneck/playbook");
+  const { buildDemandSnapshot } = await import("../lib/bottleneck/demand");
+
+  const pb = getPlaybook(playbookId);
+  if (!pb) {
+    console.error(`No playbook with id "${playbookId}".`);
+    return 2;
+  }
+
+  banner(`BOTTLENECK — DEMAND REFRESH: ${pb.label}`);
+  console.log(` basket: ${pb.demand.basket.join(" ")}`);
+  console.log(` conversions: v${pb.conversions.version} (${pb.conversions.asOf})\n`);
+
+  const t0 = Date.now();
+  const snap = await buildDemandSnapshot(pb, { dryRun: dry });
+  console.log(` read ${snap.companies.length} companies in ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
+
+  console.log(" CAPITAL SPENDING (per company)");
+  console.log(" ticker  status   latest qtr        TTM       QoQ       YoY  basis     tag");
+  for (const c of snap.companies) {
+    if (c.status !== "ok") {
+      console.log(` ${c.ticker.padEnd(7)} ${c.status.padEnd(8)} ${c.note ?? ""}`);
+      continue;
+    }
+    console.log(
+      ` ${c.ticker.padEnd(7)} ${c.status.padEnd(8)}` +
+        ` ${usd(c.latestQuarterUsd ?? 0).padStart(10)}` +
+        ` ${(c.ttmUsd === undefined ? "n/a" : usd(c.ttmUsd)).padStart(10)}` +
+        ` ${pct(c.qoq?.pct).padStart(9)}` +
+        ` ${pct(c.yoy?.pct).padStart(9)}` +
+        `  ${(c.basis ?? "").padEnd(8)} ${c.tagUsed ?? ""}`,
+    );
+  }
+
+  console.log(
+    `\n aggregate: ${snap.aggregate.contributing}/${snap.aggregate.basketSize} contributing · ` +
+      `latest quarter ${usd(snap.aggregate.latestQuarterUsd)} · TTM ${usd(snap.aggregate.ttmUsd)} · ` +
+      `YoY ${pct(snap.aggregate.yoyPct)}`,
+  );
+
+  console.log("\n PHYSICAL UNITS (TTM dollars / conversion factor)");
+  for (const u of snap.units) {
+    console.log(` ${num(u.totalUnits).padStart(12)}  ${u.unit}`);
+    console.log(`               ${usd(u.totalUsd)} / ${usd(u.usdPer)} per unit  ·  ${u.source} (${u.asOf})`);
+  }
+
+  const withNarrative = snap.companies.filter((c) => c.narrative);
+  if (withNarrative.length > 0) {
+    console.log(`\n WHY IT CHANGED — quoted from the filings (${withNarrative.length} of ${snap.companies.length})`);
+    for (const c of withNarrative.slice(0, 3)) {
+      console.log(` ${c.ticker} (${c.narrative!.form}, filed ${c.narrative!.filed}):`);
+      const s = c.narrative!.sentences[0] ?? "";
+      console.log(`   "${s.slice(0, 200)}${s.length > 200 ? "…" : ""}"`);
+    }
+  }
+
+  if (snap.flags.length > 0) {
+    console.log("\n DISCLOSED GAPS");
+    for (const f of snap.flags) console.log(`  - ${f}`);
+  }
+
+  console.log(dry ? "\n dry run — nothing persisted" : "\n snapshot persisted");
+  return 0;
+}
+
+/* ============================================================================
  * Entry
  * ========================================================================== */
 
@@ -173,12 +254,14 @@ async function main() {
     return;
   }
   if (has("--refresh")) {
-    console.error("--refresh: demand/supply snapshots land in Phases 3-4.");
-    process.exitCode = 2;
+    const { DEFAULT_PLAYBOOK_ID } = await import("../lib/bottleneck/playbook");
+    const raw = argValue("--refresh");
+    const id = !raw || raw.startsWith("--") ? DEFAULT_PLAYBOOK_ID : raw;
+    process.exitCode = await refresh(id, has("--dry"));
     return;
   }
   console.log(
-    "Usage: npm run bottleneck -- --probe | --13f CIK (Phase 5) | --refresh [PLAYBOOK] (Phases 3-4)",
+    "Usage: npm run bottleneck -- --probe | --refresh [PLAYBOOK] [--dry] | --13f CIK (Phase 5)",
   );
   process.exitCode = 2;
 }
