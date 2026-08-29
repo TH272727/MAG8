@@ -7,12 +7,7 @@ import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
 import { launchMode } from "@/lib/config";
 import { insertSignup } from "@/lib/db";
 import { getWeeklyUniverse, universeEnabled, type FunnelStep } from "@/lib/universe";
-import {
-  baselineUniverseSettings,
-  cleanOverrides,
-  saveUniverseOverrides,
-  type UniverseSettings,
-} from "@/lib/universe-settings";
+import { saveUniverseDiff, type UniverseSettings } from "@/lib/universe-settings";
 
 export interface ActionState {
   ok: boolean;
@@ -71,17 +66,13 @@ export async function saveUniverseSettingsAction(
   input: Record<string, number | boolean>,
 ): Promise<ActionState> {
   if (!(await adminAuthorized())) return { ok: false, message: "Not authorized." };
-  const cleaned = cleanOverrides(input);
-  const baseline = baselineUniverseSettings() as unknown as Record<string, number | boolean>;
-  const diff: Record<string, number | boolean> = {};
-  for (const [key, value] of Object.entries(cleaned)) {
-    if (value !== undefined && baseline[key] !== value) diff[key] = value;
-  }
-  saveUniverseOverrides(diff);
-  const n = Object.keys(diff).length;
+  const { count } = saveUniverseDiff(input);
   return {
     ok: true,
-    message: n === 0 ? "All values at their default/env baseline — no overrides stored." : `Saved ${n} override${n === 1 ? "" : "s"}. The next run uses them.`,
+    message:
+      count === 0
+        ? "All values at their default/env baseline — no overrides stored."
+        : `Saved ${count} override${count === 1 ? "" : "s"}. The next run uses them.`,
   };
 }
 

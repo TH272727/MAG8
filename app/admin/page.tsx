@@ -3,25 +3,65 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { adminLogout } from "@/app/actions";
 import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
+import BottleneckSettingsPanel from "@/components/admin/BottleneckSettingsPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
 import RunHistoryTable from "@/components/admin/RunHistoryTable";
-import UniverseSettingsPanel, { type PanelSetting } from "@/components/admin/UniverseSettingsPanel";
+import type { PanelSetting } from "@/components/admin/SettingsGrid";
+import UniverseSettingsPanel from "@/components/admin/UniverseSettingsPanel";
 import { ADMIN_COOKIE, adminConfigured, tokenMatches } from "@/lib/auth";
 import { findCitation } from "@/lib/citations";
 import { CONFIG, estimateRun, launchMode } from "@/lib/config";
 import { listRuns, runTallies } from "@/lib/db";
 import { universeEnabled } from "@/lib/universe";
 import {
+  BOTTLENECK_SETTING_GROUPS,
+  BOTTLENECK_SETTINGS_SPEC,
+  effectiveBottleneckSettings,
+} from "@/lib/bottleneck-settings";
+import { allPlaybooks } from "@/lib/bottleneck/playbook";
+import { formatSettingValue, type SettingSpec } from "@/lib/settings-registry";
+import {
   UNIVERSE_SETTING_GROUPS,
   UNIVERSE_SETTINGS_SPEC,
   effectiveUniverseSettings,
-  formatSettingValue,
 } from "@/lib/universe-settings";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Admin" };
+
+/**
+ * Spec + resolved values → the serializable rows the knob grid renders.
+ * Shared by both registries so the two panels can never drift in how they
+ * present provenance, defaults, or citations.
+ */
+function toPanelSettings<G extends string, V extends object>(
+  spec: SettingSpec<G>[],
+  eff: { values: V; sources: Record<keyof V, "default" | "env" | "custom"> },
+): PanelSetting[] {
+  const values = eff.values as Record<string, number | boolean>;
+  const sources = eff.sources as Record<string, "default" | "env" | "custom">;
+  return spec.map((s) => ({
+    key: s.key,
+    label: s.label,
+    group: s.group,
+    kind: s.kind,
+    unit: s.kind === "number" ? s.unit : "",
+    scale: s.kind === "number" ? s.scale : 1,
+    min: s.kind === "number" ? s.min : 0,
+    max: s.kind === "number" ? s.max : 1,
+    step: s.kind === "number" ? s.step : 1,
+    value: values[s.key],
+    source: sources[s.key],
+    defaultDisplay: formatSettingValue(s, s.default),
+    blurb: s.blurb,
+    cites: s.cites.map((short) => {
+      const url = findCitation(short)?.url;
+      return url ? { short, url } : { short };
+    }),
+  }));
+}
 
 export default async function AdminPage() {
   // Pre-launch curtain: the desk stays in the tree but 404s until launch
@@ -61,25 +101,11 @@ export default async function AdminPage() {
   }
 
   const universeEff = effectiveUniverseSettings();
-  const universePanel: PanelSetting[] = UNIVERSE_SETTINGS_SPEC.map((s) => ({
-    key: s.key,
-    label: s.label,
-    group: s.group,
-    kind: s.kind,
-    unit: s.kind === "number" ? s.unit : "",
-    scale: s.kind === "number" ? s.scale : 1,
-    min: s.kind === "number" ? s.min : 0,
-    max: s.kind === "number" ? s.max : 1,
-    step: s.kind === "number" ? s.step : 1,
-    value: universeEff.values[s.key as keyof typeof universeEff.values],
-    source: universeEff.sources[s.key as keyof typeof universeEff.sources],
-    defaultDisplay: formatSettingValue(s, s.default),
-    blurb: s.blurb,
-    cites: s.cites.map((short) => {
-      const url = findCitation(short)?.url;
-      return url ? { short, url } : { short };
-    }),
-  }));
+  const universePanel = toPanelSettings(UNIVERSE_SETTINGS_SPEC, universeEff);
+
+  const bottleneckEff = effectiveBottleneckSettings();
+  const bottleneckPanel = toPanelSettings(BOTTLENECK_SETTINGS_SPEC, bottleneckEff);
+  const playbooks = allPlaybooks().map((p) => ({ id: p.id, label: p.label, builtIn: p.builtIn }));
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -121,6 +147,30 @@ export default async function AdminPage() {
             key={JSON.stringify(universeEff.values)}
             groups={UNIVERSE_SETTING_GROUPS}
             settings={universePanel}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="bottleneck-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="bottleneck-h" className="eyebrow">
+            Bottleneck desk
+          </h2>
+          <span className="chip">$0 · NO RESEARCH CAPACITY</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          A separate research product sharing this database: it turns disclosed capital spending into
+          physical units and checks them against what can actually be supplied. It is deterministic —
+          filings and arithmetic — so it never draws on the research plan, and it never writes to a
+          pipeline table or touches the leaderboard.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <BottleneckSettingsPanel
+            key={JSON.stringify(bottleneckEff.values)}
+            groups={BOTTLENECK_SETTING_GROUPS}
+            settings={bottleneckPanel}
+            playbooks={playbooks}
           />
         </div>
       </section>

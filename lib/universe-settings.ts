@@ -1,5 +1,13 @@
-import { z } from "zod";
-import { getAppSettingJson, setAppSettingJson } from "./db";
+import {
+  boolSetting,
+  createSettingsRegistry,
+  formatSettingValue,
+  type BooleanSettingSpec,
+  type NumberSettingSpec,
+  type SettingSource,
+  type SettingSpec,
+  numSetting,
+} from "./settings-registry";
 
 /* ============================================================================
  * Stage-0 universe screen — settings registry & resolver.
@@ -10,7 +18,13 @@ import { getAppSettingJson, setAppSettingJson } from "./db";
  * override, and an owner override persisted in the DB (set from /admin).
  * Precedence: DB override > env var > default. The MAG8_UNIVERSE=0 kill switch
  * stays env-only and supreme (lib/universe.ts reads it per call).
+ *
+ * The resolver machinery itself lives in lib/settings-registry.ts, shared with
+ * the Bottleneck desk's own knobs — one precedence rule, one place.
  * ========================================================================== */
+
+export { formatSettingValue };
+export type { SettingSource };
 
 export type UniverseSettingGroupKey = "listing" | "size" | "solvency" | "pool" | "selection" | "ops";
 
@@ -47,40 +61,11 @@ export const UNIVERSE_SETTING_GROUPS: { key: UniverseSettingGroupKey; title: str
   },
 ];
 
-interface SpecBase {
-  key: string;
-  label: string;
-  group: UniverseSettingGroupKey;
-  envVar: string;
-  /** Plain-language rationale, including measurement caveats. Shown on /admin and /methodology. */
-  blurb: string;
-  /** Compact short cites resolving in lib/citations.ts (e.g. "Kumar 2009"). */
-  cites: string[];
-}
+export type UniverseSettingSpec = SettingSpec<UniverseSettingGroupKey>;
+export type { NumberSettingSpec, BooleanSettingSpec };
 
-export interface NumberSettingSpec extends SpecBase {
-  kind: "number";
-  default: number;
-  min: number;
-  max: number;
-  step: number;
-  /** Display divisor for the admin input (raw USD stays raw in logic). */
-  scale: number;
-  unit: string;
-  integer?: boolean;
-}
-
-export interface BooleanSettingSpec extends SpecBase {
-  kind: "boolean";
-  default: boolean;
-}
-
-export type UniverseSettingSpec = NumberSettingSpec | BooleanSettingSpec;
-
-const num = (
-  s: Omit<NumberSettingSpec, "kind" | "scale" | "unit"> & { scale?: number; unit?: string },
-): NumberSettingSpec => ({ kind: "number", scale: 1, unit: "", ...s });
-const bool = (s: Omit<BooleanSettingSpec, "kind">): BooleanSettingSpec => ({ kind: "boolean", ...s });
+const num = numSetting<UniverseSettingGroupKey>;
+const bool = boolSetting<UniverseSettingGroupKey>;
 
 export const UNIVERSE_SETTINGS_SPEC: UniverseSettingSpec[] = [
   /* ---- Listing hygiene ---- */
@@ -439,105 +424,29 @@ export interface UniverseSettings {
 
 export type UniverseSettingKey = keyof UniverseSettings;
 
-export type SettingSource = "default" | "env" | "custom";
-
-/** DB key holding the owner's overrides (partial map of key → value). */
-const OVERRIDES_KEY = "universe_settings";
-
-const specByKey = new Map(UNIVERSE_SETTINGS_SPEC.map((s) => [s.key, s]));
-
-function clampNumber(spec: NumberSettingSpec, raw: number): number {
-  const v = Math.min(spec.max, Math.max(spec.min, raw));
-  return spec.integer ? Math.round(v) : v;
-}
-
-function envValue(spec: UniverseSettingSpec): number | boolean | undefined {
-  const raw = process.env[spec.envVar]?.trim();
-  if (!raw) return undefined;
-  if (spec.kind === "boolean") {
-    if (raw === "0" || raw.toLowerCase() === "false") return false;
-    if (raw === "1" || raw.toLowerCase() === "true") return true;
-    return undefined;
-  }
-  const n = Number(raw);
-  return Number.isFinite(n) ? clampNumber(spec, n) : undefined;
-}
-
-/** Overrides validator: unknown keys dropped, numbers clamped to the spec range. */
-export function cleanOverrides(input: unknown): Partial<UniverseSettings> {
-  const parsed = z.record(z.string(), z.union([z.number(), z.boolean()])).safeParse(input);
-  if (!parsed.success) return {};
-  const out: Record<string, number | boolean> = {};
-  for (const [key, value] of Object.entries(parsed.data)) {
-    const spec = specByKey.get(key);
-    if (!spec) continue;
-    if (spec.kind === "boolean" && typeof value === "boolean") out[key] = value;
-    if (spec.kind === "number" && typeof value === "number" && Number.isFinite(value)) {
-      out[key] = clampNumber(spec, value);
-    }
-  }
-  return out as Partial<UniverseSettings>;
-}
+const registry = createSettingsRegistry<UniverseSettingGroupKey, UniverseSettings>({
+  spec: UNIVERSE_SETTINGS_SPEC,
+  storageKey: "universe_settings",
+});
 
 export interface EffectiveUniverseSettings {
   values: UniverseSettings;
   sources: Record<UniverseSettingKey, SettingSource>;
 }
 
-/** Effective settings with per-key provenance. Reads the DB overrides each call — cheap, and /admin edits apply to the very next run. */
-export function effectiveUniverseSettings(): EffectiveUniverseSettings {
-  const overrides = cleanOverrides(getAppSettingJson(OVERRIDES_KEY));
-  const values = {} as Record<string, number | boolean>;
-  const sources = {} as Record<string, SettingSource>;
-  for (const spec of UNIVERSE_SETTINGS_SPEC) {
-    const fromDb = (overrides as Record<string, number | boolean>)[spec.key];
-    const fromEnv = envValue(spec);
-    if (fromDb !== undefined) {
-      values[spec.key] = fromDb;
-      sources[spec.key] = "custom";
-    } else if (fromEnv !== undefined) {
-      values[spec.key] = fromEnv;
-      sources[spec.key] = "env";
-    } else {
-      values[spec.key] = spec.default;
-      sources[spec.key] = "default";
-    }
-  }
-  return {
-    values: values as unknown as UniverseSettings,
-    sources: sources as Record<UniverseSettingKey, SettingSource>,
-  };
-}
+/** Overrides validator: unknown keys dropped, numbers clamped to the spec range. */
+export const cleanOverrides = registry.clean;
 
-export function universeSettings(): UniverseSettings {
-  return effectiveUniverseSettings().values;
-}
+/** Effective settings with per-key provenance. Reads the DB overrides each call — cheap, and /admin edits apply to the very next run. */
+export const effectiveUniverseSettings = registry.effective;
+
+export const universeSettings = registry.values;
 
 /** Defaults + env only (no DB overrides) — what /admin diffs against when persisting, so a value typed back to its baseline reverts to default/env provenance. */
-export function baselineUniverseSettings(): UniverseSettings {
-  const values = {} as Record<string, number | boolean>;
-  for (const spec of UNIVERSE_SETTINGS_SPEC) {
-    values[spec.key] = envValue(spec) ?? spec.default;
-  }
-  return values as unknown as UniverseSettings;
-}
+export const baselineUniverseSettings = registry.baseline;
 
 /** Persist the owner's overrides (replaces the stored set; pass {} to reset everything to defaults/env). */
-export function saveUniverseOverrides(input: unknown): Partial<UniverseSettings> {
-  const cleaned = cleanOverrides(input);
-  setAppSettingJson(OVERRIDES_KEY, cleaned);
-  return cleaned;
-}
+export const saveUniverseOverrides = registry.save;
 
-/** Pretty-print a setting value for UI/methodology (respects scale + unit; "$B" units read "$1B", 1-of-plural units singularize). */
-export function formatSettingValue(spec: UniverseSettingSpec, value: number | boolean): string {
-  if (spec.kind === "boolean") return value ? "on" : "off";
-  const n = Number(value) / spec.scale;
-  const shown = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-  let unit = spec.unit;
-  if (!unit) return shown;
-  if (unit.startsWith("$")) return `$${shown}${unit.slice(1)}`;
-  if (unit.startsWith("%")) return `${shown}${unit}`;
-  if (n === 1 && unit.endsWith("s")) unit = unit.slice(0, -1);
-  return `${shown} ${unit}`;
-}
+/** Store only the values differing from the default/env baseline — the shape /admin saves. */
+export const saveUniverseDiff = registry.saveDiff;
