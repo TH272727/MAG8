@@ -1193,6 +1193,26 @@ export function listBottleneckSnapshots<T = unknown>(
   return rows.map((r) => toBottleneckSnapshot<T>(r)).filter((x): x is BottleneckSnapshotRow<T> => x !== null);
 }
 
+/**
+ * Remove snapshots by id. Shape-agnostic on purpose — this file never inspects
+ * a payload, so deciding WHICH rows are unusable belongs to lib/bottleneck.
+ */
+export function deleteBottleneckSnapshots(ids: number[]): number {
+  if (ids.length === 0) return 0;
+  const db = getDb();
+  let removed = 0;
+  const tx = db.transaction(() => {
+    for (let i = 0; i < ids.length; i += 400) {
+      const chunk = ids.slice(i, i + 400);
+      removed += db
+        .prepare(`DELETE FROM bottleneck_snapshots WHERE id IN (${chunk.map(() => "?").join(",")})`)
+        .run(...chunk).changes;
+    }
+  });
+  tx();
+  return removed;
+}
+
 export function latestBottleneckSnapshot<T = unknown>(
   kind: BottleneckSnapshotKind,
   playbookId: string,

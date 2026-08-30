@@ -192,8 +192,27 @@ export async function edgarFetch(url: string, opts: EdgarFetchOptions = {}): Pro
   }
 
   if (lastErr instanceof EdgarError) throw lastErr;
-  const detail = lastErr instanceof Error ? lastErr.message : String(lastErr);
-  throw new EdgarError(`SEC request failed after ${retries + 1} attempts: ${detail}`, url);
+  throw new EdgarError(`SEC request failed after ${retries + 1} attempts: ${describeFetchError(lastErr)}`, url);
+}
+
+/**
+ * Undici reports every transport failure as the same three words — "fetch
+ * failed" — and puts the actual reason in `cause`. Reporting only the message
+ * turns a DNS failure, a refused connection, a TLS problem and a timeout into
+ * one indistinguishable string, which is how a network fault ends up looking
+ * like a code fault. Unwrap the chain.
+ */
+export function describeFetchError(err: unknown): string {
+  const parts: string[] = [];
+  let cur: unknown = err;
+  for (let depth = 0; cur instanceof Error && depth < 4; depth++) {
+    const code = (cur as { code?: string }).code;
+    parts.push(code ? `${cur.message} (${code})` : cur.message);
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  if (parts.length === 0) return String(err);
+  // Duplicated frames add nothing; undici often repeats the same text.
+  return [...new Set(parts)].join(" ← ");
 }
 
 /** edgarFetch + JSON.parse, with a clear error when the envelope is not JSON. */
