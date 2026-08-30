@@ -13,6 +13,12 @@ import {
   effectiveUniverseSettings,
   formatSettingValue,
 } from "@/lib/universe-settings";
+import {
+  BOTTLENECK_SETTING_GROUPS,
+  BOTTLENECK_SETTINGS_SPEC,
+  effectiveBottleneckSettings,
+} from "@/lib/bottleneck-settings";
+import { DEFAULT_PLAYBOOK_ID, getPlaybook, usesPlaceholderFactors } from "@/lib/bottleneck/playbook";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +152,89 @@ function UniverseScreenSection() {
         delivered pick sits outside the band or trips a solvency check, the run says so in its
         published gap notes.
       </p>
+    </section>
+  );
+}
+
+/**
+ * The Bottleneck desk's disclosure. Like the Stage-0 section above, every
+ * threshold here is the LIVE effective value from the desk's own resolver
+ * (defaults → env → operator overrides), so the page and the desk cannot drift
+ * apart. The conversion factors are deliberately NOT here: they belong to a
+ * theme's playbook rather than to the operator, and the desk publishes each one
+ * with its source beside the number it produced.
+ */
+function BottleneckSection() {
+  const eff = effectiveBottleneckSettings();
+  const shown = BOTTLENECK_SETTINGS_SPEC.filter((s) => s.group !== "ops");
+  const playbook = getPlaybook(DEFAULT_PLAYBOOK_ID);
+  return (
+    <section id="bottleneck" className="mt-12 scroll-mt-24" aria-labelledby="bottleneck-h">
+      <h2 id="bottleneck-h" className="eyebrow">
+        The Bottleneck desk — a second product, measured not judged
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        The leaderboard above is a judgment engine. <Link href="/bottleneck" className="underline underline-offset-2 hover:text-ink">The Bottleneck desk</Link>{" "}
+        is not: it is arithmetic over public filings, with no model anywhere in it. Any growth story
+        implies a physical quantity of something — megawatts, gigabytes, square feet — and the desk
+        reads the capital spending those companies have already disclosed, converts it into those
+        physical units, and compares how fast that demand is growing against how fast the world&apos;s
+        ability to supply it is growing. The widest gap is the tightest constraint. A{" "}
+        <em>narrowing</em> gap is reported exactly as prominently as a widening one.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        It shares this application&apos;s database and its SEC connection and nothing else. It cannot
+        write to a run, a candidate, a score, or the board; no reading it takes can move a ranking, and
+        no ranking can change what it reads.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {BOTTLENECK_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((s) => s.group === g.key)
+                .map((s) => (
+                  <div key={s.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">{s.label}</dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(s, eff.values[s.key as keyof typeof eff.values])}
+                      {eff.sources[s.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      {playbook && (
+        <p className="mt-3 max-w-2xl text-[13px] text-dim">
+          What the desk looks at for a given theme — whose spending to read, which filing tags carry it,
+          how those dollars become physical units, which series constrain them, and who produces each
+          one — lives in that theme&apos;s playbook rather than in the dials above, because it changes
+          per theme rather than per operator.{" "}
+          {usesPlaceholderFactors(playbook) ? (
+            <>
+              The conversion factors currently shipped with <span className="text-ink">{playbook.label}</span>{" "}
+              are still seeded placeholders, and the desk says so on its own page: the growth rates and
+              the ranking do not depend on them — a rate is unaffected by the constant it is divided by —
+              but the absolute physical quantities are order-of-magnitude arithmetic until sourced
+              benchmarks replace them.
+            </>
+          ) : (
+            <>
+              Every conversion factor carries its source and an as-of date, the table carries a version,
+              and each reading records the version that produced it — so a number computed today stays
+              auditable after the assumptions change.
+            </>
+          )}
+        </p>
+      )}
     </section>
   );
 }
@@ -299,6 +388,9 @@ export default function MethodologyPage() {
           </p>
         </div>
       </section>
+
+      {/* The Bottleneck desk — live effective settings from its own resolver */}
+      <BottleneckSection />
 
       {/* Rubric — rendered from the same constants the pipeline enforces */}
       <section className="mt-12" aria-labelledby="rubric-h">

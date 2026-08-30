@@ -28,7 +28,7 @@ export interface Citation {
 }
 
 export interface CitationGroup {
-  key: "fundamentals" | "macro" | "consensus" | "discovery" | "universe" | "rubric";
+  key: "fundamentals" | "macro" | "consensus" | "discovery" | "universe" | "rubric" | "bottleneck";
   title: string;
   intro: string;
   works: Citation[];
@@ -579,6 +579,98 @@ export const CITATION_GROUPS: CitationGroup[] = [
         finding:
           "If each judge on a binary question is independently more likely right than wrong, the probability the majority is correct rises as judges are added.",
         usedFor: `The confluence bonus (+${CONFLUENCE_BONUS} points only when all three lenses independently lean bullish) is this logic in arithmetic form — with the honest caveat that lenses reading overlapping market data are only partially independent, which is why the bonus is small and disclosed.`,
+      },
+    ],
+  },
+  {
+    key: "bottleneck",
+    title: "The Bottleneck desk",
+    intro:
+      "A separate research product: it reads disclosed capital spending out of SEC filings, converts it into the physical things that money has to buy, and checks each against what can actually be produced. The works below ground why a physical constraint is worth measuring, why the supply side moves slowly, what a quarterly holdings disclosure can and cannot tell anyone — and, deliberately included, the evidence that runs AGAINST reading heavy spending as a buy signal.",
+    works: [
+      {
+        short: "Carvalho & Tahbaz-Salehi 2019",
+        authors: "Carvalho, V. M., & Tahbaz-Salehi, A.",
+        year: "2019",
+        title: "Production Networks: A Primer",
+        source: "Annual Review of Economics, 11, 635–663",
+        url: "https://doi.org/10.1146/annurev-economics-080218-030212",
+        finding:
+          "Reviews the theory and evidence for input–output linkages as a propagation channel: shocks to individual firms and sectors travel along supply relationships and can aggregate into economy-wide fluctuations rather than washing out.",
+        usedFor:
+          "The premise that a constrained physical input is worth measuring at all — a shortage in one input does not stay in one industry, it propagates to everyone downstream who needs it.",
+      },
+      {
+        short: "Jacks 2019",
+        authors: "Jacks, D. S.",
+        year: "2019",
+        title: "From boom to bust: a typology of real commodity prices in the long run",
+        source: "Cliometrica, 13(2), 201–220",
+        url: "https://doi.org/10.1007/s11698-018-0173-5",
+        finding:
+          "Across 40 commodities from 1900 to 2015, real prices show large and long-lived deviations from their underlying trends — medium-run cycles punctuated by boom/bust episodes that are historically pervasive.",
+        usedFor:
+          "Why the desk compares rates of change over years rather than calling a shortage from one reading: a gap between demand and supply growth can persist far longer than a quarter, and closes on the same slow schedule.",
+      },
+      {
+        short: "SEC Form 13F",
+        authors: "U.S. Securities and Exchange Commission",
+        year: "2023",
+        title: "Frequently Asked Questions About Form 13F (and Rule 13f-1 under the Securities Exchange Act of 1934)",
+        source: "SEC Division of Investment Management staff guidance",
+        url: "https://www.sec.gov/rules-regulations/staff-guidance/division-investment-management-frequently-asked-questions/frequently-asked-questions-about-form-13f",
+        finding:
+          "A manager with discretion over $100 million or more in section 13(f) securities must file within 45 days of quarter end. Short positions are not reported and may not be netted against longs, shares traded on non-US exchanges are excluded, and since 3 January 2023 values are rounded to the nearest dollar rather than the nearest thousand.",
+        usedFor:
+          "Every disclosure the clone carries comes from this rule: the lag banner, the long-only caveat, and the dollars-versus-thousands branch that reads a pre-2023 filing correctly instead of understating a book by a factor of a thousand.",
+      },
+      {
+        short: "Frank, Poterba, Shackelford & Shoven 2004",
+        authors: "Frank, M. M., Poterba, J. M., Shackelford, D. A., & Shoven, J. B.",
+        year: "2004",
+        title: "Copycat Funds: Information Disclosure Regulation and the Returns to Active Management in the Mutual Fund Industry",
+        source: "Journal of Law and Economics, 47(2), 515–541",
+        url: "https://doi.org/10.1086/422982",
+        finding:
+          "Funds built by copying disclosed holdings once they became public earned less than the funds they copied before expenses, but after expenses their returns were statistically indistinguishable from — and possibly higher than — the originals.",
+        usedFor:
+          "Why reading a manager's disclosed book is worth doing at all, and equally why the desk never presents it as an edge: the copying worked because fees are certain and the alpha was not.",
+      },
+      {
+        short: "Griffin & Xu 2009",
+        authors: "Griffin, J. M., & Xu, J.",
+        year: "2009",
+        title: "How Smart Are the Smart Guys? A Unique View from Hedge Fund Stock Holdings",
+        source: "The Review of Financial Studies, 22(7), 2531–2570",
+        url: "https://doi.org/10.1093/rfs/hhp026",
+        finding:
+          "Reading hedge funds' own disclosed equity holdings, they beat mutual funds at stock picking by only 1.32% a year value-weighted — insignificant equal-weighted — with no ability to time sectors or pick better styles, and only weak evidence that some managers are reliably better than others.",
+        usedFor:
+          "The counterweight to cloning anyone: a disclosed institutional book is information, not proof of an edge, and the desk labels it accordingly rather than treating a famous filer's positions as validation.",
+      },
+      {
+        short: "Titman, Wei & Xie 2004",
+        authors: "Titman, S., Wei, K. C. J., & Xie, F.",
+        year: "2004",
+        title: "Capital Investments and Stock Returns",
+        source: "Journal of Financial and Quantitative Analysis, 39(4), 677–700",
+        url: "https://doi.org/10.1017/S0022109000003173",
+        finding:
+          "Firms that substantially increase capital investment subsequently earn NEGATIVE benchmark-adjusted returns, most strongly where managers have the most investment discretion — consistent with investors underreacting to empire building.",
+        usedFor:
+          "The desk reads capital spending as a measure of physical demand, never as a bullish signal about the spender. This work is why that distinction is stated on the page rather than left implicit.",
+      },
+      {
+        short: "Cooper, Gulen & Schill 2008",
+        authors: "Cooper, M. J., Gulen, H., & Schill, M. J.",
+        year: "2008",
+        title: "Asset Growth and the Cross-Section of Stock Returns",
+        source: "The Journal of Finance, 63(4), 1609–1651",
+        url: "https://doi.org/10.1111/j.1540-6261.2008.01370.x",
+        finding:
+          "From 1968 to 2003 the lowest asset-growth decile returned about 26% a year against about 6% for the highest — a ~20-point spread, and still about 13 points value-weighted. Asset growth was a stronger predictor of the cross-section than size, book-to-market, or momentum.",
+        usedFor:
+          "The most inconvenient result in this evidence base, and the reason the exposure audit says so in plain words: the companies spending hardest on the constrained inputs this desk tracks are, historically, the ones whose shares went on to do worst.",
       },
     ],
   },
