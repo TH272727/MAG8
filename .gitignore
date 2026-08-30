@@ -20,3 +20,9 @@ db/
 # misc
 .DS_Store
 npm-debug.log*
+
+# scratch: chunk-feed upload staging (~1.6 GB of remuxed mp4s, owner-deletable)
+.uploads-tmp/
+
+# scratch: throwaway probe scripts (the `scripts/__*` convention — write, run, delete)
+scripts/__*

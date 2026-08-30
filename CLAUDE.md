@@ -1,4 +1,4 @@
-# Mag8 — agent notes, state 2026-07-26. README = user-facing; this file = authoritative. One commit per phase (`git log`).
+# Mag8 — agent notes, state 2026-08-30. README = user-facing; this file = authoritative. One commit per phase (`git log`).
 Four-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S0 `lib/universe.ts`
 deterministic universe screen ($0, no model; weekly snapshot; NASDAQ+NYSE+AMEX + SEC XBRL fundamentals, every knob
 owner-tunable — see universe-settings entry) hands S1 a ~300-name screened pool (top-100 fundamentals-RANKED head
@@ -72,15 +72,40 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   `setEdgarCacheAdapter`), 403="your User-Agent"/404/429-backoff. 7 endpoints: resolveTickerToCik ·
   getSubmissions (**field is `reportDate`, NOT periodOfReport**) · getCompanyConcept · getCompanyFacts ·
   fullTextSearch · getFilingIndex (**exhibit filenames VARY — pattern-match, never guess**) · fetchFilingDocument
-- `lib/bottleneck/` THE BOTTLENECK DESK — second product, deterministic, $0, ZERO plan-window draw. See
-  HANDOFF-2026-08-30-bottleneck-desk.md. `playbook.ts` the ONLY sector-specific input (basket + tag chain +
-  versioned/sourced conversion table + supply series + owner map; built-ins in code, custom in app_settings);
+- `lib/bottleneck/` THE BOTTLENECK DESK — second product, deterministic, $0, ZERO plan-window draw. FEATURE-
+  COMPLETE (phases 1–8). See HANDOFF-2026-08-30-bottleneck-desk.md (1–4) + -phases-5-8.md (5–8).
+  `playbook.ts` the ONLY sector-specific input (basket + tag chain + versioned/sourced conversion table +
+  supply series + owner map; built-ins in code, custom in app_settings) — THREE themes now: ai-infrastructure,
+  ev-battery-supply-chain, homebuilding (the last deliberately does NOT fit the capex shape: builders
+  capitalize land into INVENTORY, so its tag chain reads the inventory build and figures can go negative);
   `xbrl.ts` de-cumulation (capex is filed fiscal-YTD — naive "latest 10-Q" = 2.8× error; quarters MUST sum to
-  the filed FY); `demand.ts` Module B (**freshest tag wins, NOT first populated** — AMZN/NVDA migrated tags and
-  first-match reads 2017 numbers as current); `supply.ts` Module C connectors (fred/filing-search/manual/stub,
-  one interface one table); `score.ts` PURE gap scoring (compares RATES not levels; `easing` is a first-class
-  verdict; unmeasured ranks LAST); `desk.ts` orchestration + `priorReading()`; `lib/bottleneck-settings.ts`
-  12 knobs via the shared `lib/settings-registry.ts` (same DB>env>default resolver as the universe screen)
+  the filed FY) + `conceptFromFacts()` (**companyconcept can return `units:{USD:{}}` where companyfacts has
+  158 facts** — Ford; fallback fires ONLY when the whole chain is empty); `demand.ts` Module B (**freshest tag
+  wins, NOT first populated** — AMZN/NVDA migrated tags and first-match reads 2017 numbers as current; +2
+  fragility flags: <50% of gross surviving netting, and YoY >1000% off a near-zero base); `supply.ts` Module C
+  connectors (fred/filing-search/manual/stub, one interface one table); `score.ts` PURE gap scoring (compares
+  RATES not levels; `easing` is a first-class verdict; unmeasured ranks LAST); `desk.ts` orchestration +
+  `priorReading()`; `lib/bottleneck-settings.ts` 12 knobs via the shared `lib/settings-registry.ts` (same
+  DB>env>default resolver as the universe screen)
+- `lib/bottleneck/thirteenf.ts` Module A — 13F clone, namespace-agnostic (`<(?:\w+:)?infoTable>`; a
+  prefix-blind parser returns ZERO rows silently). `DOLLAR_CONVENTION_FROM='2023-01-03'` branches on FILING
+  date (dollars on/after, THOUSANDS before — SEC's own FAQ, now cited); `REPORTING_THRESHOLD_USD` = a free
+  independent check on that (a filed book under $100M was read in the wrong units). Info-table filename is
+  index-discovered, NEVER `primaryDocument` (an XSL cover page). Diff classifies by SHARE COUNT not value (a
+  price move is not a trade). Options kept visible, never folded in. Holdings/diff PUBLIC, sizing ADMIN-ONLY
+  (server-decided + action re-checks), never wired to a broker.
+- `lib/bottleneck/cusip.ts` identifier resolution, ORDER IS THE FIX: OpenFIGI `exchCode:"US"` → universe-
+  snapshot name match → OpenFIGI unrestricted (labelled `openfigi-foreign`) → unresolved-but-visible. Ranking
+  the unrestricted lookup higher returned **`1B2`, a Frankfurt symbol, for Nasdaq-listed Bitfarms**.
+  `isUsListing()` gates consequences — a foreign-only row gets a $ weight and NO share count. **Id type is
+  decided by identifier SHAPE: leading letter = `ID_CINS` (G11448100→BTDR), digit = `ID_CUSIP`** — a retry
+  without exchCode does NOT rescue a CINS, and the reverse is "Invalid idValue format". Keyless: 25 req/min,
+  10 ids/req. Failures cached ONLY when the service actually answered; an unknown cached `source` = re-resolve
+- `lib/bottleneck/exposure.ts` Module D — ADMIN-ONLY, holdings in ONE `app_settings` key (no accounts, no
+  table, no broker). CSV/paste parser REPORTS unreadable lines rather than dropping them; comma is both
+  delimiter and thousands separator (quote it, or use tabs). Categories ordered by the DESK's ranking, not by
+  exposure. Flags absence-from-tightest + concentration; ALWAYS states the counter-evidence (heavy capex
+  historically predicts WORSE returns). Reports and flags — never proposes a trade
 - `lib/orchestrator/`: `agent.ts` is the ONLY `query()` caller; `prompts.ts` stage wrappers (date, coverage,
   modifier, selection-quota, blind select/research, shared `discoveryOutputContract`, naming discipline);
   `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same persist+emit path; `index.ts` executeRun
@@ -178,7 +203,11 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 - Headless Edge freezes rAF (framer stuck, recharts blank): add `--virtual-time-budget=12000
   --run-all-compositor-stages-before-draw` (+ `--enable-unsafe-swiftshader` for WebGL). Virtual time
   fast-forwards timers — mid-flight shots need plain `--timeout`; throttled EventSource shows CONNECTING.
-- `next build` during `next dev` shares `.next` → dev serves 404 CSS (delete `.next`, restart). CRLF commit warnings
+- **`next build` while `next dev` is running shares `.next` and CORRUPTS the running dev server.** Symptoms range
+  from 404 CSS to a hard 500 on every route with `Cannot find module './611.js'` / `Require stack: .next/server/
+  webpack-runtime.js` and NO UI at all (hit 2026-08-30 — the build overwrote chunks the dev server had already
+  resolved). Fix: STOP every dev server, `rm -rf .next`, restart dev. Prevention: never run `npm run build` with a
+  dev server up — kill it first (`Get-NetTCPConnection -LocalPort 3000 …`), build, then restart. CRLF commit warnings
   are noise (`git -c core.safecrlf=false`). `Expand-Archive` refuses `.skill` (use .NET ZipFile). tsx skips env files
   (`run-pipeline.ts` calls `process.loadEnvFile()`). Write tool once mangled control-char escapes — `\x`-escape + verify.
 - Git-Bash: multi-line `npx tsx -e '…'` prints NOTHING (write `scripts/__*-probe.ts`, run, delete); it mangles
@@ -200,16 +229,23 @@ npm run pipeline -- --full [--count N] [--force] [--mock] [--focus "…"] [--bli
 npm run pipeline -- --resume RUN_ID                     # finish a stopped run IN PLACE (headless twin of the button)
 npm run pipeline -- --lens-probe TICKER [--effort L]    # one-cell A/B comparator
 npm run audit:salience                                  # fame-bias readout over all real runs ($0; between runs only)
+npm run test                                            # vitest, offline, 228 tests (the deterministic half)
+npm run bottleneck -- --probe                           # live EDGAR + OpenFIGI smoke; all PASS, exit 0
+npm run bottleneck -- --13f CIK|NAME [--offline] [--force] [--balance USD]   # clone a filer's book + diff
+npm run bottleneck -- --refresh [PLAYBOOK] [--dry] [--reuse-demand]          # demand + supply, score the gaps
 ```
 Fixture regression (`npm run seed`): ASTS 90.3 pass+confluence, RKLB 73.9, TMDX 69.5, SYM 51.5, IONQ 47.9,
 CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×gt cell (CRSP → 46.4 + gap note);
 ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any public-surface change): render `/`,
-`/rankings`, `/methodology`, `/lab`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
+`/rankings`, `/methodology`, `/lab`, `/bottleneck` (+`?playbook=<id>`), `/bottleneck/clone?cik=<n>`,
+`/bottleneck/exposure`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
 NB the grep bans the bare ENGLISH words too — public copy must write around skill/agent vocabulary
-(Grinold citation reworded "skill"→"edge" 2026-07-13; blurbs on /admin are exempt, /methodology is not).
+(Grinold citation reworded "skill"→"edge" 2026-07-13; Griffin&Xu cite reworded "not skill"→"not proof of an
+edge" 2026-08-30; blurbs on /admin are exempt, /methodology is not). Curl a dev page mid-recompile and you get
+a ~3KB Next shell that greps clean — check `wc -c` before trusting a 0.
 
 ## State & open items (deep detail: `HANDOFF-*.md`; video rulebook: `marketing/video/CLAUDE.md`;
 video OWNER FORMULA: `marketing/video/FORMULA.md` — every owner video request, compounding:
@@ -455,12 +491,49 @@ MY OWN MISDIAGNOSIS, corrected: FRED looked unreachable from Node (resets across
 and I built a curl fallback on it — wrong, FRED just hangs on spoofed `Mozilla/5.0` and undici's default UA and
 answers an honest one in 269ms; fallback removed. Gates: tsc, 120 vitest, seed EXACT, gen:bib no-op, build,
 probe, leak 0-hit on /bottleneck (only the 2 homepage 26-AGENTS exceptions), curtain 404 verified.
-NOT PUSHED — branch `feat/bottleneck-desk`, 4 commits off bfaff44.
-NEXT: Phase 5 Module A 13F clone (namespace-agnostic parser; the **2023-01-03 dollars-vs-thousands** branch as a
-named constant; OpenFIGI works KEYLESS but fails foreign CINS → retry w/o exchCode → name-match the universe
-snapshot), Phase 6 exposure, Phase 7 methodology + citations + CLAUDE.md/memory. OPEN: all 4 conversion factors
+NOT PUSHED — branch `feat/bottleneck-desk`. OPEN: all 4 conversion factors
 are seeded PLACEHOLDERS (they don't affect the ranking — a rate is unaffected by its divisor — but absolute
 units are order-of-magnitude only; replacing them is research, not code, and is the highest-value item left);
 2 categories unmeasured; pixel-level 375px never verified (headless Chrome AND Edge return an EMPTY DOM in this
 environment — new quirk, structural check used instead).
+2026-08-30 later (Code): BOTTLENECK PHASES 5–8 — the desk is FEATURE-COMPLETE against the source prompts
+(HANDOFF-2026-08-30-bottleneck-phases-5-8.md). Owner: "resume working through all left over phases". (5) Module A
+13F clone — fixture reproduces EXACTLY (26 rows → 23 long $20,169,035,068 + 3 options $73,257,160, SNDK 28.13%);
+holdings/diff PUBLIC, sizing ADMIN-ONLY, never broker-wired; diff classifies by SHARE COUNT (a price move is not
+a trade). MY OWN WRONG NUMBER, caught live and fixed: the resolution ladder ranked an unrestricted OpenFIGI
+lookup above the local snapshot and returned **`1B2`, a Frankfurt symbol, for Nasdaq-listed Bitfarms** — US
+sources now outrank it and a foreign-only row gets a $ weight but NO share count. Also better than the plan:
+a foreign CINS needs **idType `ID_CINS`**, not a retry without exchCode (which fails identically). (6) Module D
+exposure — admin-only, one app_settings key, orders categories by the DESK's ranking, ALWAYS states the
+counter-evidence. (7) /methodology#bottleneck renders LIVE effective settings; +7 citations in a new `bottleneck`
+group, each verified against the primary source this session — incl. Titman/Wei/Xie 2004 and Cooper/Gulen/Schill
+2008, the inconvenient ones (heavy capex → WORSE returns). **Homepage chip 44 → 51 ACADEMIC WORKS CITED** (auto-
+computed; public copy — flagged). Jacks 2019 is cited for long-lived deviations from trend, NOT the plan's
+"supply takes a decade" — the paper does not say that. (8) THREE themes (ai-infrastructure, ev-battery-supply-
+chain, homebuilding — the last deliberately does NOT fit the capex shape and says so); no-code playbook editor
+on /admin (validates whole-set or saves nothing); Lab seam = a URL and nothing else. Two general Module B wins
+from building them: `conceptFromFacts()` fallback (**companyconcept returns `units:{USD:{}}` where companyfacts
+has 158 facts** — Ford invisible; now $2.376B/$9.37B TTM) + 2 fragility flags (netting, near-zero-base YoY).
+FLAGSHIP REGRESSION HELD byte-identical: $573.72B TTM, +85.7%, 6/6, MW +81.9pp, memory +68.7pp. NOT DONE, needs
+the owner: the optional tool-less narrative brief (it puts a model into a deliberately model-free product).
+Asked "is all the work done?" I re-read the plan instead of recalling it and found TWO committed-scope misses,
+both now closed in `components/bottleneck/DeskControls.tsx` (server-gated, actions re-check the token): a manual
+**Refresh** on the desk (the plan forbids a scheduler and mandates "snapshot-on-read + a manual Refresh on the
+desk + a headless script" — only the script existed, so prod would have shown the last CLI run forever), and
+**hand-entered supply observations** — which made PUBLIC COPY UNTRUE, since the desk's own flags say "dated
+observations can be entered by hand" and there was no way to. Verified then cleaned up: a stub series at 0 obs
+went insufficient-data → TIGHTENING (supply +20%, gap +65.7pp) on 5 hand points, and back on delete; no invented
+data left in the DB. Unit comes from the playbook's series def, never the form. Still out of scope PER THE PLAN:
+cron/scheduler, push alerts, brokerage, accounts. Deviation: no tracked-filer list — /bottleneck/clone reaches
+any filer by search or ?cik=. OWNER-REPORTED BUG, fixed: clicking Refresh during a transient SEC transport outage read 0/6 and BLANKED THE
+DESK — the failed snapshot was persisted over a good $573.72B one. Three fixes, all general: (a) `describeFetchError()`
+unwraps undici's `cause` ("fetch failed" alone made DNS/refused/TLS/timeout indistinguishable); (b) **a reading in
+which NOTHING was read is never stored** — same rule as "a missing company is flagged, never a zero", applied to the
+basket; `buildDemandSnapshot` AND `refreshDesk` both withhold, and the action reports the transport reason not "0 of
+6"; (c) `priorReading` SKIPS dead readings — a gap measured against zero demand moves by the whole gap and reads as a
+fictional tightening that can trip the materiality flag. `latestDemand` also skips them on READ (un-blanks a desk with
+no refresh); `refreshDesk` sweeps them via `pruneUnusableReadings()`. 7 junk rows pruned. NB `_`-prefixed app dirs 404
+— a temp diagnostic route must NOT be named `__diag`. Gates: tsc, 231 vitest (was 120), seed EXACT, gen:bib 4× no-op,
+build, probe ALL PASS, leak 2-hit (homepage exception only) across 10 surfaces + snapshot JSON, curtain 404 on all
+three desk routes, admin gating verified with a real ADMIN_TOKEN (locked payload carries neither sizing nor controls).
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
