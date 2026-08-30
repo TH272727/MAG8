@@ -64,7 +64,23 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   YoY math never mixes tag variants), tag-drift chains (rev ×2, cash ×2, current securities ×3 MAX-not-sum: STI
   tag alone false-killed biotech runway), dei share-frame = instant-period coverage oracle (just-ended quarter
   sparse until 10-Qs land), same-quarter YoY shares, annual CY(y-1)+CY(y-2) merge. Fail-open per frame AND per
-  metric — missing data = PASS (IFRS/foreign filers unscreened, disclosed); coverage ~75-85% of band
+  metric — missing data = PASS (IFRS/foreign filers unscreened, disclosed); coverage ~75-85% of band.
+  **Transport now delegates to `lib/edgar.ts`** (2026-08-30) — public API byte-identical, frames pass
+  `cache:false` so the S0 path never imports db through the client
+- `lib/edgar.ts` SHARED EDGAR transport ONLY (no 13F/XBRL knowledge): MAG8_EDGAR_UA>MAG8_SEC_UA>default,
+  ONE global ≤10 req/s promise-chain queue every caller serializes into, opt-in SQLite cache (lazily bound via
+  `setEdgarCacheAdapter`), 403="your User-Agent"/404/429-backoff. 7 endpoints: resolveTickerToCik ·
+  getSubmissions (**field is `reportDate`, NOT periodOfReport**) · getCompanyConcept · getCompanyFacts ·
+  fullTextSearch · getFilingIndex (**exhibit filenames VARY — pattern-match, never guess**) · fetchFilingDocument
+- `lib/bottleneck/` THE BOTTLENECK DESK — second product, deterministic, $0, ZERO plan-window draw. See
+  HANDOFF-2026-08-30-bottleneck-desk.md. `playbook.ts` the ONLY sector-specific input (basket + tag chain +
+  versioned/sourced conversion table + supply series + owner map; built-ins in code, custom in app_settings);
+  `xbrl.ts` de-cumulation (capex is filed fiscal-YTD — naive "latest 10-Q" = 2.8× error; quarters MUST sum to
+  the filed FY); `demand.ts` Module B (**freshest tag wins, NOT first populated** — AMZN/NVDA migrated tags and
+  first-match reads 2017 numbers as current); `supply.ts` Module C connectors (fred/filing-search/manual/stub,
+  one interface one table); `score.ts` PURE gap scoring (compares RATES not levels; `easing` is a first-class
+  verdict; unmeasured ranks LAST); `desk.ts` orchestration + `priorReading()`; `lib/bottleneck-settings.ts`
+  12 knobs via the shared `lib/settings-registry.ts` (same DB>env>default resolver as the universe screen)
 - `lib/orchestrator/`: `agent.ts` is the ONLY `query()` caller; `prompts.ts` stage wrappers (date, coverage,
   modifier, selection-quota, blind select/research, shared `discoveryOutputContract`, naming discipline);
   `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same persist+emit path; `index.ts` executeRun
@@ -410,4 +426,41 @@ board) + audit tags blind runs. Disclosure: selection group on /admin+/methodolo
 citation Barber&Odean2008 (universe group, gen:bib no-op, chip→44). Gates: tsc clean, gen:bib no-op, seed EXACT
 (ASTS 90.3…ACHR 19.3 #8), next build clean, leak probe 0-hit across /,/rankings,/methodology,/lab,/stocks/ASTS,
 /runs + snapshot + SSE (only the 26-AGENTS homepage exception). NOT yet through a real run — Open (6).
+2026-08-30 (Code): BOTTLENECK DESK Phases 1–4 of 7 — a SECOND PRODUCT, not a pipeline stage
+(HANDOFF-2026-08-30-bottleneck-desk.md; plan `~/.claude/plans/i-just-dropped-two-logical-rabin.md`; source docs
+`bottleneck-research-framework.md` + `claude-code-implementation-prompts.md` at root). Owner: "built into mag8
+as a feature… its own separate feature not combined into the current mag8 stock analysis tool". Owner decisions:
+same app / named **Bottleneck** (`/bottleneck`, `bottleneck_*`) / 13F holdings public but sizing admin-only /
+vitest + live probe. KEY CALL: the framework is **Stage-0-shaped, not pipeline-shaped** (fetch→parse→arithmetic),
+so it costs $0 and draws ZERO plan window — keep models out of the critical path. Build order INVERTED vs the
+prompts: playbook config FIRST, so AI-infra is one instance not a later refactor. SEPARATION CONTRACT: desk
+writes only `edgar_cache`/`bottleneck_*`/`bottleneck_` app_settings, NEVER runs/candidates/lens_analyses/
+rankings/progress_events/universe_snapshots, never touches the leaderboard — enforced structurally (zero FKs
+into pipeline tables). Shipped: `lib/edgar.ts` shared transport (sec.ts delegates, byte-identical — CIK map
+10,391 + a 5,727-row frame hash identically, W32 screen fingerprints unchanged); shared
+`lib/settings-registry.ts` (all 24 universe settings verified identical after migration) + 12 desk knobs +
+/admin panel; Module B demand ($573.72B TTM across MSFT/AMZN/GOOGL/META/ORCL/NVDA, +85.7% YoY); Module C supply
++ scoring — **live reading: MW of critical IT load TIGHTENING at +81.9pp gap (demand +85.7% vs supply +3.8%),
+memory second at +68.7pp**, two categories honestly NOT MEASURED. FOUR live-data bugs found, all pinned by
+tests, all of which produced plausible WRONG NUMBERS with no error: (1) capex filed fiscal-YTD → naive latest-
+10-Q = 2.8× overstatement (Apple $6.799B vs a real $2.455B quarter); (2) TAG DRIFT — AMZN/NVDA migrated tags,
+first-populated-wins read Amazon's 2017 capex $1.86B against an actual $54.21B; (3) same quarter tagged twice
+(direct + inside the YTD run) inflated TTM — MSFT $127.43B → $115.95B = exactly its filed FY; (4) 13F info
+tables come BOTH unprefixed and `ns1:`-prefixed from the SAME filer, and a prefix-blind parser returns ZERO
+holdings silently. Also: 5 errors in the source prompts corrected (`reportDate` not `periodOfReport`; exhibit
+filenames vary; `primaryDocument` on a 13F is an XSL cover-page path; `Put`/`Call` title case and ABSENT on
+stock; no FIGI column) and the framework doc's claim about the reference fund's "multi-billion options overlay"
+is NOT what the filing says (23 long $20.169B vs 3 options $73.26M) — never encode a doc's characterisation.
+MY OWN MISDIAGNOSIS, corrected: FRED looked unreachable from Node (resets across every TLS/ALPN combo, curl fine)
+and I built a curl fallback on it — wrong, FRED just hangs on spoofed `Mozilla/5.0` and undici's default UA and
+answers an honest one in 269ms; fallback removed. Gates: tsc, 120 vitest, seed EXACT, gen:bib no-op, build,
+probe, leak 0-hit on /bottleneck (only the 2 homepage 26-AGENTS exceptions), curtain 404 verified.
+NOT PUSHED — branch `feat/bottleneck-desk`, 4 commits off bfaff44.
+NEXT: Phase 5 Module A 13F clone (namespace-agnostic parser; the **2023-01-03 dollars-vs-thousands** branch as a
+named constant; OpenFIGI works KEYLESS but fails foreign CINS → retry w/o exchCode → name-match the universe
+snapshot), Phase 6 exposure, Phase 7 methodology + citations + CLAUDE.md/memory. OPEN: all 4 conversion factors
+are seeded PLACEHOLDERS (they don't affect the ranking — a rate is unaffected by its divisor — but absolute
+units are order-of-magnitude only; replacing them is research, not code, and is the highest-value item left);
+2 categories unmeasured; pixel-level 375px never verified (headless Chrome AND Edge return an EMPTY DOM in this
+environment — new quirk, structural check used instead).
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
