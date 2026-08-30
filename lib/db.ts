@@ -1256,6 +1256,14 @@ export function getSupplySeries(seriesId: string, limit = 120): SupplyPoint[] {
     .reverse();
 }
 
+/** Total observations stored for a series (getSupplySeries caps its read window). */
+export function countSupplyPoints(seriesId: string): number {
+  const r = getDb()
+    .prepare(`SELECT COUNT(*) AS n FROM bottleneck_supply WHERE series_id=?`)
+    .get(seriesId) as { n: number };
+  return r.n;
+}
+
 export function listSupplySeriesIds(): { seriesId: string; points: number; latest: string }[] {
   return getDb()
     .prepare(

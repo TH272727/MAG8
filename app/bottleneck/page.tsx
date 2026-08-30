@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { launchMode } from "@/lib/config";
 import { latestDemand } from "@/lib/bottleneck/demand";
+import { scoreFromStored } from "@/lib/bottleneck/desk";
 import { fmtAge, fmtDay, fmtPct, fmtUnits, fmtUsd } from "@/lib/bottleneck/format";
+import type { CategoryScore, ConstraintStatus } from "@/lib/bottleneck/score";
 import { DEFAULT_PLAYBOOK_ID, getPlaybook } from "@/lib/bottleneck/playbook";
 
 export const dynamic = "force-dynamic";
@@ -14,12 +16,21 @@ export const metadata: Metadata = {
     "Dollars are elastic. Turbines aren't. The Bottleneck desk converts disclosed capital spending into physical units and checks them against what the world can actually produce.",
 };
 
+/** Status presentation. Gold is the leaderboard's verdict colour and is never used here. */
+const STATUS: Record<ConstraintStatus, { label: string; chip: string; accent: string }> = {
+  tightening: { label: "TIGHTENING", chip: "gate-caution", accent: "text-macro" },
+  easing: { label: "EASING", chip: "gate-pass", accent: "text-fundamentals" },
+  balanced: { label: "BALANCED", chip: "", accent: "text-muted" },
+  "insufficient-data": { label: "NOT MEASURED", chip: "", accent: "text-dim" },
+};
+
 export default async function BottleneckPage() {
   // Pre-launch curtain: the page stays in the tree but 404s until launch.
   if (launchMode()) notFound();
 
   const playbook = getPlaybook(DEFAULT_PLAYBOOK_ID);
-  const demand = latestDemand(DEFAULT_PLAYBOOK_ID);
+  const demand = playbook ? latestDemand(playbook.id) : null;
+  const scored = playbook ? scoreFromStored(playbook) : null;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -31,27 +42,36 @@ export default async function BottleneckPage() {
         Every growth story implies a physical quantity of <span className="text-ink">something</span> — megawatts,
         gigabytes, square feet, tonnes. A spending number can be revised upward with a press release; a gas turbine
         takes years to build regardless of what anyone announces. This desk forces the dollar story back into
-        physical units, so it can be checked against something that cannot be talked into existing faster.
+        physical units, then checks each one against what the world can actually produce.
       </p>
       <p className="mt-3 max-w-2xl text-sm text-dim">
-        Read straight from public company filings and recomputed on demand — no forecasts, no opinions, and nothing
-        here is investment advice.
+        Read straight from public filings and official statistics, recomputed on demand. No forecasts, no opinions,
+        and nothing here is investment advice.
       </p>
 
-      {!playbook || !demand ? (
+      {!playbook || !demand || !scored ? (
         <div className="panel mt-8 p-6">
           <h2 className="font-display text-lg font-semibold">No reading yet</h2>
           <p className="mt-2 max-w-xl text-sm text-muted">
             The desk has not taken its first measurement of this theme. Once it reads the filings, this page shows
-            what the money implies in physical terms and how fast that is changing.
+            which physical input is the tightest constraint, and whether that constraint is getting worse or better.
           </p>
         </div>
       ) : (
-        <DemandView playbookLabel={demand.snapshot.playbookLabel} demand={demand} />
+        <>
+          <Ranking
+            label={scored.snapshot.playbookLabel}
+            takenAt={demand.takenAt}
+            stale={demand.stale}
+            categories={scored.snapshot.categories}
+          />
+          <DemandDetail demand={demand.snapshot} />
+          <Disclosures flags={[...scored.snapshot.flags, ...demand.snapshot.flags]} snapshot={demand.snapshot} />
+        </>
       )}
 
       <p className="mt-10 text-[13px] text-dim">
-        Want the scoring engine instead?{" "}
+        Looking for the scoring engine instead?{" "}
         <Link href="/rankings" className="underline underline-offset-2 hover:text-ink">
           See the leaderboard
         </Link>
@@ -61,91 +81,175 @@ export default async function BottleneckPage() {
   );
 }
 
-function DemandView({
-  playbookLabel,
-  demand,
-}: {
-  playbookLabel: string;
-  demand: NonNullable<ReturnType<typeof latestDemand>>;
-}) {
-  const s = demand.snapshot;
-  const contributors = s.companies.filter((c) => c.status === "ok" && !c.stale);
+/* ---- The answer: which input is tightest ---- */
 
+function Ranking({
+  label,
+  takenAt,
+  stale,
+  categories,
+}: {
+  label: string;
+  takenAt: string;
+  stale: boolean;
+  categories: CategoryScore[];
+}) {
+  const measured = categories.filter((c) => c.gapPct !== null);
+  return (
+    <section className="mt-8" aria-labelledby="rank-h">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="rank-h" className="eyebrow">
+          {label} — the tightest constraint first
+        </h2>
+        <span className="chip">{fmtAge(takenAt)}</span>
+        {stale && <span className="chip gate-caution">READING IS STALE</span>}
+      </div>
+      <p className="mt-2 max-w-2xl text-[13px] text-muted">
+        Each row compares how fast the money chasing an input is growing against how fast the ability to supply it
+        is growing. The gap between those two rates is the score — and a{" "}
+        <span className="text-ink">narrowing</span> gap is reported exactly as prominently as a widening one.
+      </p>
+
+      <div className="mt-4 space-y-4">
+        {categories.map((c) => {
+          const s = STATUS[c.status];
+          return (
+            <div key={c.key} className="panel p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`chip ${s.chip}`}>{s.label}</span>
+                  <h3 className="font-display text-lg font-semibold">{c.unit}</h3>
+                </div>
+                <div className="tabular font-mono text-2xl font-bold">
+                  {c.gapPct === null ? (
+                    <span className="text-dim">—</span>
+                  ) : (
+                    <span className={s.accent}>
+                      {c.gapPct >= 0 ? "+" : ""}
+                      {c.gapPct.toFixed(1)}
+                      <span className="text-sm font-normal text-dim"> pp gap</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
+                <div className="bg-panel2 px-4 py-3">
+                  <div className="font-mono text-[10px] tracking-[0.14em] text-dim">DEMAND GROWTH</div>
+                  <div className="tabular mt-0.5 font-mono text-lg text-ink">{fmtPct(c.demandGrowthPct)}</div>
+                </div>
+                <div className="bg-panel2 px-4 py-3">
+                  <div className="font-mono text-[10px] tracking-[0.14em] text-dim">SUPPLY GROWTH</div>
+                  <div className="tabular mt-0.5 font-mono text-lg text-ink">{fmtPct(c.supplyGrowthPct)}</div>
+                </div>
+                <div className="bg-panel2 px-4 py-3">
+                  <div className="font-mono text-[10px] tracking-[0.14em] text-dim">IMPLIED THIS YEAR</div>
+                  <div className="tabular mt-0.5 font-mono text-lg text-ink">{fmtUnits(c.demandUnits)}</div>
+                </div>
+              </div>
+
+              <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-muted">{c.readout}</p>
+
+              {c.gapChangePct !== null && c.gapChangePct !== 0 && (
+                <p className="mt-2 font-mono text-[12px] text-dim">
+                  since the previous reading: {c.gapChangePct >= 0 ? "+" : ""}
+                  {c.gapChangePct} pp{c.materialMove && <span className="text-macro"> · material move</span>}
+                </p>
+              )}
+
+              {/* Supply evidence */}
+              {c.series.length > 0 && (
+                <div className="mt-3 border-t border-hairline pt-3">
+                  <div className="font-mono text-[10px] tracking-[0.14em] text-dim">SUPPLY EVIDENCE</div>
+                  <ul className="mt-1.5 space-y-1">
+                    {c.series.map((sr) => (
+                      <li key={sr.seriesId} className="text-[12px] leading-relaxed text-muted">
+                        {sr.sourceUrl ? (
+                          <a
+                            href={sr.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline decoration-hairline underline-offset-2 hover:text-ink"
+                          >
+                            {sr.label}
+                          </a>
+                        ) : (
+                          sr.label
+                        )}
+                        {sr.growthPct !== null && !sr.stale && (
+                          <span className="text-ink"> · {fmtPct(sr.growthPct)}/yr</span>
+                        )}
+                        {sr.latestDate && <span className="text-dim"> · latest {fmtDay(sr.latestDate)}</span>}
+                        {sr.stale && <span className="text-dim"> · stale, excluded</span>}
+                        {sr.stub && <span className="text-dim"> · no automated feed yet</span>}
+                        {sr.note && <span className="text-dim"> · {sr.note}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Who controls it */}
+              {c.owners && (
+                <div className="mt-3 border-t border-hairline pt-3">
+                  <div className="font-mono text-[10px] tracking-[0.14em] text-dim">
+                    WHO PRODUCES IT — {c.owners.label.toUpperCase()}
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {c.owners.tickers.map((t) => (
+                      <span key={t} className="chip">
+                        {t}
+                      </span>
+                    ))}
+                    {c.owners.tickers.length === 0 && (
+                      <span className="text-[12px] text-dim">no plainly US-listed producers</span>
+                    )}
+                  </div>
+                  {c.owners.foreign.length > 0 && (
+                    <p className="mt-2 text-[12px] leading-relaxed text-dim">
+                      Not plainly US-listed, and named because leaving them out would misrepresent who controls
+                      this input: {c.owners.foreign.join(", ")}.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {measured.length === 0 && (
+        <p className="mt-4 max-w-2xl text-[13px] leading-relaxed text-muted">
+          Nothing is scored yet: the demand side is measured but no supply series has enough history to compare it
+          against. The desk says so rather than presenting an unmeasured input as an unconstrained one.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/* ---- The demand side, in detail ---- */
+
+function DemandDetail({ demand }: { demand: NonNullable<ReturnType<typeof latestDemand>>["snapshot"] }) {
+  const contributors = demand.companies.filter((c) => c.status === "ok" && !c.stale);
   return (
     <>
-      {/* ---- Headline ---- */}
-      <section className="mt-8" aria-labelledby="demand-h">
+      <section className="mt-12" aria-labelledby="companies-h">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 id="demand-h" className="eyebrow">
-            {playbookLabel} — what the money implies
+          <h2 id="companies-h" className="eyebrow">
+            Where the demand comes from
           </h2>
-          <span className="chip">{fmtAge(demand.takenAt)}</span>
-          {demand.stale && <span className="chip gate-caution">READING IS STALE</span>}
           <span className="chip">
-            {s.aggregate.contributing} OF {s.aggregate.basketSize} COMPANIES
+            {demand.aggregate.contributing} OF {demand.aggregate.basketSize} COMPANIES
           </span>
         </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
-          <div className="bg-panel p-5">
-            <div className="font-mono text-[11px] tracking-[0.14em] text-dim">TRAILING TWELVE MONTHS</div>
-            <div className="tabular mt-1 font-mono text-2xl font-bold text-ink">{fmtUsd(s.aggregate.ttmUsd)}</div>
-            <p className="mt-1 text-[13px] text-muted">Capital spending committed across the basket.</p>
-          </div>
-          <div className="bg-panel p-5">
-            <div className="font-mono text-[11px] tracking-[0.14em] text-dim">LATEST QUARTER</div>
-            <div className="tabular mt-1 font-mono text-2xl font-bold text-ink">
-              {fmtUsd(s.aggregate.latestQuarterUsd)}
-            </div>
-            <p className="mt-1 text-[13px] text-muted">Most recent complete quarter each company has filed.</p>
-          </div>
-          <div className="bg-panel p-5">
-            <div className="font-mono text-[11px] tracking-[0.14em] text-dim">YEAR OVER YEAR</div>
-            <div className="tabular mt-1 font-mono text-2xl font-bold text-ink">{fmtPct(s.aggregate.yoyPct)}</div>
-            <p className="mt-1 text-[13px] text-muted">Growth in the same quarter a year earlier.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Physical units ---- */}
-      <section className="mt-10" aria-labelledby="units-h">
-        <h2 id="units-h" className="eyebrow">
-          In physical terms
-        </h2>
-        <p className="mt-1 max-w-2xl text-[13px] text-muted">
-          Trailing-twelve-month dollars divided by the cost of one unit. Each row shows the factor used, where it
-          came from, and when — because these are estimates, and an estimate without its source is just a number.
+        <p className="mt-2 max-w-2xl text-[13px] text-muted">
+          Capital spending across the basket totals{" "}
+          <span className="text-ink">{fmtUsd(demand.aggregate.ttmUsd)}</span> over the trailing twelve months,
+          growing {fmtPct(demand.aggregate.yoyPct)} year over year. That is the number the physical conversions
+          above run on.
         </p>
 
-        {s.placeholderFactors && (
-          <p className="mt-3 max-w-2xl rounded-md border border-caution/40 p-3 text-[13px] leading-relaxed text-caution">
-            Every conversion factor below is still a seeded placeholder rather than a sourced benchmark. Treat these
-            totals as order-of-magnitude arithmetic, not measurements.
-          </p>
-        )}
-
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {s.units.map((u) => (
-            <div key={u.key} className="panel p-5">
-              <div className="tabular font-mono text-2xl font-bold text-ink">{fmtUnits(u.totalUnits)}</div>
-              <div className="mt-0.5 text-sm text-muted">{u.unit}</div>
-              <p className="mt-3 font-mono text-[11px] leading-relaxed text-dim">
-                {fmtUsd(u.totalUsd)} ÷ {fmtUsd(u.usdPer)} per unit
-              </p>
-              <p className="mt-1 text-[12px] leading-relaxed text-dim">
-                {u.source} · as of {u.asOf}
-              </p>
-              {u.note && <p className="mt-2 text-[12px] leading-relaxed text-muted">{u.note}</p>}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ---- Per-company ---- */}
-      <section className="mt-10" aria-labelledby="companies-h">
-        <h2 id="companies-h" className="eyebrow">
-          Who is spending it
-        </h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead>
@@ -159,7 +263,7 @@ function DemandView({
               </tr>
             </thead>
             <tbody>
-              {s.companies.map((c) => (
+              {demand.companies.map((c) => (
                 <tr key={c.ticker} className="border-b border-hairline align-top">
                   <td className="py-2.5 pr-4">
                     <span className="font-mono font-bold text-ink">{c.ticker}</span>
@@ -186,7 +290,40 @@ function DemandView({
         </div>
       </section>
 
-      {/* ---- The filers' own words ---- */}
+      <section className="mt-10" aria-labelledby="factors-h">
+        <h2 id="factors-h" className="eyebrow">
+          How dollars became units
+        </h2>
+        <p className="mt-1 max-w-2xl text-[13px] text-muted">
+          Each conversion shows the factor used, where it came from, and when — because these are estimates, and an
+          estimate without its source is just a number.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-hairline font-mono text-[11px] tracking-[0.1em] text-dim">
+                <th className="py-2 pr-4 font-normal">UNIT</th>
+                <th className="py-2 pr-4 text-right font-normal">$ PER UNIT</th>
+                <th className="py-2 pr-4 text-right font-normal">IMPLIED</th>
+                <th className="py-2 font-normal">SOURCE · AS OF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {demand.units.map((u) => (
+                <tr key={u.key} className="border-b border-hairline align-top">
+                  <td className="py-2.5 pr-4 text-ink">{u.unit}</td>
+                  <td className="tabular py-2.5 pr-4 text-right font-mono text-muted">{fmtUsd(u.usdPer)}</td>
+                  <td className="tabular py-2.5 pr-4 text-right font-mono text-ink">{fmtUnits(u.totalUnits)}</td>
+                  <td className="py-2.5 text-[12px] leading-relaxed text-dim">
+                    {u.source} · {u.asOf}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {contributors.some((c) => c.narrative) && (
         <section className="mt-10" aria-labelledby="why-h">
           <h2 id="why-h" className="eyebrow">
@@ -224,27 +361,38 @@ function DemandView({
           </div>
         </section>
       )}
-
-      {/* ---- Disclosures ---- */}
-      <section className="mt-10" aria-labelledby="gaps-h">
-        <h2 id="gaps-h" className="eyebrow">
-          What this reading cannot tell you
-        </h2>
-        <ul className="mt-3 max-w-3xl space-y-2">
-          {s.flags.map((f, i) => (
-            <li key={i} className="text-[13px] leading-relaxed text-muted">
-              — {f}
-            </li>
-          ))}
-          <li className="text-[13px] leading-relaxed text-muted">
-            — A confirmed constraint is not automatically a mispriced stock. The market may already know. This desk
-            generates candidates for further work; it does not replace valuation.
-          </li>
-        </ul>
-        <p className="mt-4 font-mono text-[11px] text-dim">
-          conversion table v{s.conversionVersion} ({s.conversionAsOf}) · read {fmtDay(s.takenAt)}
-        </p>
-      </section>
     </>
+  );
+}
+
+/* ---- What the reading cannot tell you ---- */
+
+function Disclosures({
+  flags,
+  snapshot,
+}: {
+  flags: string[];
+  snapshot: NonNullable<ReturnType<typeof latestDemand>>["snapshot"];
+}) {
+  return (
+    <section className="mt-10" aria-labelledby="gaps-h">
+      <h2 id="gaps-h" className="eyebrow">
+        What this reading cannot tell you
+      </h2>
+      <ul className="mt-3 max-w-3xl space-y-2">
+        {flags.map((f, i) => (
+          <li key={i} className="text-[13px] leading-relaxed text-muted">
+            — {f}
+          </li>
+        ))}
+        <li className="text-[13px] leading-relaxed text-muted">
+          — A confirmed constraint is not automatically a mispriced stock. The market may already know. This desk
+          generates candidates for further work; it does not replace valuation.
+        </li>
+      </ul>
+      <p className="mt-4 font-mono text-[11px] text-dim">
+        conversion table v{snapshot.conversionVersion} ({snapshot.conversionAsOf}) · read {fmtDay(snapshot.takenAt)}
+      </p>
+    </section>
   );
 }

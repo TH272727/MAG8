@@ -3,7 +3,9 @@
  *
  *   npm run bottleneck -- --probe          live SEC EDGAR smoke test ($0, no model)
  *   npm run bottleneck -- --13f CIK        parse a filer's latest 13F        (Phase 5)
- *   npm run bottleneck -- --refresh [ID]   refresh a playbook's snapshots    (Phase 3/4)
+ *   npm run bottleneck -- --refresh [ID]   refresh demand + supply, score the gaps
+ *        --dry            compute without persisting
+ *        --reuse-demand   reuse the stored demand reading (supply + scoring only)
  *
  * The desk is deterministic and free: everything here is HTTP + arithmetic, so
  * it never touches the research plan's usage window.
@@ -168,9 +170,9 @@ const num = (n: number): string =>
 const pct = (p: number | null | undefined): string =>
   p === null || p === undefined ? "n/a" : `${p >= 0 ? "+" : ""}${p.toFixed(1)}%`;
 
-async function refresh(playbookId: string, dry: boolean): Promise<number> {
+async function refresh(playbookId: string, dry: boolean, reuseDemand: boolean): Promise<number> {
   const { getPlaybook } = await import("../lib/bottleneck/playbook");
-  const { buildDemandSnapshot } = await import("../lib/bottleneck/demand");
+  const { refreshDesk } = await import("../lib/bottleneck/desk");
 
   const pb = getPlaybook(playbookId);
   if (!pb) {
@@ -178,12 +180,12 @@ async function refresh(playbookId: string, dry: boolean): Promise<number> {
     return 2;
   }
 
-  banner(`BOTTLENECK — DEMAND REFRESH: ${pb.label}`);
+  banner(`BOTTLENECK — REFRESH: ${pb.label}`);
   console.log(` basket: ${pb.demand.basket.join(" ")}`);
   console.log(` conversions: v${pb.conversions.version} (${pb.conversions.asOf})\n`);
 
   const t0 = Date.now();
-  const snap = await buildDemandSnapshot(pb, { dryRun: dry });
+  const { demand: snap, supply, bottleneck } = await refreshDesk(pb, { dryRun: dry, reuseDemand });
   console.log(` read ${snap.companies.length} companies in ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
 
   console.log(" CAPITAL SPENDING (per company)");
@@ -225,12 +227,42 @@ async function refresh(playbookId: string, dry: boolean): Promise<number> {
     }
   }
 
-  if (snap.flags.length > 0) {
-    console.log("\n DISCLOSED GAPS");
-    for (const f of snap.flags) console.log(`  - ${f}`);
+  console.log("\n SUPPLY SERIES");
+  for (const s of supply) {
+    console.log(
+      ` ${s.seriesId.padEnd(32)} ${s.connector.padEnd(14)} ${String(s.stored).padStart(4)} obs` +
+        ` ${(s.latest ?? "—").padStart(11)}${s.fetched > 0 ? `  (+${s.fetched})` : ""}${s.stub ? "  STUB" : ""}`,
+    );
+    if (s.note) console.log(`     ${s.note}`);
   }
 
-  console.log(dry ? "\n dry run — nothing persisted" : "\n snapshot persisted");
+  console.log("\n BOTTLENECK RANKING — tightest constraint first");
+  console.log(" status              demand    supply       gap   unit");
+  for (const c of bottleneck.categories) {
+    console.log(
+      ` ${c.status.padEnd(18)}` +
+        ` ${pct(c.demandGrowthPct).padStart(8)}` +
+        ` ${pct(c.supplyGrowthPct).padStart(9)}` +
+        ` ${(c.gapPct === null ? "—" : `${c.gapPct >= 0 ? "+" : ""}${c.gapPct.toFixed(1)}pp`).padStart(9)}` +
+        `   ${c.unit}`,
+    );
+    if (c.gapChangePct !== null && c.gapChangePct !== 0) {
+      console.log(`     since last reading: ${c.gapChangePct >= 0 ? "+" : ""}${c.gapChangePct}pp${c.materialMove ? "  MATERIAL" : ""}`);
+    }
+    if (c.owners) {
+      console.log(`     owned by: ${c.owners.tickers.join(", ") || "no US listings"}${c.owners.foreign.length ? `  ·  not plainly US-listed: ${c.owners.foreign.join(", ")}` : ""}`);
+    }
+  }
+
+  const lead = bottleneck.categories.find((c) => c.gapPct !== null);
+  if (lead) console.log(`\n READOUT\n  ${lead.readout}`);
+
+  if (snap.flags.length > 0 || bottleneck.flags.length > 0) {
+    console.log("\n DISCLOSED GAPS");
+    for (const f of [...snap.flags, ...bottleneck.flags]) console.log(`  - ${f}`);
+  }
+
+  console.log(dry ? "\n dry run — nothing persisted" : "\n snapshots persisted");
   return 0;
 }
 
@@ -257,11 +289,11 @@ async function main() {
     const { DEFAULT_PLAYBOOK_ID } = await import("../lib/bottleneck/playbook");
     const raw = argValue("--refresh");
     const id = !raw || raw.startsWith("--") ? DEFAULT_PLAYBOOK_ID : raw;
-    process.exitCode = await refresh(id, has("--dry"));
+    process.exitCode = await refresh(id, has("--dry"), has("--reuse-demand"));
     return;
   }
   console.log(
-    "Usage: npm run bottleneck -- --probe | --refresh [PLAYBOOK] [--dry] | --13f CIK (Phase 5)",
+    "Usage: npm run bottleneck -- --probe | --refresh [PLAYBOOK] [--dry] [--reuse-demand] | --13f CIK (Phase 5)",
   );
   process.exitCode = 2;
 }
