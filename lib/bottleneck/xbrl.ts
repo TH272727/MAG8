@@ -216,3 +216,35 @@ export function ttm(series: QuarterValue[], end: string): number | null {
   if (idx < 3) return null;
   return series.slice(idx - 3, idx + 1).reduce((s, q) => s + q.val, 0);
 }
+
+/* ----------------------------------------------------------------------------
+ * The empty-concept trap
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Pull one tag's USD facts out of a company-facts payload.
+ *
+ * This exists because SEC's two XBRL endpoints disagree. Verified 2026-08-30:
+ * `companyconcept/CIK0000037996/us-gaap/PaymentsToAcquireProductiveAssets`
+ * returns `units: { USD: {} }` — an empty OBJECT where an array of facts
+ * belongs — while `companyfacts` for the same company and the same tag carries
+ * 158 USD facts, the latest $2.376B. Ford's capital spending is simply invisible
+ * through the cheaper endpoint.
+ *
+ * Nothing about that produces a wrong number: an absent series reads as "this
+ * filer does not use this tag" and the company is flagged out of the totals.
+ * But it silently drops one of the largest spenders in a basket, and a demand
+ * measure missing its biggest contributor is a quiet distortion of exactly the
+ * kind this desk is built to avoid. So the concept endpoint stays the fast path
+ * and this is the fallback when the whole chain comes up empty.
+ */
+export function conceptFromFacts(
+  facts: Record<string, Record<string, unknown>> | undefined,
+  tag: string,
+  opts: { taxonomy?: string; unit?: string } = {},
+): ConceptFact[] | null {
+  const taxonomy = (facts ?? {})[opts.taxonomy ?? "us-gaap"] as Record<string, unknown> | undefined;
+  const entry = taxonomy?.[tag] as { units?: Record<string, unknown> } | undefined;
+  const rows = entry?.units?.[opts.unit ?? "USD"];
+  return Array.isArray(rows) && rows.length > 0 ? (rows as ConceptFact[]) : null;
+}

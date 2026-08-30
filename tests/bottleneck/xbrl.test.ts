@@ -5,6 +5,7 @@ import type { ConceptFact } from "../../lib/edgar";
 import {
   annualSeries,
   change,
+  conceptFromFacts,
   priorQuarter,
   priorYearQuarter,
   quarterlySeries,
@@ -165,5 +166,38 @@ describe("ttm", () => {
   it("refuses a partial window rather than understating it", () => {
     expect(ttm(qs, qs[0].end)).toBeNull();
     expect(ttm(qs, qs[2].end)).toBeNull();
+  });
+});
+
+describe("conceptFromFacts — SEC's two endpoints disagree", () => {
+  const withFacts = {
+    "us-gaap": {
+      PaymentsToAcquireProductiveAssets: {
+        units: { USD: [{ start: "2026-01-01", end: "2026-03-31", val: 2_376_000_000 }] },
+      },
+      EmptyOnPurpose: { units: { USD: {} } },
+      OtherUnit: { units: { shares: [{ end: "2026-03-31", val: 4_000_000_000 }] } },
+    },
+  };
+
+  it("reads a tag that company-facts carries", () => {
+    const rows = conceptFromFacts(withFacts, "PaymentsToAcquireProductiveAssets")!;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].val).toBe(2_376_000_000);
+  });
+
+  it("treats the empty-object payload as no data, not as a fact list", () => {
+    // Verified live 2026-08-30: SEC's per-concept endpoint returns
+    // `units: { USD: {} }` for Ford's capital spending while company-facts
+    // carries 158 USD facts for the same tag.
+    expect(conceptFromFacts(withFacts, "EmptyOnPurpose")).toBeNull();
+  });
+
+  it("returns null for a tag, taxonomy or unit that is not there", () => {
+    expect(conceptFromFacts(withFacts, "NoSuchTag")).toBeNull();
+    expect(conceptFromFacts(withFacts, "OtherUnit")).toBeNull();
+    expect(conceptFromFacts(withFacts, "OtherUnit", { unit: "shares" })).toHaveLength(1);
+    expect(conceptFromFacts(withFacts, "PaymentsToAcquireProductiveAssets", { taxonomy: "ifrs-full" })).toBeNull();
+    expect(conceptFromFacts(undefined, "PaymentsToAcquireProductiveAssets")).toBeNull();
   });
 });

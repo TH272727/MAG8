@@ -14,9 +14,19 @@ export const metadata: Metadata = {
   description: "Focused Mag8 pipeline runs — point the discovery scout at the slice of the market you care about.",
 };
 
-export default async function LabPage() {
+export default async function LabPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ focus?: string }>;
+}) {
   // Pre-launch curtain: the page stays in the tree but 404s until launch.
   if (launchMode()) notFound();
+
+  // A directive can arrive pre-filled from elsewhere (the Bottleneck desk sends
+  // one). It is a starting point in an editable box, never an instruction: the
+  // same 280-character cap the pipeline enforces applies here too.
+  const { focus } = await searchParams;
+  const initialFocus = typeof focus === "string" ? focus.slice(0, 280) : "";
 
   const cookieToken = (await cookies()).get(ADMIN_COOKIE)?.value ?? null;
   const adminUnlocked = tokenMatches(cookieToken);
@@ -53,6 +63,7 @@ export default async function LabPage() {
           defaultCount={CONFIG.candidates.default}
           estimates={estimates}
           adminUnlocked={adminUnlocked}
+          initialFocus={initialFocus}
         />
       </div>
 

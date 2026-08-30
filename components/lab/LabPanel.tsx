@@ -24,16 +24,19 @@ export default function LabPanel({
   defaultCount,
   estimates,
   adminUnlocked,
+  initialFocus = "",
 }: {
   authMode: AuthMode;
   allowMock: boolean;
   defaultCount: number;
   estimates: Record<number, RunEstimate>;
   adminUnlocked: boolean;
+  /** Pre-filled directive, e.g. arriving from the Bottleneck desk. Editable like any other. */
+  initialFocus?: string;
 }) {
   const router = useRouter();
   const [count, setCount] = useState(defaultCount);
-  const [focus, setFocus] = useState("");
+  const [focus, setFocus] = useState(initialFocus);
   const [blind, setBlind] = useState(false);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState<null | "real" | "mock">(null);

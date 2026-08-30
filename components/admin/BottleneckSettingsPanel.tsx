@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   inspectPlaybookAction,
+  loadPlaybookDraftAction,
   saveBottleneckSettingsAction,
+  savePlaybooksAction,
   type PlaybookSummary,
 } from "@/app/bottleneck/actions";
 import SettingsGrid, { defaultRaw, type PanelGroup, type PanelSetting } from "./SettingsGrid";
@@ -29,10 +31,12 @@ export default function BottleneckSettingsPanel({
   const [values, setValues] = useState<Record<string, number | boolean>>(() =>
     Object.fromEntries(settings.map((s) => [s.key, s.value])),
   );
-  const [busy, setBusy] = useState<null | "save" | "reset" | "inspect">(null);
+  const [busy, setBusy] = useState<null | "save" | "reset" | "inspect" | "load" | "seed" | "publish">(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [playbookId, setPlaybookId] = useState(playbooks[0]?.id ?? "");
   const [inspected, setInspected] = useState<PlaybookSummary | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [draftMsg, setDraftMsg] = useState<string | null>(null);
 
   const set = (key: string, v: number | boolean) => setValues((prev) => ({ ...prev, [key]: v }));
 
@@ -77,6 +81,42 @@ export default function BottleneckSettingsPanel({
       else setMsg(res.message);
     } catch {
       setMsg("Inspect failed — network error.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function openEditor(seedFrom?: string) {
+    setBusy(seedFrom ? "seed" : "load");
+    setDraftMsg(null);
+    try {
+      const res = await loadPlaybookDraftAction(seedFrom);
+      if (res.ok) {
+        setDraft(res.draft.json);
+        setDraftMsg(
+          res.draft.customIds.length === 0
+            ? seedFrom
+              ? "Started from a copy. Change its id and label before saving — an id matching a built-in replaces that theme."
+              : "No owner-defined themes yet. Start from a copy of a built-in, or write one here."
+            : `Editing ${res.draft.customIds.length} owner-defined theme(s): ${res.draft.customIds.join(", ")}.`,
+        );
+      } else setDraftMsg(res.message);
+    } catch {
+      setDraftMsg("Could not load the definitions.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function publish() {
+    if (draft === null) return;
+    setBusy("publish");
+    try {
+      const res = await savePlaybooksAction(draft);
+      setDraftMsg(res.message);
+      if (res.ok) router.refresh();
+    } catch {
+      setDraftMsg("Save failed — network error.");
     } finally {
       setBusy(null);
     }
@@ -131,7 +171,52 @@ export default function BottleneckSettingsPanel({
           <button type="button" className="btn" disabled={busy !== null || !playbookId} onClick={inspect}>
             {busy === "inspect" ? "Reading…" : "Inspect playbook"}
           </button>
+          <button type="button" className="btn" disabled={busy !== null} onClick={() => openEditor()}>
+            {busy === "load" ? "Loading…" : "Edit owner-defined themes"}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy !== null || !playbookId}
+            onClick={() => openEditor(playbookId)}
+          >
+            {busy === "seed" ? "Copying…" : "Start one from this"}
+          </button>
         </div>
+
+        {draft !== null && (
+          <div className="mt-4 rounded-md border border-hairline p-4">
+            <p className="font-mono text-[11px] tracking-[0.14em] text-dim">OWNER-DEFINED THEMES</p>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
+              A theme is data, not code: whose spending to read, which filing tags carry it, how those dollars become
+              physical units, which series constrain them, and who produces each one. Saving replaces the whole
+              owner-defined set and validates it against the schema first — nothing is stored unless all of it passes,
+              so a half-valid definition can never leave the desk measuring something nobody chose. Built-in themes
+              stay in the code; an entry whose id matches one overrides it.
+            </p>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={16}
+              spellCheck={false}
+              aria-label="Owner-defined playbook definitions, JSON"
+              className="mt-3 w-full rounded-md border border-hairline bg-void px-3 py-2 font-mono text-[12px] text-ink focus:border-macro/60 focus:outline-none"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button type="button" className="btn btn-primary" disabled={busy !== null} onClick={publish}>
+                {busy === "publish" ? "Validating…" : "Validate and save"}
+              </button>
+              <button type="button" className="btn" disabled={busy !== null} onClick={() => setDraft(null)}>
+                Close
+              </button>
+            </div>
+            {draftMsg && (
+              <p className="mt-3 text-[13px] leading-relaxed text-muted" role="status">
+                {draftMsg}
+              </p>
+            )}
+          </div>
+        )}
 
         {inspected && (
           <div className="mt-4 rounded-md border border-hairline bg-panel2 p-4">

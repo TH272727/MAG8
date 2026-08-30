@@ -7,7 +7,9 @@ import {
   findNarrative,
   htmlToText,
   markStale,
+  readNothing,
   type DemandCompany,
+  type DemandSnapshot,
 } from "../../lib/bottleneck/demand";
 import { quarterlySeries, ttm } from "../../lib/bottleneck/xbrl";
 import { BUILT_IN_PLAYBOOKS } from "../../lib/bottleneck/playbook";
@@ -229,5 +231,110 @@ describe("narrative extraction", () => {
   it("returns nothing rather than guessing when no keyword matches", () => {
     expect(findNarrative("A sentence about something else entirely that is long enough to qualify here.", ["capex"])).toEqual([]);
     expect(findNarrative("anything", [])).toEqual([]);
+  });
+});
+
+describe("flags — a fragile total is labelled as one", () => {
+  const pb = BUILT_IN_PLAYBOOKS[0];
+
+  it("says so when opposing flows nearly cancel", () => {
+    // Homebuilders' demand is an inventory build, and members routinely report
+    // NEGATIVE twelve-month figures. A total that is a small difference between
+    // large opposing flows must not read as confidently as a robust one.
+    const flags = demandFlags(pb, [
+      company({ ticker: "AAA", ttmUsd: 500 }),
+      company({ ticker: "BBB", ttmUsd: -400 }),
+      company({ ticker: "CCC", ttmUsd: 100 }),
+    ]);
+    const flag = flags.find((f) => /survives netting/.test(f))!;
+    expect(flag).toContain("20%");
+    expect(flag).toContain("1 of 3 companies report a NEGATIVE");
+  });
+
+  it("stays quiet when every company pulls the same way", () => {
+    const flags = demandFlags(pb, [company({ ticker: "AAA", ttmUsd: 500 }), company({ ticker: "BBB", ttmUsd: 400 })]);
+    expect(flags.some((f) => /survives netting/.test(f))).toBe(false);
+  });
+
+  it("names a growth rate computed off a near-zero base", () => {
+    const flags = demandFlags(pb, [
+      company({ ticker: "TOL", yoy: { absolute: 300, pct: 15012.3 } }),
+      company({ ticker: "AAA", yoy: { absolute: 10, pct: 12.5 } }),
+    ]);
+    const flag = flags.find((f) => /near-zero base/.test(f))!;
+    expect(flag).toContain("TOL (+15012%)");
+    expect(flag).not.toContain("AAA");
+    expect(flag).toContain("does not distort the aggregate");
+  });
+
+  it("leaves an ordinary growth rate alone", () => {
+    const flags = demandFlags(pb, [company({ yoy: { absolute: 50, pct: 85.7 } })]);
+    expect(flags.some((f) => /near-zero base/.test(f))).toBe(false);
+  });
+});
+
+describe("the playbook abstraction holds for more than one sector", () => {
+  it("ships three built-in themes, each self-contained", () => {
+    expect(BUILT_IN_PLAYBOOKS.map((p) => p.id)).toEqual([
+      "ai-infrastructure",
+      "ev-battery-supply-chain",
+      "homebuilding",
+    ]);
+    for (const pb of BUILT_IN_PLAYBOOKS) {
+      expect(pb.demand.basket.length).toBeGreaterThan(0);
+      expect(pb.demand.capexTags.length).toBeGreaterThan(0);
+      expect(pb.conversions.factors.length).toBeGreaterThan(0);
+      // Every conversion factor must be constrained by something, and every
+      // owner group must name a factor that exists — a playbook that maps to
+      // nothing would score and display as silently empty.
+      const keys = new Set(pb.conversions.factors.map((f) => f.key));
+      for (const s of pb.supply) expect(keys.has(s.constrains)).toBe(true);
+      for (const o of pb.owners) expect(keys.has(o.category)).toBe(true);
+    }
+  });
+
+  it("keeps every factor honest about being a placeholder", () => {
+    for (const pb of BUILT_IN_PLAYBOOKS) {
+      for (const f of pb.conversions.factors) {
+        expect(f.source.length).toBeGreaterThan(10);
+        expect(f.asOf).toMatch(/^\d{4}-\d{2}/);
+      }
+    }
+  });
+});
+
+describe("a refresh that read nothing is not a reading", () => {
+  /*
+   * Found the hard way: a transient transport failure against SEC produced
+   * three consecutive 0-of-6 snapshots, each of which replaced a complete
+   * $573.72B reading and blanked the desk. The predicate below is the rule;
+   * its two call sites are buildDemandSnapshot (does not store) and refreshDesk
+   * (does not store the score either, and sweeps old ones). Those touch the
+   * database, so they are exercised by the live probe rather than here.
+   */
+  const snapshot = (contributing: number, basketSize = 6): DemandSnapshot => ({
+    playbookId: "test",
+    playbookLabel: "Test",
+    takenAt: "2026-08-30T18:46:10.357Z",
+    conversionVersion: "1",
+    conversionAsOf: "2026-08",
+    placeholderFactors: false,
+    companies: [],
+    units: [],
+    aggregate: { contributing, basketSize, latestQuarterUsd: 0, ttmUsd: 0, yoyPct: null },
+    flags: [],
+  });
+
+  it("recognizes a reading in which nothing was read", () => {
+    expect(readNothing(snapshot(0))).toBe(true);
+  });
+
+  it("does not condemn a partial reading — those are flagged, not withheld", () => {
+    expect(readNothing(snapshot(1))).toBe(false);
+    expect(readNothing(snapshot(6))).toBe(false);
+  });
+
+  it("treats an empty basket as nothing read", () => {
+    expect(readNothing(snapshot(0, 0))).toBe(true);
   });
 });

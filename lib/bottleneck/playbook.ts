@@ -265,7 +265,241 @@ const AI_INFRASTRUCTURE: Playbook = {
   builtIn: true,
 };
 
-export const BUILT_IN_PLAYBOOKS: Playbook[] = [AI_INFRASTRUCTURE];
+/* ----------------------------------------------------------------------------
+ * Built-in: EV battery supply chain
+ *
+ * The second theme exists to prove the abstraction holds — Modules B and C take
+ * a playbook as their only sector-specific input, and adding a sector must be
+ * data rather than code. Every tag and series below was checked against live
+ * SEC and FRED on 2026-08-30 rather than assumed.
+ * -------------------------------------------------------------------------- */
+
+const EV_BATTERY: Playbook = {
+  id: "ev-battery-supply-chain",
+  label: "EV battery supply chain",
+  blurb:
+    "Every announced gigafactory is a claim on cell capacity, and every gigawatt-hour of cells is a claim on " +
+    "lithium that has to be dug up and refined years earlier. This playbook reads what the carmakers are " +
+    "actually spending, converts it into cell capacity and the lithium that capacity consumes, and checks both " +
+    "against what the chemical industry can currently produce.",
+  demand: {
+    // Verified 2026-08-30: all five report capital spending, though Ford tags it
+    // as PaymentsToAcquireProductiveAssets AND is invisible through SEC's
+    // per-concept endpoint — see conceptFromFacts in xbrl.ts.
+    basket: ["TSLA", "GM", "F", "RIVN", "LCID"],
+    capexTags: [
+      "PaymentsToAcquirePropertyPlantAndEquipment",
+      "PaymentsToAcquireProductiveAssets",
+      "PaymentsForCapitalImprovements",
+      "PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets",
+    ],
+    narrativeKeywords: ["capital expenditure", "battery", "cell", "gigafactory", "capacity", "lithium"],
+  },
+  conversions: {
+    version: "2026-08-a",
+    asOf: "2026-08",
+    factors: [
+      {
+        key: "cell_gwh",
+        unit: "GWh of annual cell capacity",
+        usdPer: 75_000_000,
+        source: "Placeholder seed — replace with a sourced plant-cost benchmark before relying on it",
+        asOf: "2026-08",
+        note:
+          "All-in cost per gigawatt-hour of installed annual cell capacity. Carmaker capital spending also buys " +
+          "vehicle assembly, tooling and software, so treating all of it as cell capacity overstates the total: " +
+          "the RATE is the readable number here, not the level.",
+      },
+      {
+        key: "lce_tonnes",
+        unit: "tonnes of lithium carbonate equivalent",
+        usdPer: 107_000,
+        source: "Placeholder seed — derived, not sourced; replace both inputs before relying on it",
+        asOf: "2026-08",
+        note:
+          "A derived factor: the cost per GWh above divided by an assumed ~700 tonnes of lithium carbonate " +
+          "equivalent per GWh of cells. Two estimates multiplied together, and it should be read as such.",
+      },
+    ],
+  },
+  supply: [
+    {
+      seriesId: "us-chemical-capacity",
+      label: "US chemical manufacturing capacity",
+      unit: "index (2017=100)",
+      constrains: "lce_tonnes",
+      connector: "fred",
+      handle: "CAPG325S",
+      sourceUrl: "https://fred.stlouisfed.org/series/CAPG325S",
+    },
+    {
+      seriesId: "us-chemical-output",
+      label: "US chemical manufacturing, actual output",
+      unit: "index (2017=100)",
+      constrains: "lce_tonnes",
+      connector: "fred",
+      handle: "IPG325S",
+      sourceUrl: "https://fred.stlouisfed.org/series/IPG325S",
+    },
+    {
+      seriesId: "us-motor-vehicle-capacity",
+      label: "US motor vehicle and parts manufacturing capacity",
+      unit: "index (2017=100)",
+      constrains: "cell_gwh",
+      connector: "fred",
+      handle: "CAPG3361T3S",
+      sourceUrl: "https://fred.stlouisfed.org/series/CAPG3361T3S",
+    },
+    {
+      seriesId: "usgs-lithium-production",
+      label: "World lithium mine production (USGS Mineral Commodity Summaries)",
+      unit: "tonnes",
+      constrains: "lce_tonnes",
+      connector: "stub",
+      sourceUrl: "https://www.usgs.gov/centers/national-minerals-information-center/lithium-statistics-and-information",
+      stub: true,
+    },
+    {
+      seriesId: "chile-lithium-exports",
+      label: "Chile lithium carbonate export volume",
+      unit: "tonnes",
+      constrains: "lce_tonnes",
+      connector: "stub",
+      sourceUrl: "https://www.aduana.cl/",
+      stub: true,
+    },
+  ],
+  owners: [
+    {
+      category: "lce_tonnes",
+      label: "Lithium producers and refiners",
+      tickers: ["ALB", "SQM", "LAC", "PLL"],
+      foreign: ["Ganfeng Lithium (SZSE/HKEX)", "Tianqi Lithium (SZSE)", "Pilbara Minerals (ASX)", "IGO (ASX)"],
+    },
+    {
+      category: "cell_gwh",
+      label: "Cell manufacturing and battery equipment",
+      tickers: ["ENVX", "AMPX", "MVST", "SES"],
+      foreign: ["CATL (SZSE)", "LG Energy Solution (KRX)", "Samsung SDI (KRX)", "Panasonic (TSE)"],
+    },
+  ],
+  builtIn: true,
+};
+
+/* ----------------------------------------------------------------------------
+ * Built-in: homebuilding
+ *
+ * The third theme is here for an awkward reason worth keeping: it does NOT fit
+ * the capital-spending shape, and that is the useful thing about it. See the
+ * blurb — homebuilders capitalize land and construction into inventory rather
+ * than reporting it as capital expenditure, so the demand tag chain reads the
+ * inventory build instead, and the desk says so on the page.
+ * -------------------------------------------------------------------------- */
+
+const HOMEBUILDING: Playbook = {
+  id: "homebuilding",
+  label: "Homebuilding",
+  blurb:
+    "A house is roughly sixteen thousand board-feet of lumber and a thousand hours of skilled labour, and " +
+    "neither can be conjured by raising a forecast. This playbook reads what the large builders are putting " +
+    "into land and houses under construction and checks it against what the sawmills can cut and the trade " +
+    "can staff. Note the measurement difference from the other themes: builders do not report land and " +
+    "construction as capital expenditure — it is capitalized into real-estate inventory — so the demand " +
+    "figures here are the change in that inventory, which can legitimately be NEGATIVE when builders are " +
+    "working stock down.",
+  demand: {
+    // Verified 2026-08-30: DHI/LEN/PHM/NVR/TOL/KBH report PP&E capex of $10-110M
+    // — their office and equipment spend, not their build spend. The real
+    // quantity is the inventory build, tagged inconsistently across the six.
+    basket: ["DHI", "LEN", "PHM", "NVR", "TOL", "KBH"],
+    capexTags: [
+      "IncreaseDecreaseInInventories",
+      "IncreaseDecreaseInFinishedGoodsAndWorkInProcessInventories",
+      "PaymentsToDevelopRealEstateAssets",
+      "PaymentsToAcquireRealEstate",
+    ],
+    narrativeKeywords: ["homes closed", "land", "lots", "inventory", "communities", "backlog"],
+  },
+  conversions: {
+    version: "2026-08-a",
+    asOf: "2026-08",
+    factors: [
+      {
+        key: "board_feet",
+        unit: "board-feet of framing lumber",
+        usdPer: 1.35,
+        source: "Placeholder seed — replace with a sourced cost-per-board-foot benchmark before relying on it",
+        asOf: "2026-08",
+        note:
+          "Dollars of build spending per board-foot of framing lumber. Lumber is a single-digit percentage of a " +
+          "finished house, so this factor is small and moves violently with the lumber cycle.",
+      },
+      {
+        key: "trade_hours",
+        unit: "hours of skilled construction labour",
+        usdPer: 42,
+        source: "Placeholder seed — replace with a sourced loaded-wage benchmark before relying on it",
+        asOf: "2026-08",
+        note: "Fully loaded cost per hour of skilled trade labour, blended across trades and regions.",
+      },
+    ],
+  },
+  supply: [
+    {
+      seriesId: "us-wood-product-capacity",
+      label: "US wood product manufacturing capacity",
+      unit: "index (2017=100)",
+      constrains: "board_feet",
+      connector: "fred",
+      handle: "CAPG321S",
+      sourceUrl: "https://fred.stlouisfed.org/series/CAPG321S",
+    },
+    {
+      seriesId: "us-wood-product-output",
+      label: "US wood product manufacturing, actual output",
+      unit: "index (2017=100)",
+      constrains: "board_feet",
+      connector: "fred",
+      handle: "IPG321S",
+      sourceUrl: "https://fred.stlouisfed.org/series/IPG321S",
+    },
+    {
+      seriesId: "us-construction-employment",
+      label: "US construction employment, all employees",
+      unit: "thousands of persons",
+      constrains: "trade_hours",
+      connector: "fred",
+      handle: "CEU2000000001",
+      sourceUrl: "https://fred.stlouisfed.org/series/CEU2000000001",
+    },
+    {
+      seriesId: "us-housing-starts",
+      label: "US housing starts, new privately-owned units",
+      unit: "thousands of units, annual rate",
+      constrains: "board_feet",
+      connector: "fred",
+      handle: "HOUST",
+      sourceUrl: "https://fred.stlouisfed.org/series/HOUST",
+    },
+  ],
+  owners: [
+    {
+      category: "board_feet",
+      label: "Lumber and building products",
+      tickers: ["WY", "PCH", "LPX", "BCC", "UFPI", "BLDR"],
+      foreign: ["West Fraser Timber (TSX/NYSE: WFG)", "Canfor (TSX)", "Interfor (TSX)"],
+    },
+    {
+      category: "trade_hours",
+      label: "Construction labour and specialty trades",
+      tickers: ["IBP", "TPC", "PRIM"],
+      foreign: [],
+    },
+  ],
+  builtIn: true,
+};
+
+export const BUILT_IN_PLAYBOOKS: Playbook[] = [AI_INFRASTRUCTURE, EV_BATTERY, HOMEBUILDING];
 
 /** The playbook used when none is named. */
 export const DEFAULT_PLAYBOOK_ID = AI_INFRASTRUCTURE.id;

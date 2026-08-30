@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import DeskControls from "@/components/bottleneck/DeskControls";
+import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
 import { launchMode } from "@/lib/config";
 import { latestDemand } from "@/lib/bottleneck/demand";
 import { scoreFromStored } from "@/lib/bottleneck/desk";
 import { fmtAge, fmtDay, fmtPct, fmtUnits, fmtUsd } from "@/lib/bottleneck/format";
 import type { CategoryScore, ConstraintStatus } from "@/lib/bottleneck/score";
-import { DEFAULT_PLAYBOOK_ID, getPlaybook } from "@/lib/bottleneck/playbook";
+import { allPlaybooks, DEFAULT_PLAYBOOK_ID, getPlaybook } from "@/lib/bottleneck/playbook";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +27,23 @@ const STATUS: Record<ConstraintStatus, { label: string; chip: string; accent: st
   "insufficient-data": { label: "NOT MEASURED", chip: "", accent: "text-dim" },
 };
 
-export default async function BottleneckPage() {
+export default async function BottleneckPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ playbook?: string }>;
+}) {
   // Pre-launch curtain: the page stays in the tree but 404s until launch.
   if (launchMode()) notFound();
 
-  const playbook = getPlaybook(DEFAULT_PLAYBOOK_ID);
+  const { playbook: requested } = await searchParams;
+  const themes = allPlaybooks();
+  const playbookId = themes.some((p) => p.id === requested) ? requested! : DEFAULT_PLAYBOOK_ID;
+  const playbook = getPlaybook(playbookId);
   const demand = playbook ? latestDemand(playbook.id) : null;
   const scored = playbook ? scoreFromStored(playbook) : null;
+  // Server-decided: a visitor's payload never carries the operating controls,
+  // and every action behind them re-checks the token anyway.
+  const unlocked = tokenMatches((await cookies()).get(ADMIN_COOKIE)?.value ?? null);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -49,6 +62,30 @@ export default async function BottleneckPage() {
         and nothing here is investment advice.
       </p>
 
+      <nav className="mt-5 flex flex-wrap gap-2" aria-label="Desk sections">
+        <Link href="/bottleneck/clone" className="btn">
+          Read an institutional book
+        </Link>
+        <Link href="/bottleneck/exposure" className="btn">
+          Audit exposure
+        </Link>
+      </nav>
+
+      {themes.length > 1 && (
+        <nav className="mt-4 flex flex-wrap items-center gap-2" aria-label="Themes">
+          <span className="font-mono text-[10px] tracking-[0.14em] text-dim">THEME</span>
+          {themes.map((p) => (
+            <Link
+              key={p.id}
+              href={`/bottleneck?playbook=${p.id}`}
+              className={`chip ${p.id === playbookId ? "border-macro/50 text-macro" : "hover:border-muted"}`}
+            >
+              {p.label.toUpperCase()}
+            </Link>
+          ))}
+        </nav>
+      )}
+
       {!playbook || !demand || !scored ? (
         <div className="panel mt-8 p-6">
           <h2 className="font-display text-lg font-semibold">No reading yet</h2>
@@ -64,11 +101,14 @@ export default async function BottleneckPage() {
             takenAt={demand.takenAt}
             stale={demand.stale}
             categories={scored.snapshot.categories}
+            themeLabel={playbook.label}
           />
           <DemandDetail demand={demand.snapshot} />
           <Disclosures flags={[...scored.snapshot.flags, ...demand.snapshot.flags]} snapshot={demand.snapshot} />
         </>
       )}
+
+      {playbook && unlocked && <DeskControls playbookId={playbook.id} playbookLabel={playbook.label} />}
 
       <p className="mt-10 text-[13px] text-dim">
         Looking for the scoring engine instead?{" "}
@@ -81,6 +121,23 @@ export default async function BottleneckPage() {
   );
 }
 
+/**
+ * A focus directive for the lab, built from a constraint the desk measured.
+ *
+ * This is the whole extent of the seam between the two products: a URL. The
+ * desk hands over a sentence a person can edit or delete, and nothing flows
+ * back — no score, no cohort, no dependency in either direction. Capped at the
+ * 280 characters the pipeline accepts.
+ */
+function labFocus(c: CategoryScore, themeLabel: string): string {
+  const gap = c.gapPct === null ? "" : ` The gap between demand and supply growth is ${c.gapPct.toFixed(1)} points.`;
+  // The theme label keeps its own casing — lowercasing it turns "EV" into "ev".
+  const text =
+    `Companies that produce ${c.unit} — the ${c.status === "tightening" ? "tightening" : "measured"} ` +
+    `constraint on ${themeLabel}.${gap} Start from ${c.owners?.tickers.join(", ")} and look wider.`;
+  return text.length <= 280 ? text : `${text.slice(0, 277)}...`;
+}
+
 /* ---- The answer: which input is tightest ---- */
 
 function Ranking({
@@ -88,11 +145,13 @@ function Ranking({
   takenAt,
   stale,
   categories,
+  themeLabel,
 }: {
   label: string;
   takenAt: string;
   stale: boolean;
   categories: CategoryScore[];
+  themeLabel: string;
 }) {
   const measured = categories.filter((c) => c.gapPct !== null);
   return (
@@ -209,6 +268,18 @@ function Ranking({
                     <p className="mt-2 text-[12px] leading-relaxed text-dim">
                       Not plainly US-listed, and named because leaving them out would misrepresent who controls
                       this input: {c.owners.foreign.join(", ")}.
+                    </p>
+                  )}
+                  {c.owners.tickers.length > 0 && (
+                    <p className="mt-2.5 text-[12px] text-dim">
+                      <Link
+                        href={`/lab?focus=${encodeURIComponent(labFocus(c, themeLabel))}`}
+                        className="underline decoration-hairline underline-offset-2 hover:text-ink"
+                      >
+                        research this constraint in the lab →
+                      </Link>{" "}
+                      opens a focused run with this directive already typed in. It is a starting point in an
+                      editable box; the desk sends no data to the pipeline and takes none back.
                     </p>
                   )}
                 </div>
