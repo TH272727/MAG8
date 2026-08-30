@@ -1,9 +1,12 @@
 /**
  * Bottleneck desk — headless operations.
  *
- *   npm run bottleneck -- --probe          live SEC EDGAR smoke test ($0, no model)
- *   npm run bottleneck -- --13f CIK        parse a filer's latest 13F        (Phase 5)
- *   npm run bottleneck -- --refresh [ID]   refresh demand + supply, score the gaps
+ *   npm run bottleneck -- --probe            live SEC EDGAR smoke test ($0, no model)
+ *   npm run bottleneck -- --13f CIK|NAME     clone a filer's latest 13F and diff it
+ *        --offline        skip the CUSIP mapping service (cache + snapshot only)
+ *        --balance N      also print the sizing proposal for an N-dollar account
+ *        --force          re-read the filings even if a parse is already stored
+ *   npm run bottleneck -- --refresh [ID]     refresh demand + supply, score the gaps
  *        --dry            compute without persisting
  *        --reuse-demand   reuse the stored demand reading (supply + scoring only)
  *
@@ -151,8 +154,155 @@ async function probe(): Promise<number> {
     }
   }
 
+  // 7. OpenFIGI — Module A cannot name a single position without it, and its
+  //    keyless terms are the kind of thing that changes without notice.
+  const { figiJobs } = await import("../lib/bottleneck/cusip");
+  const jobs = figiJobs(["038169207", "G11448100"], "US"); // domestic CUSIP + a foreign CINS
+  check(
+    "identifier shape picks the OpenFIGI id type",
+    jobs[0].idType === "ID_CUSIP" && jobs[1].idType === "ID_CINS",
+    `${jobs.map((j) => `${j.idValue}→${j.idType}`).join(", ")}`,
+  );
+  try {
+    const res = await fetch("https://api.openfigi.com/v3/mapping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(jobs),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const body = (await res.json()) as { data?: { ticker?: string }[]; warning?: string }[];
+    const tickers = body.map((r) => r?.data?.[0]?.ticker ?? r?.warning ?? "?");
+    check("OpenFIGI mapping answers without an API key", res.ok, `HTTP ${res.status}`);
+    check(
+      "a domestic CUSIP resolves to its US ticker",
+      tickers[0] === "APLD",
+      `038169207 → ${tickers[0]}`,
+    );
+    // The whole reason for the ID_CINS branch: ID_CUSIP returns "No identifier
+    // found" for this same string.
+    check("a foreign CINS resolves under ID_CINS", tickers[1] === "BTDR", `G11448100 → ${tickers[1]}`);
+    const quota = res.headers.get("ratelimit-limit");
+    if (quota) console.log(`       keyless quota: ${quota} requests/minute, 10 identifiers per request`);
+  } catch (err) {
+    check("OpenFIGI mapping reachable", false, err instanceof Error ? err.message : String(err));
+  }
+
   console.log(`\n ${failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`);
   return failures === 0 ? 0 : 1;
+}
+
+/* ============================================================================
+ * --13f: clone a manager's disclosed book (Module A).
+ * ========================================================================== */
+
+/** How a ticker was established, shown only when it is weaker than an exact US identifier match. */
+function provenance(ticker: string | null, resolvedBy: string, cusip: string): string {
+  if (ticker === null) return `  [unresolved ${cusip}]`;
+  if (resolvedBy === "openfigi-foreign") return "  [foreign venue — no US listing found]";
+  if (resolvedBy === "universe-name") return "  [matched on issuer name]";
+  return "";
+}
+
+async function thirteenF(target: string, opts: { offline: boolean; force: boolean; balance: number }): Promise<number> {
+  const { cloneManager, searchManagers, sizeToBalance } = await import("../lib/bottleneck/thirteenf");
+  const { bottleneckSettings } = await import("../lib/bottleneck-settings");
+  const { fetchIndependentQuote } = await import("../lib/price-sanity");
+
+  let cik = Number(target.replace(/\D/g, ""));
+  if (!/^\d+$/.test(target.trim())) {
+    banner(`BOTTLENECK — 13F FILER SEARCH: "${target}"`);
+    const matches = await searchManagers(target);
+    if (matches.length === 0) {
+      console.error(` No 13F filer matched "${target}".`);
+      return 2;
+    }
+    for (const m of matches) {
+      console.log(` CIK ${String(m.cik).padStart(10)}  ${m.name}  (${m.form} ${m.filingDate}, period ${m.period})`);
+    }
+    if (matches.length > 1) {
+      console.log(`\n ${matches.length} filers matched — re-run with the CIK you want.`);
+      return 0;
+    }
+    cik = matches[0].cik;
+  }
+
+  const settings = bottleneckSettings();
+  const clone = await cloneManager(cik, { offline: opts.offline, force: opts.force });
+  const { current, prior, diff } = clone;
+
+  banner(`BOTTLENECK — 13F CLONE: ${current.filerName}`);
+  console.log(
+    ` CIK ${current.cik} · ${current.form} · period ${current.period} · filed ${current.filedAt}` +
+      ` (${current.lagDays} days later; the rule allows ${settings.filingLagDays})`,
+  );
+  console.log(` ${current.infoTableFile} · values in ${current.valueScale === 1 ? "dollars" : "thousands ×1,000"}`);
+  console.log(
+    ` long book ${usd(current.totals.longUsd)} across ${current.totals.longPositions} positions · ` +
+      `options ${usd(current.totals.optionsUsd)} across ${current.totals.optionPositions}` +
+      (current.totals.unresolved > 0 ? ` · ${current.totals.unresolved} unresolved` : ""),
+  );
+
+  console.log("\n LONG STOCK");
+  console.log(" ticker    %book            value        shares  issuer");
+  for (const h of current.long) {
+    if ((h.pctOfLong ?? 0) < settings.holdingsMinPct) continue;
+    console.log(
+      ` ${(h.ticker ?? "—").padEnd(8)} ${(h.pctOfLong ?? 0).toFixed(2).padStart(6)}%` +
+        ` ${usd(h.valueUsd).padStart(12)} ${h.shares.toLocaleString("en-US").padStart(13)}  ${h.nameOfIssuer}` +
+        provenance(h.ticker, h.resolvedBy, h.cusip),
+    );
+  }
+
+  if (settings.showOptionsOverlay && current.options.length > 0) {
+    console.log("\n OPTIONS OVERLAY — reported alongside the stock, never folded into it");
+    for (const h of current.options) {
+      console.log(
+        ` ${(h.ticker ?? "—").padEnd(8)} ${(h.putCall ?? "").padEnd(5)}` +
+          ` ${usd(h.valueUsd).padStart(12)} ${h.shares.toLocaleString("en-US").padStart(13)}  ${h.nameOfIssuer}`,
+      );
+    }
+  }
+
+  if (prior) {
+    console.log(`\n CHANGES vs ${prior.period} (filed ${prior.filedAt})`);
+    console.log(" change      ticker      shares now   shares before      delta   %book now");
+    for (const d of diff) {
+      console.log(
+        ` ${d.change.toUpperCase().padEnd(11)} ${(d.ticker ?? d.cusip).padEnd(10)}` +
+          ` ${d.sharesNow.toLocaleString("en-US").padStart(12)}` +
+          ` ${d.sharesBefore.toLocaleString("en-US").padStart(15)}` +
+          ` ${(d.sharesDeltaPct === null ? "—" : pct(d.sharesDeltaPct)).padStart(10)}` +
+          ` ${(d.pctOfLongNow === null ? "—" : `${d.pctOfLongNow.toFixed(2)}%`).padStart(11)}` +
+          provenance(d.ticker, d.resolvedBy, d.cusip),
+      );
+    }
+  }
+
+  if (opts.balance > 0) {
+    console.log(`\n SIZING PROPOSAL for ${usd(opts.balance)} — a list to review, not an order`);
+    const prices = new Map<string, number>();
+    for (const h of current.long) {
+      if (!h.ticker) continue;
+      const quote = await fetchIndependentQuote(h.ticker);
+      if (quote !== null) prices.set(h.ticker, quote);
+    }
+    console.log(" ticker    %book       suggested $      price    shares");
+    for (const o of sizeToBalance(current.long, opts.balance, prices, settings.holdingsMinPct)) {
+      console.log(
+        ` ${(o.ticker ?? "—").padEnd(8)} ${o.pctOfLong.toFixed(2).padStart(6)}%` +
+          ` ${usd(o.suggestedUsd).padStart(15)}` +
+          ` ${(o.price === null ? "—" : `$${o.price.toFixed(2)}`).padStart(10)}` +
+          ` ${(o.suggestedShares === null ? "—" : o.suggestedShares.toLocaleString("en-US")).padStart(9)}` +
+          (o.usListed ? "" : "   no US listing"),
+      );
+    }
+    console.log(" Nothing here is wired to a broker; this desk cannot place an order.");
+  }
+
+  console.log("\n WHAT THIS CLONE CANNOT TELL YOU");
+  for (const f of clone.flags) console.log(`  - ${f}`);
+  console.log(`\n source: ${current.sourceUrl}`);
+  return 0;
 }
 
 /* ============================================================================
@@ -281,8 +431,23 @@ async function main() {
     return;
   }
   if (has("--13f")) {
-    console.error(`--13f ${argValue("--13f") ?? ""}: Module A lands in Phase 5.`);
-    process.exitCode = 2;
+    const target = argValue("--13f");
+    if (!target || target.startsWith("--")) {
+      console.error("--13f needs a CIK or a manager name, e.g. --13f 2045724");
+      process.exitCode = 2;
+      return;
+    }
+    const balance = Number(argValue("--balance") ?? 0);
+    try {
+      process.exitCode = await thirteenF(target, {
+        offline: has("--offline"),
+        force: has("--force"),
+        balance: Number.isFinite(balance) && balance > 0 ? balance : 0,
+      });
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : err);
+      process.exitCode = 1;
+    }
     return;
   }
   if (has("--refresh")) {
@@ -293,7 +458,9 @@ async function main() {
     return;
   }
   console.log(
-    "Usage: npm run bottleneck -- --probe | --refresh [PLAYBOOK] [--dry] [--reuse-demand] | --13f CIK (Phase 5)",
+    "Usage: npm run bottleneck -- --probe\n" +
+      "                          | --13f CIK|NAME [--offline] [--force] [--balance USD]\n" +
+      "                          | --refresh [PLAYBOOK] [--dry] [--reuse-demand]",
   );
   process.exitCode = 2;
 }
