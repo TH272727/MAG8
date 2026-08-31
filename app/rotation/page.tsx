@@ -6,11 +6,21 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import RotationControls from "@/components/rotation/RotationControls";
 import RotationTable, { type TableRow } from "@/components/rotation/RotationTable";
+import ScoreWithDirection from "@/components/rotation/ScoreWithDirection";
 import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
 import { launchMode } from "@/lib/config";
 import { readBoard } from "@/lib/rotation/board";
 import { CATEGORY_META, catalogTickers } from "@/lib/rotation/catalog";
-import { fmtDay, fmtNum, fmtPct, fmtPercentile, fmtRatio, fmtScore, fmtSince, TIER_STYLE } from "@/lib/rotation/format";
+import {
+  directionMark,
+  fmtDay,
+  fmtNum,
+  fmtPct,
+  fmtPercentile,
+  fmtScore,
+  fmtSince,
+  TIER_STYLE,
+} from "@/lib/rotation/format";
 import { TIER_META } from "@/lib/rotation/score";
 import { noteForBoard } from "@/lib/rotation/note";
 import { describeChange } from "@/lib/rotation/state";
@@ -39,6 +49,7 @@ export default async function RotationPage() {
   const rows: TableRow[] = board.entries.flatMap((e) => {
     const r = e.result.reading;
     if (!r || r.kind !== "ratio") return [];
+    const mark = directionMark(r);
     return [
       {
         id: r.id,
@@ -52,6 +63,10 @@ export default async function RotationPage() {
         tierAccent: TIER_STYLE[r.tier].accent,
         direction: r.direction,
         directionLabel: r.directionLabel,
+        dirGlyph: mark.glyph,
+        dirTicker: mark.ticker,
+        dirLabel: mark.label,
+        dirAccent: mark.accent,
         daysSince: e.daysSince,
         sinceLabel: fmtSince(e.daysSince),
         scoreLabel: fmtScore(r.score),
@@ -150,16 +165,30 @@ export default async function RotationPage() {
           {leaders.length > 0 && (
             <section className="mt-8" aria-labelledby="lead-h">
               <h2 id="lead-h" className="eyebrow">
-                Strongest readings
+                Most decisive readings
               </h2>
+              <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-dim">
+                The largest moves on the board, in either direction. Each score is shown with the side it
+                favours — a decisive move is not the same thing as a favourable one.
+              </p>
               <div className="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-3">
                 {leaders.map((r) => (
                   <Link key={r.id} href={`/rotation/${r.id}`} className="bg-panel2 px-4 py-3 hover:bg-panel">
                     <div className="font-mono text-[10px] tracking-[0.14em] text-dim">
                       {CATEGORY_META[r.category].title.toUpperCase()}
                     </div>
-                    <div className={`tabular mt-1 font-mono text-2xl font-bold ${TIER_STYLE[r.tier].accent}`}>
-                      {fmtScore(r.score)}
+                    <div className="mt-1">
+                      <ScoreWithDirection
+                        scoreLabel={fmtScore(r.score)}
+                        tierAccent={TIER_STYLE[r.tier].accent}
+                        size="lg"
+                        {...(({ glyph, ticker, label, accent }) => ({
+                          glyph,
+                          ticker,
+                          directionLabel: label,
+                          dirAccent: accent,
+                        }))(directionMark(r))}
+                      />
                     </div>
                     <div className="mt-1 text-[13px] text-ink">{r.label}</div>
                     <div className="mt-1 text-[12px] text-muted">{r.directionLabel}</div>
@@ -211,8 +240,19 @@ export default async function RotationPage() {
                         <td className="tabular py-2 text-right font-mono text-[13px] text-muted">
                           {fmtPct(s.relative3m)}
                         </td>
-                        <td className="tabular py-2 text-right font-mono text-[13px] text-muted">
-                          {fmtScore(s.score)}
+                        <td className="py-2 text-right">
+                          <div className="flex justify-end">
+                            <ScoreWithDirection
+                              scoreLabel={fmtScore(s.score)}
+                              tierAccent={TIER_STYLE[s.tier].accent}
+                              {...(({ glyph, ticker, label, accent }) => ({
+                                glyph,
+                                ticker,
+                                directionLabel: label,
+                                dirAccent: accent,
+                              }))(directionMark(s))}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}

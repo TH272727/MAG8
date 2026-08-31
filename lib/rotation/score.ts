@@ -108,6 +108,9 @@ export interface Reading {
   label: string;
   category: RotationCategory;
   kind: Indicator["kind"];
+  /** Both legs, so a reading can name the side it favours without the catalog. */
+  base: string;
+  quote: string | null;
   asOf: string;
   sessions: number;
   /** Today's ratio, or today's level for a context gauge. */
@@ -277,6 +280,8 @@ export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
       label: indicator.label,
       category: indicator.category,
       kind: "context",
+      base: indicator.base,
+      quote: indicator.quote,
       asOf,
       sessions: dates.length,
       value: level,
@@ -400,6 +405,8 @@ export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
     label: indicator.label,
     category: indicator.category,
     kind: "ratio",
+    base: indicator.base,
+    quote: indicator.quote,
     asOf,
     sessions: dates.length,
     value: values[i]!,

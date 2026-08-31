@@ -179,6 +179,9 @@ export interface SectorRow {
   ticker: string;
   indicatorId: string;
   label: string;
+  /** Both legs, so the page can name the side the score favours. */
+  base: string;
+  quote: string | null;
   /** Three-month rate of change of the sector's ratio to the market. */
   relative3m: number | null;
   score: number | null;
@@ -314,6 +317,8 @@ function buildSectorRows(entries: BoardEntry[]): SectorRow[] {
       ticker,
       indicatorId: r.id,
       label: e.result.indicator.label,
+      base: r.base,
+      quote: r.quote,
       relative3m: r.roc3m,
       score: r.score,
       tier: r.tier,

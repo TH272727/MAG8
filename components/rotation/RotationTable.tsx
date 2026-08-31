@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import ScoreWithDirection from "./ScoreWithDirection";
 
 /* ============================================================================
  * The signals table: every indicator, sortable and filterable, linking to its
  * own chart.
  *
- * One rule the sort has to respect however the reader orders it: an indicator
- * that could not be scored always sinks to the bottom. Sorting by score
- * ascending must not float the unmeasured ones to the top as though they were
- * the quietest readings on the board.
+ * Two rules this table has to respect.
+ *
+ * An indicator that could not be scored always sinks to the bottom. Sorting by
+ * score ascending must not float the unmeasured ones to the top as though they
+ * were the quietest readings on the board.
+ *
+ * And the score is never rendered without the side it favours. It is a
+ * magnitude, not a verdict — the highest number in this column can be a strong
+ * move against the asset it is filed under.
  * ========================================================================== */
 
 export interface TableRow {
@@ -25,6 +31,10 @@ export interface TableRow {
   tierAccent: string;
   direction: string;
   directionLabel: string;
+  dirGlyph: string;
+  dirTicker: string | null;
+  dirLabel: string;
+  dirAccent: string;
   daysSince: number | null;
   sinceLabel: string;
   scoreLabel: string;
@@ -120,6 +130,12 @@ export default function RotationTable({ rows }: { rows: TableRow[] }) {
         </span>
       </div>
 
+      <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-dim">
+        The score measures how <span className="text-muted">decisively</span> a ratio is moving, not which way.
+        The marker beside it names the side that move favours, so a high score can mean a strong move in
+        either direction — including against the asset the row is named for.
+      </p>
+
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <caption className="sr-only">
@@ -163,7 +179,16 @@ export default function RotationTable({ rows }: { rows: TableRow[] }) {
                 </td>
                 <td className="py-2.5 pr-3 text-[13px] text-muted">{r.categoryTitle}</td>
                 <td className="py-2.5 pr-3 text-right">
-                  <div className={`tabular font-mono text-[15px] font-bold ${r.tierAccent}`}>{r.scoreLabel}</div>
+                  <div className="flex justify-end">
+                    <ScoreWithDirection
+                      scoreLabel={r.scoreLabel}
+                      tierAccent={r.tierAccent}
+                      glyph={r.dirGlyph}
+                      ticker={r.dirTicker}
+                      directionLabel={r.dirLabel}
+                      dirAccent={r.dirAccent}
+                    />
+                  </div>
                   <div className="mt-1 flex justify-end">
                     <span className={`chip ${r.tierChip}`}>{r.tierLabel}</span>
                   </div>

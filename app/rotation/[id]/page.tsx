@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import RotationChart, { type ChartMarker } from "@/components/rotation/RotationChart";
+import ScoreWithDirection from "@/components/rotation/ScoreWithDirection";
 import { launchMode } from "@/lib/config";
 import { loadSeries } from "@/lib/rotation/board";
 import { CATEGORY_META, getIndicator } from "@/lib/rotation/catalog";
 import {
+  directionMark,
   fmtDay,
   fmtNum,
   fmtPct,
@@ -111,7 +113,25 @@ export default async function IndicatorPage({ params }: { params: Promise<{ id: 
 
           {/* -- Headline figures. ------------------------------------------- */}
           <div className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
-            {stat("PIVOT SCORE", fmtScore(r.score), TIER_STYLE[r.tier].accent)}
+            <div className="bg-panel2 px-4 py-3">
+              <div className="font-mono text-[10px] tracking-[0.14em] text-dim">PIVOT SCORE</div>
+              <div className="mt-1">
+                <ScoreWithDirection
+                  scoreLabel={fmtScore(r.score)}
+                  tierAccent={TIER_STYLE[r.tier].accent}
+                  size="md"
+                  {...(({ glyph, ticker, label, accent }) => ({
+                    glyph,
+                    ticker,
+                    directionLabel: label,
+                    dirAccent: accent,
+                  }))(directionMark(r))}
+                />
+              </div>
+              <div className="mt-1 text-[11px] leading-snug text-dim">
+                how decisively, not which way — the marker names the side
+              </div>
+            </div>
             {stat("RATIO", fmtRatio(r.value))}
             {stat("THREE-YEAR PERCENTILE", fmtPercentile(r.percentile))}
             {stat("LAST STATE CHANGE", fmtSince(daysSince))}

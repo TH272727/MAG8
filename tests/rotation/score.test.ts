@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { IndicatorSchema, type Indicator } from "../../lib/rotation/catalog";
 import { rankReadings, scoreIndicator, tierFor, type ScoreSettings } from "../../lib/rotation/score";
+import { directionMark } from "../../lib/rotation/format";
 
 /* ============================================================================
  * The composite score, its tiers, and its direction.
@@ -366,5 +367,80 @@ describe("rankReadings", () => {
       { ...base, id: "mid", score: 5 },
     ]).map((r) => r.id);
     expect(order).toEqual(["hi", "mid", "lo"]);
+  });
+});
+
+describe("the score is a magnitude, not a verdict", () => {
+  // The misreading this guards: the highest score on the board was read as the
+  // best thing to own, when it was a strong move AGAINST the named sector.
+  it("scores a decisive move the same whichever side it favours", () => {
+    const up = scoreIndicator({
+      indicator: indicator(),
+      base: leg(sessions(RISING, (i) => 100 * 1.001 ** i)),
+      quote: leg(sessions(RISING, () => 100)),
+      settings,
+      now: NOW,
+    }).reading!;
+    const down = scoreIndicator({
+      indicator: indicator(),
+      base: leg(sessions(RISING, (i) => 100 * 0.999 ** i)),
+      quote: leg(sessions(RISING, () => 100)),
+      settings,
+      now: NOW,
+    }).reading!;
+    expect(up.direction).toBe("favors-base");
+    expect(down.direction).toBe("favors-quote");
+    // Same strength, opposite sides — so the number alone cannot be a verdict.
+    expect(up.components.trend).toBe(down.components.trend);
+    expect(up.score).toBeCloseTo(down.score!, 0);
+  });
+
+  it("carries both legs so a reading can name the side it favours", () => {
+    const r = rising().reading!;
+    expect(r.base).toBe("A");
+    expect(r.quote).toBe("B");
+  });
+});
+
+describe("directionMark", () => {
+  it("names the favoured ticker rather than only pointing", () => {
+    const r = rising().reading!;
+    const mark = directionMark(r);
+    expect(mark.ticker).toBe("A");
+    expect(mark.label).toBe("favours A");
+    expect(mark.glyph).toBeTruthy();
+  });
+
+  it("names the other leg when the ratio declines", () => {
+    const res = scoreIndicator({
+      indicator: indicator(),
+      base: leg(sessions(RISING, (i) => 100 * 0.999 ** i)),
+      quote: leg(sessions(RISING, () => 100)),
+      settings,
+      now: NOW,
+    });
+    expect(directionMark(res.reading!).ticker).toBe("B");
+  });
+
+  it("names no ticker at all when the reading is balanced", () => {
+    const res = scoreIndicator({
+      indicator: indicator(),
+      base: leg(sessions(400, (i) => 100 + Math.sin(i / 3) * 0.02)),
+      quote: leg(sessions(400, () => 100)),
+      settings,
+      now: NOW,
+    });
+    const mark = directionMark(res.reading!);
+    expect(mark.ticker).toBeNull();
+    expect(mark.label).toMatch(/neither side/);
+  });
+
+  it("does not use colour as the code for which side won", () => {
+    // Two hues would have to be learned, would collide with the chart legend,
+    // and would read as good against bad when neither leg is either.
+    const up = directionMark({ direction: "favors-base", base: "A", quote: "B" });
+    const down = directionMark({ direction: "favors-quote", base: "A", quote: "B" });
+    expect(up.accent).toBe(down.accent);
+    expect(up.glyph).not.toBe(down.glyph);
   });
 });
