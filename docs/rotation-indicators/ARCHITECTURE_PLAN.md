@@ -150,13 +150,19 @@ Live, joined on date, 1255 trading days 2021-08-30 → 2026-08-28:
 | SMA50 / SMA200 | 0.28680 / 0.28535 — separation **0.51%** |
 | z-score (252d) | +0.351 |
 | percentile (3y) | **22** |
-| RSI(14) of the ratio | 57.5 |
+| RSI(14) of the ratio | 48.1 *(corrected: see note)* |
 | ROC 1mo / 3mo / 6mo | −1.22% / +4.05% / −3.72% |
-| components | trend 2.0 · stretch 1.2 · momentum 1.5 |
-| **Pivot Score** | **1.3** → Tier **No Signal** |
+| components | trend 1.7 · stretch 1.2 · momentum 0.4 |
+| **Pivot Score** | **1.1** → Tier **No Signal** |
 | Direction | Favors RSP / broad equal-weight |
 
 Down 15.7% over five years — the spec's premise of sustained mega-cap dominance (S.2) holds.
+
+> **Corrected after implementation.** The momentum figure above was 57.5 when this plan was
+> written, from a planning probe that used a *simple* 14-period average. RSI means Wilder's
+> smoothing, which is what shipped, and which reads 48.1 — cross-checked against a second
+> independent implementation agreeing to four decimals on Wilder's own worked series. The score
+> is therefore 1.1 rather than 1.3. Still No Signal, still the 22nd percentile.
 
 ⚠️ **Calibration observation, reported not silently "fixed."** Applied literally, the S.3 formula
 scores the flagship **1.3 / No Signal** while the ratio sits at the **22nd percentile of its 3-year
@@ -352,7 +358,7 @@ on 429/5xx, `minBars` sanity gate, own ticker validator allowing `^VIX`) · both
 or failed tickers **flagged not dropped** (P.2).
 
 **2 · The pure engine.** `math.ts` · `score.ts` · `state.ts`. *Gate:* RSP/SPY reproduces §5 of this
-plan exactly, and `tests/rotation/` covers — a strictly rising ratio scores high on trend; the
+plan (as corrected), and `tests/rotation/` covers — a strictly rising ratio scores high on trend; the
 Memorial-Day calendar case; RSI(14) against Wilder's published worked example; a flat ratio does
 not flip direction; `weightPercentile 0` reproduces the spec's plain average.
 

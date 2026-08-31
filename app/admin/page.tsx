@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { adminLogout } from "@/app/actions";
 import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import BottleneckSettingsPanel from "@/components/admin/BottleneckSettingsPanel";
+import RotationSettingsPanel from "@/components/admin/RotationSettingsPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
 import RunHistoryTable from "@/components/admin/RunHistoryTable";
@@ -19,6 +20,11 @@ import {
   BOTTLENECK_SETTINGS_SPEC,
   effectiveBottleneckSettings,
 } from "@/lib/bottleneck-settings";
+import {
+  ROTATION_SETTING_GROUPS,
+  ROTATION_SETTINGS_SPEC,
+  effectiveRotationSettings,
+} from "@/lib/rotation-settings";
 import { allPlaybooks } from "@/lib/bottleneck/playbook";
 import { formatSettingValue, type SettingSpec } from "@/lib/settings-registry";
 import {
@@ -105,6 +111,8 @@ export default async function AdminPage() {
 
   const bottleneckEff = effectiveBottleneckSettings();
   const bottleneckPanel = toPanelSettings(BOTTLENECK_SETTINGS_SPEC, bottleneckEff);
+  const rotationEff = effectiveRotationSettings();
+  const rotationPanel = toPanelSettings(ROTATION_SETTINGS_SPEC, rotationEff);
   const playbooks = allPlaybooks().map((p) => ({ id: p.id, label: p.label, builtIn: p.builtIn }));
 
   return (
@@ -171,6 +179,29 @@ export default async function AdminPage() {
             groups={BOTTLENECK_SETTING_GROUPS}
             settings={bottleneckPanel}
             playbooks={playbooks}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="rotation-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="rotation-h" className="eyebrow">
+            Rotation board
+          </h2>
+          <span className="chip">$0 · NO RESEARCH CAPACITY</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          A third research product sharing this database: it divides one traded fund by another to strip
+          the common market move out, and scores what is left. Only daily closes are stored, so every dial
+          below re-derives the whole board — scores, tiers, directions and the marks on every chart — on
+          the next read, with no refetch. It never writes to a pipeline table or touches the leaderboard.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <RotationSettingsPanel
+            key={JSON.stringify(rotationEff.values)}
+            groups={ROTATION_SETTING_GROUPS}
+            settings={rotationPanel}
           />
         </div>
       </section>

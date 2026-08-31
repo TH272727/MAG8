@@ -19,6 +19,11 @@ import {
   effectiveBottleneckSettings,
 } from "@/lib/bottleneck-settings";
 import { DEFAULT_PLAYBOOK_ID, getPlaybook, usesPlaceholderFactors } from "@/lib/bottleneck/playbook";
+import {
+  ROTATION_SETTING_GROUPS,
+  ROTATION_SETTINGS_SPEC,
+  effectiveRotationSettings,
+} from "@/lib/rotation-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -239,6 +244,100 @@ function BottleneckSection() {
   );
 }
 
+/**
+ * The Rotation Board's disclosure. Same contract as the two sections above:
+ * every threshold is the LIVE effective value from the board's own resolver, so
+ * the page and the board cannot drift apart. Which indicators exist is
+ * deliberately NOT here — that is a catalog of ticker pairs rather than an
+ * operator preference, and each one publishes its own meaning on its own page.
+ */
+function RotationSection() {
+  const eff = effectiveRotationSettings();
+  const shown = ROTATION_SETTINGS_SPEC.filter((s) => s.group !== "ops");
+  const s = eff.values;
+  const plainAverage =
+    s.weightTrend === s.weightStretch && s.weightStretch === s.weightMomentum && s.weightPercentile === 0;
+  return (
+    <section id="rotation" className="mt-12 scroll-mt-24" aria-labelledby="rotation-h">
+      <h2 id="rotation-h" className="eyebrow">
+        The Rotation Board — a third product, relative rather than absolute
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        An index going up says nothing about what is going up.{" "}
+        <Link href="/rotation" className="underline underline-offset-2 hover:text-ink">
+          The Rotation Board
+        </Link>{" "}
+        divides one traded fund by another so the common market move cancels and only the difference
+        remains — the average company against the largest few, growth against value, credit risk against
+        safety. Each ratio gets three marks out of ten: how far its 50-day average sits from its 200-day,
+        how stretched it is against its own year, and how far the momentum of the ratio itself sits from
+        neutral. No model is involved in any of that, and none is involved in deciding when a reading has
+        changed.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Only daily closing prices are stored. Every ratio, average, score, tier and direction — and the
+        whole history behind them — is recomputed from those prices on each page load, so retuning a dial
+        below changes the board, and the marks on every chart, without refetching anything.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Like the desk above, it shares this application&apos;s database and design and nothing else. It
+        cannot write to a run, a candidate, a score, or the board; no reading it takes can move a ranking.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {ROTATION_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((x) => x.group === g.key)
+                .map((x) => (
+                  <div key={x.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">{x.label}</dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(x, eff.values[x.key as keyof typeof eff.values])}
+                      {eff.sources[x.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        {plainAverage ? (
+          <>
+            The three scored marks currently carry equal weight, which makes the composite the plain
+            average the published method specifies. A fourth measurement — how extreme a ratio is against
+            its full multi-year range — is computed and shown on every indicator but weighted zero, because
+            that method does not score it. The consequence is visible and deliberate: a ratio can sit near a
+            three-year low and still read as no signal. Raising that weight above zero is the supported way
+            to disagree, and the changed weighting appears here the moment it is changed.
+          </>
+        ) : (
+          <>
+            The scoring weights have been tuned away from the equal weighting the published method
+            specifies, so the composite above is no longer the plain average that method describes. The
+            live values are shown so a reader can see exactly which method produced the scores they are
+            looking at.
+          </>
+        )}
+      </p>
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        A written note is produced only when an indicator actually crosses a tier boundary or flips the
+        side it favours, never on a schedule and never per visit. The note is assembled from the computed
+        figures at no cost. A model may optionally be allowed to rephrase it — that is off by default, and
+        when it is on, any note containing a figure that cannot be traced back to a computed input is
+        discarded in favour of the deterministic one.
+      </p>
+    </section>
+  );
+}
+
 export default function MethodologyPage() {
   // Pre-launch curtain: hidden like every other page — the homepage stands alone.
   if (launchMode()) notFound();
@@ -391,6 +490,8 @@ export default function MethodologyPage() {
 
       {/* The Bottleneck desk — live effective settings from its own resolver */}
       <BottleneckSection />
+
+      <RotationSection />
 
       {/* Rubric — rendered from the same constants the pipeline enforces */}
       <section className="mt-12" aria-labelledby="rubric-h">

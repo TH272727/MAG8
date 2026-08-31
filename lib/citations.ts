@@ -28,7 +28,7 @@ export interface Citation {
 }
 
 export interface CitationGroup {
-  key: "fundamentals" | "macro" | "consensus" | "discovery" | "universe" | "rubric" | "bottleneck";
+  key: "fundamentals" | "macro" | "consensus" | "discovery" | "universe" | "rubric" | "bottleneck" | "rotation";
   title: string;
   intro: string;
   works: Citation[];
@@ -671,6 +671,97 @@ export const CITATION_GROUPS: CitationGroup[] = [
           "From 1968 to 2003 the lowest asset-growth decile returned about 26% a year against about 6% for the highest — a ~20-point spread, and still about 13 points value-weighted. Asset growth was a stronger predictor of the cross-section than size, book-to-market, or momentum.",
         usedFor:
           "The most inconvenient result in this evidence base, and the reason the exposure audit says so in plain words: the companies spending hardest on the constrained inputs this desk tracks are, historically, the ones whose shares went on to do worst.",
+      },
+    ],
+  },
+  {
+    key: "rotation",
+    title: "The Rotation Board",
+    intro:
+      "A third research product: it divides one traded fund by another to strip the common market move out and leave only the difference — the average company against the largest few, growth against value, credit risk against safety — then scores each ratio by ordinary arithmetic. The works below ground why relative strength is worth measuring at all, why it is measured the way it is here, and — deliberately included — the two results that argue hardest against reading a board like this one confidently.",
+    works: [
+      {
+        short: "Levy 1967",
+        authors: "Levy, R. A.",
+        year: "1967",
+        title: "Relative Strength as a Criterion for Investment Selection",
+        source: "The Journal of Finance, 22(4), 595–610",
+        url: "https://doi.org/10.1111/j.1540-6261.1967.tb00295.x",
+        finding:
+          "Ranked 200 NYSE stocks weekly on ratios of price to their own trailing average, and reported that those trading substantially above their 27-week average went on to earn abnormal returns — the first systematic test of relative strength as a selection rule.",
+        usedFor:
+          "The origin of the idea this board is built on: that the ratio of one price series to another carries information neither price carries alone.",
+      },
+      {
+        short: "Wilder 1978",
+        authors: "Wilder, J. W.",
+        year: "1978",
+        title: "New Concepts in Technical Trading Systems",
+        source: "Trend Research, Greensboro NC",
+        finding:
+          "Introduced the relative strength index with its 14-period default, defined through a smoothed average of gains against losses rather than a simple mean — the smoothing that makes each reading depend on the whole series rather than only the last fourteen sessions.",
+        usedFor:
+          "The momentum reading on every chart is this measure, computed to the original smoothing and applied to the ratio rather than to a price. Cited because two definitions circulate and they give visibly different numbers; this board uses the original.",
+      },
+      {
+        short: "Jegadeesh & Titman 1993",
+        authors: "Jegadeesh, N., & Titman, S.",
+        year: "1993",
+        title: "Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency",
+        source: "The Journal of Finance, 48(1), 65–91",
+        url: "https://doi.org/10.1111/j.1540-6261.1993.tb04702.x",
+        finding:
+          "Buying recent winners and selling recent losers earned significant positive returns at three- to twelve-month horizons over 1965–1989, a result since reproduced across decades, countries and asset classes.",
+        usedFor:
+          "Why a persistence reading belongs in the composite at all: the tendency of relative performance to continue over these horizons is among the most replicated findings in the field.",
+      },
+      {
+        short: "Moskowitz & Grinblatt 1999",
+        authors: "Moskowitz, T. J., & Grinblatt, M.",
+        year: "1999",
+        title: "Do Industries Explain Momentum?",
+        source: "The Journal of Finance, 54(4), 1249–1290",
+        url: "https://doi.org/10.1111/0022-1082.00146",
+        finding:
+          "Industry momentum is strong enough to account for much of individual-stock momentum: control for industry and individual momentum strategies become markedly less profitable. Unlike stock momentum, it comes mostly from the largest and most liquid names.",
+        usedFor:
+          "The reason the eleven sector ratios are ranked as one board rather than read one at a time, and the reason sector leadership is treated as information in its own right rather than as a by-product of the companies inside it.",
+      },
+      {
+        short: "Plyakha, Uppal & Vilkov 2012",
+        authors: "Plyakha, Y., Uppal, R., & Vilkov, G.",
+        year: "2012",
+        title: "Why Does an Equal-Weighted Portfolio Outperform Value- and Price-Weighted Portfolios?",
+        source: "Working paper, SSRN 2724535",
+        url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2724535",
+        finding:
+          "An equal-weighted portfolio beat value- and price-weighted versions of the same holdings on mean return, four-factor alpha and Sharpe ratio — by roughly 271 basis points a year — with the alpha traced to the monthly rebalancing itself, which is mechanically contrarian.",
+        usedFor:
+          "Background for the flagship ratio, which divides an equal-weighted fund by a cap-weighted one holding the same companies. It establishes that the two weightings are genuinely different bets rather than one bet expressed twice.",
+      },
+      {
+        short: "Sullivan, Timmermann & White 1999",
+        authors: "Sullivan, R., Timmermann, A., & White, H.",
+        year: "1999",
+        title: "Data-Snooping, Technical Trading Rule Performance, and the Bootstrap",
+        source: "The Journal of Finance, 54(5), 1647–1691",
+        url: "https://doi.org/10.1111/0022-1082.00163",
+        finding:
+          "Applied a bootstrap that prices in the whole universe of rules a researcher could have tried, across a century of daily index data. The best rule survived that correction inside the original sample — and then failed to deliver superior performance over the following ten years out of sample.",
+        usedFor:
+          "The most inconvenient result here, and the reason the board states plainly how many ratios it computes. Testing many rules against one history is exactly the setting in which some look predictive by chance, and nothing on this board is corrected for that.",
+      },
+      {
+        short: "Daniel & Moskowitz 2016",
+        authors: "Daniel, K., & Moskowitz, T. J.",
+        year: "2016",
+        title: "Momentum crashes",
+        source: "Journal of Financial Economics, 122(2), 221–247",
+        url: "https://doi.org/10.1016/j.jfineco.2015.12.002",
+        finding:
+          "Momentum earns strong average returns punctuated by infrequent, severe and persistent losses. Those crashes are partly forecastable: they cluster in panic states — after market declines, when volatility is high — and coincide with rebounds.",
+        usedFor:
+          "Why a volatility gauge sits beside the ratios as context rather than as a signal of its own: the conditions under which a persistence reading is most likely to reverse are precisely the ones that gauge measures.",
       },
     ],
   },
