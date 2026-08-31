@@ -13,6 +13,7 @@
     "setup:skills": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-skills.ps1",
     "pipeline": "tsx scripts/run-pipeline.ts",
     "bottleneck": "tsx scripts/bottleneck.ts",
+    "rotation": "tsx scripts/rotation.ts",
     "seed": "tsx scripts/seed-fixture.ts",
     "test": "vitest run",
     "test:watch": "vitest",

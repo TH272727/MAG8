@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { BOTTLENECK_SETTING_GROUPS, BOTTLENECK_SETTINGS_SPEC } from "../../lib/bottleneck-settings";
 import { UNIVERSE_SETTINGS_SPEC, UNIVERSE_SETTING_GROUPS } from "../../lib/universe-settings";
+import { ROTATION_SETTING_GROUPS, ROTATION_SETTINGS_SPEC } from "../../lib/rotation-settings";
 import { boolSetting, formatSettingValue, numSetting, type SettingSpec } from "../../lib/settings-registry";
 
 /* ============================================================================
- * Registry integrity for BOTH knob registries. Reads only module constants —
- * the resolver itself talks to SQLite and is exercised in the live desk, not
- * here, so nothing in this file opens the database.
+ * Registry integrity for EVERY knob registry. Reads only module constants —
+ * the resolver itself talks to SQLite and is exercised in the live products,
+ * not here, so nothing in this file opens the database.
  * ========================================================================== */
 
 const REGISTRIES: [string, SettingSpec<string>[], { key: string }[]][] = [
   ["universe", UNIVERSE_SETTINGS_SPEC, UNIVERSE_SETTING_GROUPS],
   ["bottleneck", BOTTLENECK_SETTINGS_SPEC, BOTTLENECK_SETTING_GROUPS],
+  ["rotation", ROTATION_SETTINGS_SPEC, ROTATION_SETTING_GROUPS],
 ];
 
 describe.each(REGISTRIES)("%s settings registry", (_name, spec, groups) => {
@@ -53,14 +55,24 @@ describe.each(REGISTRIES)("%s settings registry", (_name, spec, groups) => {
   });
 });
 
-describe("the two registries stay independent", () => {
-  it("shares no storage-key collisions via env vars", () => {
-    const u = new Set(UNIVERSE_SETTINGS_SPEC.map((s) => s.envVar));
-    for (const s of BOTTLENECK_SETTINGS_SPEC) expect(u).not.toContain(s.envVar);
+describe("the registries stay independent", () => {
+  it("shares no env-var collisions across any pair", () => {
+    // One env var read by two products would tie two unrelated dials together.
+    const seen = new Map<string, string>();
+    for (const [name, spec] of REGISTRIES) {
+      for (const s of spec) {
+        expect(seen.has(s.envVar), `${s.envVar} is claimed by both ${seen.get(s.envVar)} and ${name}`).toBe(false);
+        seen.set(s.envVar, name);
+      }
+    }
   });
 
   it("namespaces every Bottleneck env var under MAG8_BN_", () => {
     for (const s of BOTTLENECK_SETTINGS_SPEC) expect(s.envVar).toMatch(/^MAG8_BN_/);
+  });
+
+  it("namespaces every Rotation env var under MAG8_ROT_", () => {
+    for (const s of ROTATION_SETTINGS_SPEC) expect(s.envVar).toMatch(/^MAG8_ROT_/);
   });
 });
 

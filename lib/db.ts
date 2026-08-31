@@ -202,6 +202,35 @@ CREATE TABLE IF NOT EXISTS bottleneck_cusips (
   source TEXT NOT NULL,
   resolved_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+/* ---------------------------------------------------------------------------
+ * The Rotation Board — a third research product sharing this database file.
+ * Same rule as the desk above: NO foreign key into runs/candidates/
+ * lens_analyses/rankings, so the board can never write to, or cascade from,
+ * the pipeline. It stores raw daily closes and one cache of written notes;
+ * every ratio, average, score, tier and direction is recomputed on read.
+ * ------------------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS rotation_bars (
+  ticker TEXT NOT NULL,
+  date TEXT NOT NULL,
+  close REAL NOT NULL,
+  adjusted INTEGER NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('yahoo','nasdaq')),
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (ticker, date)
+);
+CREATE INDEX IF NOT EXISTS idx_rot_bars ON rotation_bars (ticker, date DESC);
+
+CREATE TABLE IF NOT EXISTS rotation_briefs (
+  state_hash TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  origin TEXT NOT NULL CHECK (origin IN ('template','model')),
+  as_of TEXT NOT NULL,
+  changed_json TEXT NOT NULL,
+  body TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rot_briefs ON rotation_briefs (created_at DESC);
 `;
 
 type GlobalWithDb = typeof globalThis & { __mag8_db?: Database.Database };
@@ -249,6 +278,12 @@ function migrate(db: Database.Database): void {
     // there is no column to patch — only the version to record. Nothing here
     // touches a pipeline table.
     db.pragma("user_version = 4");
+  }
+  if (v < 5) {
+    // Rotation Board: two additive tables, created by SCHEMA_SQL on fresh AND
+    // existing files for the same reason as step 4 — no column to patch, only
+    // the version to record. Nothing here touches a pipeline table either.
+    db.pragma("user_version = 5");
   }
 }
 
@@ -1336,4 +1371,196 @@ export function saveCusipResolutions(rows: CusipResolution[]): void {
     for (const r of rows) stmt.run(r.cusip, r.ticker, r.name, r.source);
   });
   tx();
+}
+
+/* ---------------------------------------------------------------------------
+ * The Rotation Board.
+ *
+ * Only two shapes are stored: a daily close, and a written note keyed on the
+ * state that produced it. Everything the board reports — ratios, averages,
+ * scores, tiers, directions and their whole history — is recomputed from these
+ * bars on read, so retuning a weight changes the board without refetching, and
+ * lib/rotation owns every one of those shapes rather than this file.
+ * ------------------------------------------------------------------------- */
+
+export interface PriceBar {
+  ticker: string;
+  /** YYYY-MM-DD. */
+  date: string;
+  close: number;
+  /** Whether the close is adjusted for distributions. Sources differ; see lib/rotation/bars.ts. */
+  adjusted: boolean;
+  source: "yahoo" | "nasdaq";
+}
+
+/**
+ * Upsert daily closes. A refresh re-sends the full history because adjusted
+ * closes are revised backwards whenever a distribution is paid, so the newer
+ * value for an existing date is the correct one.
+ */
+export function saveBars(bars: PriceBar[]): number {
+  if (bars.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO rotation_bars (ticker, date, close, adjusted, source, fetched_at)
+     VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(ticker, date) DO UPDATE SET close=excluded.close, adjusted=excluded.adjusted,
+       source=excluded.source, fetched_at=excluded.fetched_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const b of bars) stmt.run(b.ticker, b.date, b.close, b.adjusted ? 1 : 0, b.source);
+  });
+  tx();
+  return bars.length;
+}
+
+interface RawPriceBar {
+  ticker: string;
+  date: string;
+  close: number;
+  adjusted: number;
+  source: PriceBar["source"];
+}
+
+/** One ticker, oldest first — every rolling statistic wants chronological order. */
+export function getBars(ticker: string, limit = 3000): PriceBar[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ticker, date, close, adjusted, source FROM rotation_bars
+       WHERE ticker=? ORDER BY date DESC LIMIT ?`,
+    )
+    .all(ticker, limit) as RawPriceBar[];
+  return rows
+    .map((r) => ({
+      ticker: r.ticker,
+      date: r.date,
+      close: r.close,
+      adjusted: r.adjusted === 1,
+      source: r.source,
+    }))
+    .reverse();
+}
+
+export interface BarCoverage {
+  ticker: string;
+  bars: number;
+  first: string;
+  latest: string;
+  /** More than one distinct source or adjustment basis in a single ticker's history. */
+  mixed: boolean;
+  source: PriceBar["source"];
+  adjusted: boolean;
+}
+
+/** One row per stored ticker — what the desk and the CLI report without loading any series. */
+export function barCoverage(): BarCoverage[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ticker, COUNT(*) AS bars, MIN(date) AS first, MAX(date) AS latest,
+              COUNT(DISTINCT source) AS sources, COUNT(DISTINCT adjusted) AS bases,
+              MAX(source) AS source, MAX(adjusted) AS adjusted
+       FROM rotation_bars GROUP BY ticker ORDER BY ticker`,
+    )
+    .all() as {
+    ticker: string;
+    bars: number;
+    first: string;
+    latest: string;
+    sources: number;
+    bases: number;
+    source: PriceBar["source"];
+    adjusted: number;
+  }[];
+  return rows.map((r) => ({
+    ticker: r.ticker,
+    bars: r.bars,
+    first: r.first,
+    latest: r.latest,
+    mixed: r.sources > 1 || r.bases > 1,
+    source: r.source,
+    adjusted: r.adjusted === 1,
+  }));
+}
+
+/** Drop one ticker's history — used when a source switch would otherwise leave a mixed series. */
+export function deleteBars(ticker: string): number {
+  return getDb().prepare(`DELETE FROM rotation_bars WHERE ticker=?`).run(ticker).changes;
+}
+
+export interface RotationBriefRow {
+  stateHash: string;
+  createdAt: string;
+  origin: "template" | "model";
+  asOf: string;
+  changed: string[];
+  body: string;
+}
+
+interface RawRotationBrief {
+  state_hash: string;
+  created_at: string;
+  origin: RotationBriefRow["origin"];
+  as_of: string;
+  changed_json: string;
+  body: string;
+}
+
+function toBrief(r: RawRotationBrief | undefined): RotationBriefRow | null {
+  if (!r) return null;
+  const changed = parseJson<string[]>(r.changed_json);
+  return {
+    stateHash: r.state_hash,
+    createdAt: r.created_at,
+    origin: r.origin,
+    asOf: r.as_of,
+    changed: Array.isArray(changed) ? changed : [],
+    body: r.body,
+  };
+}
+
+/** The cache lookup: an unchanged state never regenerates a note. */
+export function getRotationBrief(stateHash: string): RotationBriefRow | null {
+  const row = getDb()
+    .prepare(
+      `SELECT state_hash, created_at, origin, as_of, changed_json, body
+       FROM rotation_briefs WHERE state_hash=?`,
+    )
+    .get(stateHash) as RawRotationBrief | undefined;
+  return toBrief(row);
+}
+
+const ROTATION_KEEP_BRIEFS = 60;
+
+export function saveRotationBrief(input: {
+  stateHash: string;
+  origin: RotationBriefRow["origin"];
+  asOf: string;
+  changed: string[];
+  body: string;
+}): void {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare(
+      `INSERT INTO rotation_briefs (state_hash, created_at, origin, as_of, changed_json, body)
+       VALUES (?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?, ?, ?, ?)
+       ON CONFLICT(state_hash) DO UPDATE SET origin=excluded.origin, as_of=excluded.as_of,
+         changed_json=excluded.changed_json, body=excluded.body, created_at=excluded.created_at`,
+    ).run(input.stateHash, input.origin, input.asOf, JSON.stringify(input.changed), input.body);
+    db.prepare(
+      `DELETE FROM rotation_briefs WHERE state_hash NOT IN
+         (SELECT state_hash FROM rotation_briefs ORDER BY created_at DESC LIMIT ?)`,
+    ).run(ROTATION_KEEP_BRIEFS);
+  });
+  tx();
+}
+
+/** Most recent note of any kind — the "last note from [date]" fallback on the board. */
+export function latestRotationBrief(): RotationBriefRow | null {
+  const row = getDb()
+    .prepare(
+      `SELECT state_hash, created_at, origin, as_of, changed_json, body
+       FROM rotation_briefs ORDER BY created_at DESC LIMIT 1`,
+    )
+    .get() as RawRotationBrief | undefined;
+  return toBrief(row);
 }
