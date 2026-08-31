@@ -106,6 +106,30 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   delimiter and thousands separator (quote it, or use tabs). Categories ordered by the DESK's ranking, not by
   exposure. Flags absence-from-tightest + concentration; ALWAYS states the counter-evidence (heavy capex
   historically predicts WORSE returns). Reports and flags — never proposes a trade
+- `lib/rotation/` THE ROTATION BOARD — third product, deterministic, $0, ZERO plan-window draw.
+  See HANDOFF-2026-08-30-rotation-board.md. Ratios of traded funds (RSP/SPY etc): 26 indicators over
+  31 instruments, breadth/style/sector/credit/geography + VIX context (reported, NEVER scored).
+  `catalog.ts` the ONLY market-specific input (built-ins in code, custom in app_settings
+  `rotation_indicators`); `bars.ts` two INDEPENDENT sources behind one fail-open interface — yahoo
+  v8 (**adjusted** closes) primary, api.nasdaq.com (**RAW** closes, no index symbols) fallback, own
+  globalThis queue (NOT edgar's — different hosts); `math.ts` pure stats — **alignOnDate joins on
+  DATE, never by position** (^VIX prints Memorial Day 2026-05-25 when funds are shut; a positional
+  zip shifts 5y of history), rollingZScore computed directly not from running sums (these ratios sit
+  near a constant with tiny variance — the shortcut loses the digits), `wilderRsi` = **Wilder's
+  smoothing, NOT a simple average** (48.1 vs 57.5 on the flagship; two-implementation cross-check);
+  `score.ts` PURE composite + tiers (`>=` boundaries close the published bands' 7.5/4.5 gaps) +
+  direction WITH A DEADBAND the spec lacks (a flat ratio would flip daily and every flip raises a
+  note); `state.ts` state history is **COMPUTED from bars, never logged** (5y of chart marks on day
+  one, and they re-derive when weights change — so no state table exists to drift); `brief.ts` pure
+  template writer + `verifyBriefNumbers` (rejects any numeral not traceable to an input; tolerance is
+  **half a unit of the last place WRITTEN** — exact matching rejects 0.2869 for 0.28685); `note.ts`
+  the ONLY path to a model, every import inside the off-by-default branch; `board.ts` refreshBars
+  (network) + readBoard (NEVER network, 95ms); `lib/rotation-settings.ts` 22 knobs `MAG8_ROT_*` over
+  the shared registry + `MAG8_ROTATION=0` kill. **MIXED PRICE BASIS RULE**: bars record source+
+  adjusted; a source switch REPLACES a ticker's history (never merges); a ratio whose legs disagree
+  is shown+flagged but BARRED from raising a signal. **CALIBRATION, owner call**: percentile is
+  computed+displayed but weight defaults 0 (= the published plain average), so the flagship reads
+  1.1/No Signal at the 22nd percentile of its 3y range — the lever is `weightPercentile` on /admin.
 - `lib/orchestrator/`: `agent.ts` is the ONLY `query()` caller; `prompts.ts` stage wrappers (date, coverage,
   modifier, selection-quota, blind select/research, shared `discoveryOutputContract`, naming discipline);
   `extract.ts` PRIMARY parser; `mock.ts` zero-spend through the same persist+emit path; `index.ts` executeRun
@@ -233,12 +257,15 @@ npm run test                                            # vitest, offline, 228 t
 npm run bottleneck -- --probe                           # live EDGAR + OpenFIGI smoke; all PASS, exit 0
 npm run bottleneck -- --13f CIK|NAME [--offline] [--force] [--balance USD]   # clone a filer's book + diff
 npm run bottleneck -- --refresh [PLAYBOOK] [--dry] [--reuse-demand]          # demand + supply, score the gaps
+npm run rotation -- --probe                             # live price-source smoke; ALL PASS, exit 0
+npm run rotation -- --refresh [--dry] [--ticker T]      # 31 tickers, ~39k closes, ~24s
+npm run rotation -- --board [--indicator ID] | --note [--write] | --coverage
 ```
 Fixture regression (`npm run seed`): ASTS 90.3 pass+confluence, RKLB 73.9, TMDX 69.5, SYM 51.5, IONQ 47.9,
 CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×gt cell (CRSP → 46.4 + gap note);
 ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any public-surface change): render `/`,
 `/rankings`, `/methodology`, `/lab`, `/bottleneck` (+`?playbook=<id>`), `/bottleneck/clone?cik=<n>`,
-`/bottleneck/exposure`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
+`/bottleneck/exposure`, `/rotation`, `/rotation/<id>`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
@@ -536,4 +563,48 @@ no refresh); `refreshDesk` sweeps them via `pruneUnusableReadings()`. 7 junk row
 — a temp diagnostic route must NOT be named `__diag`. Gates: tsc, 231 vitest (was 120), seed EXACT, gen:bib 4× no-op,
 build, probe ALL PASS, leak 2-hit (homepage exception only) across 10 surfaces + snapshot JSON, curtain 404 on all
 three desk routes, admin gating verified with a real ADMIN_TOKEN (locked payload carries neither sizing nor controls).
+2026-08-30 (session 3, Code): THE ROTATION BOARD — a THIRD product, feature-complete against its
+source spec + all six prompts (HANDOFF-2026-08-30-rotation-board.md; plan
+`docs/rotation-indicators/ARCHITECTURE_PLAN.md`; source docs moved to `docs/rotation-indicators/`).
+Owner: "code out the next feature... its own seperate independent feature". Owner decisions: the
+deterministic note always on + the spec's model note built but DEFAULT-OFF / recharts not the spec's
+lightweight-charts / manual refresh + CLI, NO scheduler / full catalog A-F, category G deferred.
+Same Stage-0 shape as the desk: $0, zero plan window, no model in the critical path. Branch
+`feat/rotation-board` (off feat/bottleneck-desk, which is itself unmerged) — NOT PUSHED. Live
+reading 2026-08-28: nothing in the top tier; HYG/IEF 5.0 (credit appetite at the 100th percentile,
+z +2.04), XLU/SPY 6.7, sector leadership late-cycle at 75% match, VIX in its 3rd percentile.
+THREE of the spec's Section 6 recommendations did not survive: its Python stack (no Python here),
+its fallback source (Stooq now answers a JS challenge page → replaced with api.nasdaq.com, already
+proven in the universe screen), its charting library (recharts already installed, no attribution
+obligation). FIVE findings, each of which produces a plausible WRONG NUMBER silently: (1) ^VIX
+trades sessions the funds do not — it printed Memorial Day 2026-05-25 — so a positional zip shifts
+five years of history; ratios join on DATE, checked live by --probe every run. (2) the fallback
+returns RAW closes where the primary returns ADJUSTED, so a silent source swap moves a ratio's
+level → bars record their basis, a source switch REPLACES a ticker's history, and a mixed-leg ratio
+is shown+flagged but barred from raising a signal. (3) MY OWN planning figure was wrong: RSI means
+Wilder's smoothing, not the simple average my probe used — 48.1 not 57.5, so the flagship scores
+1.1 not 1.3; cross-checked against a second independent implementation to four decimals, and the
+architecture plan is corrected in place. (4) MY OWN guard was wrong: exact string matching rejects
+0.2869 for a computed 0.28685 (binary holds it a hair low), so verifyBriefNumbers now tolerates half
+a unit of the last place WRITTEN. (5) the spec has no direction deadband, so a flat ratio would flip
+daily and — since a flip is the note trigger — raise a note nearly every day. CALIBRATION FINDING,
+reported not silently fixed: the published formula scores the flagship 1.1/No Signal while it sits
+at the 22nd percentile of its 3y range, because all three scored marks are short-horizon and
+percentile is computed, displayed and never scored → shipped exactly as published, with a fourth
+component whose weight DEFAULTS TO 0 as the documented lever (/admin, and /methodology prints a
+different paragraph the moment the weighting stops being the published one). State history is
+COMPUTED from bars rather than logged — 110 chart marks on the flagship from day one, correct after
+a retune, and no state table to drift. 7 citations, each verified against its primary source this
+session, incl. the two that argue AGAINST the product (Sullivan/Timmermann/White 1999 on data
+snooping — 25 ratios x 4 tiers is exactly that setting, and the page says so; Daniel & Moskowitz
+2016 on momentum crashes clustering when volatility is high — why the VIX gauge is context, never a
+signal). Homepage chip auto-counts 51 -> 58 works cited (public copy, flagged). Gates: tsc, 375
+vitest (was 231), seed EXACT, gen:bib 4x no-op, build, probe ALL PASS, leak 2 hits across 13
+surfaces + snapshot (homepage exception only; ZERO on all four rotation surfaces and on
+/methodology), curtain 404s both routes, admin gating verified with a real ADMIN_TOKEN, separation
+contract verified (no pipeline imports, no SQL outside lib/db.ts, no FKs). NOT DONE: the chart has
+never been seen in a real browser (recharts measures client-side; headless returns an empty DOM
+here — one look before shipping), and the model note has never actually run (off by default, owner
+spends nothing on API). Env note: git-bash heredocs are unreliable in this harness — write a Python
+script and run it.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
