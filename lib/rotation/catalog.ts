@@ -168,7 +168,8 @@ const BREADTH: Indicator[] = [
     base: "QQQE",
     quote: "QQQ",
     risingMeans:
-      "Participation across the Nasdaq-100 is broadening: the average member is beating the index. ",
+      "Participation across the Nasdaq-100 is broadening: the average member is beating the index rather " +
+      "than a handful of its largest members carrying it.",
     fallingMeans:
       "The largest technology companies are carrying the index. This is a narrower measure than the S&P 500 " +
       "version, because the index it describes is itself already concentrated.",

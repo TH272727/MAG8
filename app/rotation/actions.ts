@@ -3,7 +3,8 @@
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
 import { launchMode } from "@/lib/config";
-import { refreshBars } from "@/lib/rotation/board";
+import { readBoard, refreshBars } from "@/lib/rotation/board";
+import { ensureNote } from "@/lib/rotation/note";
 import { saveRotationDiff } from "@/lib/rotation-settings";
 
 /* ============================================================================
@@ -62,7 +63,11 @@ export async function refreshRotationAction(): Promise<ActionState> {
     if (report.thin > 0) parts.push(`${report.thin} returned too little history to trust`);
     const rebased = report.tickers.filter((t) => t.rebased).length;
     if (rebased > 0) parts.push(`${rebased} rebuilt on a new price basis`);
-    return { ok: true, message: `${parts.join(" · ")}.` };
+
+    // The one place a note can be written, and therefore the only path on which
+    // a model can be reached at all. It fires solely on a confirmed change.
+    const note = await ensureNote(readBoard());
+    return { ok: true, message: `${parts.join(" · ")}. ${note.message}` };
   } catch (err) {
     // A raw transport message must never reach a client payload.
     return {

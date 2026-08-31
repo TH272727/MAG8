@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import RotationControls from "@/components/rotation/RotationControls";
 import RotationTable, { type TableRow } from "@/components/rotation/RotationTable";
 import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
@@ -10,6 +12,7 @@ import { readBoard } from "@/lib/rotation/board";
 import { CATEGORY_META, catalogTickers } from "@/lib/rotation/catalog";
 import { fmtDay, fmtNum, fmtPct, fmtPercentile, fmtRatio, fmtScore, fmtSince, TIER_STYLE } from "@/lib/rotation/format";
 import { TIER_META } from "@/lib/rotation/score";
+import { noteForBoard } from "@/lib/rotation/note";
 import { describeChange } from "@/lib/rotation/state";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +32,9 @@ export default async function RotationPage() {
   // and every action behind them re-checks the token anyway.
   const unlocked = tokenMatches((await cookies()).get(ADMIN_COOKIE)?.value ?? null);
   const tickerCount = catalogTickers().length;
+  // Free and read-only: the cached note for this exact state, the deterministic
+  // one written on the spot, or the last note on record labelled as historic.
+  const note = noteForBoard(board);
 
   const rows: TableRow[] = board.entries.flatMap((e) => {
     const r = e.result.reading;
@@ -122,6 +128,23 @@ export default async function RotationPage() {
               </ul>
             )}
           </section>
+
+          {/* -- The written note. ------------------------------------------- */}
+          {note && (
+            <section className="mt-8" aria-labelledby="note-h">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 id="note-h" className="eyebrow">
+                  {note.current ? "The note on this change" : "No active signal"}
+                </h2>
+                <span className="font-mono text-[11px] text-dim">
+                  {note.current ? fmtDay(note.asOf) : `last note from ${fmtDay(note.asOf)}`}
+                </span>
+              </div>
+              <div className="panel md-body mt-3 p-5">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.body}</ReactMarkdown>
+              </div>
+            </section>
+          )}
 
           {/* -- The strongest readings. ------------------------------------- */}
           {leaders.length > 0 && (

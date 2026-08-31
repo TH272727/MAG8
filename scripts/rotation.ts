@@ -308,6 +308,52 @@ async function board(): Promise<number> {
   return 0;
 }
 
+/* ----------------------------------------------------------------------------
+ * --note : the written note for the current state.
+ * -------------------------------------------------------------------------- */
+
+async function note(write: boolean): Promise<number> {
+  const { readBoard } = await import("../lib/rotation/board");
+  const { briefItems, ensureNote, noteForBoard } = await import("../lib/rotation/note");
+  const { rotationSettings } = await import("../lib/rotation-settings");
+
+  const b = readBoard();
+  if (!b.asOf) {
+    console.log(" nothing stored yet — run: npm run rotation -- --refresh");
+    return 1;
+  }
+  const items = briefItems(b);
+  const modelOn = rotationSettings().briefModelEnabled;
+
+  banner(`ROTATION NOTE — ${b.asOf}`);
+  console.log(
+    ` ${items.length} indicator(s) changed state · model writer ${modelOn ? "ON" : "OFF (deterministic only)"}\n`,
+  );
+
+  if (write) {
+    const res = await ensureNote(b);
+    console.log(` ${res.message}`);
+    if (res.costUsd > 0) console.log(` cost: $${res.costUsd.toFixed(4)}`);
+    console.log("");
+  }
+
+  const view = noteForBoard(b);
+  if (!view) {
+    console.log(" no note — nothing has changed and nothing is on record");
+    return 0;
+  }
+  console.log(
+    ` [${view.origin}${view.current ? "" : ", historic"}]${view.current ? "" : ` last note from ${view.asOf}`}\n`,
+  );
+  console.log(
+    view.body
+      .split("\n")
+      .map((l) => ` ${l}`)
+      .join("\n"),
+  );
+  return 0;
+}
+
 /**
  * Sets process.exitCode rather than calling process.exit(): on Windows, exiting
  * while fetch keep-alive sockets are still open trips a libuv assertion and
@@ -316,6 +362,10 @@ async function board(): Promise<number> {
 async function main() {
   if (has("--board")) {
     process.exitCode = await board();
+    return;
+  }
+  if (has("--note")) {
+    process.exitCode = await note(has("--write"));
     return;
   }
   if (has("--probe")) {

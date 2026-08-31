@@ -115,6 +115,26 @@ export const CONFIG = {
     compile: num(process.env.MAG8_COMPILE_MAX_USD, 1.0),
   },
 
+  /**
+   * The Rotation Board's optional written note — every knob for it in one
+   * place, which is the whole point of gathering them here.
+   *
+   * This is the ONE model call in an otherwise deliberately model-free product,
+   * and it is off unless the operator switches it on (MAG8_ROT_BRIEF_MODEL, or
+   * the knob on /admin). Even switched on it fires only when an indicator has
+   * actually changed state, batches every change into a single request, and is
+   * asked to rephrase figures that were already computed — never to work one
+   * out. Short structured synthesis: small budget, few turns, no tools.
+   */
+  rotation: {
+    model: process.env.MAG8_ROTATION_MODEL ?? "claude-sonnet-5",
+    effort: effortLevel(process.env.MAG8_ROTATION_EFFORT, "medium"),
+    thinking: thinkingMode(process.env.MAG8_ROTATION_THINKING),
+    maxTurns: int(process.env.MAG8_ROTATION_MAX_TURNS, 4),
+    timeoutMs: int(process.env.MAG8_ROTATION_TIMEOUT_MS, 180_000),
+    maxBudgetUsd: num(process.env.MAG8_ROTATION_MAX_USD, 0.5),
+  },
+
   /** Rough per-call knobs used only for the /admin pre-run estimate. */
   estimate: {
     usd: {
