@@ -140,11 +140,22 @@ export interface Reading {
   flags: string[];
 }
 
+/** One plotted session. Only built when a caller asks — the board does not. */
+export interface SeriesPoint {
+  date: string;
+  value: number;
+  fast: number | null;
+  slow: number | null;
+  z: number | null;
+}
+
 export interface ScoreResult {
   indicator: Indicator;
   reading: Reading | null;
   /** One entry per session with a computable score, oldest first. */
   history: DailyState[];
+  /** Empty unless `withSeries` was requested. */
+  series: SeriesPoint[];
   /** Why there is no reading. Null when there is one. */
   unavailable: string | null;
 }
@@ -155,6 +166,8 @@ export interface ScoreInputs {
   quote: SeriesInput | null;
   settings: ScoreSettings;
   now?: Date;
+  /** Build the plottable series too. One chart page wants it; the board does not. */
+  withSeries?: boolean;
 }
 
 const clamp10 = (n: number): number => Math.min(10, Math.max(0, n));
@@ -182,7 +195,13 @@ function daysBetween(a: Date, b: Date): number {
 export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
   const { indicator, base, quote, settings: s } = inputs;
   const now = inputs.now ?? new Date();
-  const none = (why: string): ScoreResult => ({ indicator, reading: null, history: [], unavailable: why });
+  const none = (why: string): ScoreResult => ({
+    indicator,
+    reading: null,
+    history: [],
+    series: [],
+    unavailable: why,
+  });
 
   if (!base || base.bars.length === 0) return none(`no stored price history for ${indicator.base}`);
   if (indicator.kind === "ratio") {
@@ -243,6 +262,12 @@ export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
   const i = lastDefinedIndex(values);
   if (i < 0) return none("no usable closes in the stored history");
 
+  const series: SeriesPoint[] = inputs.withSeries
+    ? dates.flatMap((date, k) =>
+        values[k] === null ? [] : [{ date, value: values[k]!, fast: fast[k], slow: slow[k], z: z[k] }],
+      )
+    : [];
+
   /* -- Context gauges are reported, never scored. --------------------------- */
   if (indicator.kind === "context") {
     const level = values[i]!;
@@ -283,7 +308,7 @@ export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
         "Context for the ratios above rather than a signal of its own: this gauge carries no score and no tier.",
       ],
     };
-    return { indicator, reading, history: [], unavailable: null };
+    return { indicator, reading, history: [], series, unavailable: null };
   }
 
   /* -- Components, per session, so the history comes out of the same code. -- */
@@ -412,7 +437,7 @@ export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
     flags,
   };
 
-  return { indicator, reading, history, unavailable: null };
+  return { indicator, reading, history, series, unavailable: null };
 }
 
 /**
