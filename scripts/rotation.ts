@@ -197,12 +197,127 @@ async function coverage(): Promise<number> {
   return missing.length > 0 ? 1 : 0;
 }
 
+/* ----------------------------------------------------------------------------
+ * --board : score everything from stored bars. No network.
+ * -------------------------------------------------------------------------- */
+
+const pct = (n: number | null | undefined, dp = 1): string =>
+  n === null || n === undefined ? "n/a" : `${n >= 0 ? "+" : ""}${n.toFixed(dp)}%`;
+const num = (n: number | null | undefined, dp = 2): string =>
+  n === null || n === undefined ? "n/a" : n.toFixed(dp);
+
+async function board(): Promise<number> {
+  const { readBoard } = await import("../lib/rotation/board");
+  const { CATEGORY_META } = await import("../lib/rotation/catalog");
+  const { TIER_META } = await import("../lib/rotation/score");
+  const { describeChange } = await import("../lib/rotation/state");
+
+  const t0 = Date.now();
+  const b = readBoard();
+  const ms = Date.now() - t0;
+
+  banner(`ROTATION BOARD — ${b.asOf ?? "no data"}`);
+  if (b.disabled) {
+    console.log(" the board is switched off (MAG8_ROTATION=0)");
+    return 0;
+  }
+  if (!b.asOf) {
+    console.log(" nothing stored yet — run: npm run rotation -- --refresh");
+    return 1;
+  }
+
+  const wanted = argValue("--indicator");
+  const only = wanted && !wanted.startsWith("--") ? wanted : null;
+
+  // Grouped by category so the numbers can be sanity-checked before any UI exists.
+  const byCat = new Map<string, typeof b.readings>();
+  for (const r of b.readings) {
+    if (only && r.id !== only) continue;
+    const list = byCat.get(r.category) ?? [];
+    list.push(r);
+    byCat.set(r.category, list);
+  }
+
+  for (const [cat, list] of byCat) {
+    console.log(`\n ${CATEGORY_META[cat as keyof typeof CATEGORY_META].title.toUpperCase()}\n`);
+    console.log(
+      " indicator                                        score  tier         ratio      z      pct   rsi   3mo",
+    );
+    for (const r of list) {
+      console.log(
+        ` ${r.label.slice(0, 47).padEnd(48)} ${(r.score === null ? "—" : r.score.toFixed(1)).padStart(5)}  ` +
+          `${TIER_META[r.tier].short.padEnd(11)} ${num(r.value, 4).padStart(9)} ` +
+          `${num(r.zScore, 2).padStart(6)} ${num(r.percentile, 0).padStart(5)} ` +
+          `${num(r.rsi, 1).padStart(5)} ${pct(r.roc3m).padStart(7)}`,
+      );
+      console.log(`   ${r.directionLabel}${r.basis.mixed ? "   ** MIXED PRICE BASIS — cannot raise a signal **" : ""}`);
+    }
+  }
+
+  if (!only) {
+    console.log("\n SECTOR BOARD — strongest three-month relative strength first\n");
+    console.log(" rank  sector  vs market (3mo)   score  tier");
+    b.sectors.forEach((s, i) => {
+      console.log(
+        ` ${String(i + 1).padStart(4)}  ${s.ticker.padEnd(6)} ${pct(s.relative3m).padStart(15)}   ` +
+          `${(s.score === null ? "—" : s.score.toFixed(1)).padStart(5)}  ${TIER_META[s.tier].short}`,
+      );
+    });
+    if (b.cycle) {
+      console.log(
+        `\n leadership most resembles: ${b.cycle.label.toUpperCase()} ` +
+          `(${b.cycle.matched.length} of the top ${4} — match strength ${(b.cycle.strength * 100).toFixed(0)}%)`,
+      );
+      console.log(` ${b.cycle.note}`);
+      console.log(" This mapping is a convention from practitioner research, not a law.");
+    }
+
+    for (const c of b.context) {
+      console.log(`\n CONTEXT — ${c.label}\n`);
+      console.log(
+        ` level ${num(c.value, 2)} · 1-year percentile ${num(c.percentile, 0)} · 50-day average ${num(c.smaFast, 2)}`,
+      );
+      console.log(` ${c.directionLabel} — ${c.meaning.slice(0, 120)}`);
+    }
+  }
+
+  console.log("\n STATE CHANGES ON THE NEWEST SESSION\n");
+  if (b.changesToday.length === 0) {
+    console.log(" none — no indicator crossed a tier or flipped direction");
+  } else {
+    for (const c of b.changesToday) {
+      const r = b.readings.find((x) => x.id === c.indicatorId);
+      if (r) console.log(` ${describeChange(c, r)}`);
+    }
+  }
+
+  if (b.unavailable.length > 0) {
+    console.log("\n NOT MEASURED\n");
+    for (const u of b.unavailable) console.log(` ${u.label} — ${u.reason}`);
+  }
+  if (b.flags.length > 0) {
+    console.log("\n DISCLOSED GAPS\n");
+    for (const f of b.flags) console.log(` ${f}`);
+  }
+
+  console.log(
+    `\n ${b.readings.length} ratios · ${b.context.length} context · ${b.unavailable.length} unmeasured · ` +
+      `computed from stored bars in ${ms}ms${b.stale ? " · DATA STALE" : ""}`,
+  );
+  console.log(" Not financial advice.");
+  return 0;
+}
+
 /**
  * Sets process.exitCode rather than calling process.exit(): on Windows, exiting
  * while fetch keep-alive sockets are still open trips a libuv assertion and
  * returns 127 even on success, which would make the exit code useless as a gate.
  */
 async function main() {
+  if (has("--board")) {
+    process.exitCode = await board();
+    return;
+  }
   if (has("--probe")) {
     process.exitCode = await probe();
     return;
@@ -218,6 +333,7 @@ async function main() {
   console.log(
     "Usage: npm run rotation -- --probe\n" +
       "                        | --refresh [--dry] [--ticker SYMBOL]\n" +
+      "                        | --board [--indicator ID]\n" +
       "                        | --coverage",
   );
   process.exitCode = 2;
