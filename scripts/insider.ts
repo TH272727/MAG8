@@ -192,6 +192,38 @@ async function probe(): Promise<number> {
     }
   }
 
+  console.log("\n financial statements\n");
+  const { loadFinancials, piotroskiFScore, altmanZScore } = await import("../lib/insider/fundamentals");
+  const { resolveTickerToCik } = await import("../lib/edgar");
+
+  // Two filers of deliberately different shape: a steady large-cap that tags
+  // everything, and one that migrated its revenue tag mid-window — the case
+  // where first-populated-wins silently loses the most recent fiscal year.
+  for (const [ticker, cap] of [["RSG", 90e9], ["F", 45e9]] as [string, number][]) {
+    const cik = await resolveTickerToCik(ticker);
+    if (!check(`${ticker} resolves to a CIK`, cik !== null)) continue;
+    const fin = await loadFinancials(cik!, { years: 4 });
+    if (!check(`${ticker} statements load`, fin !== null && fin.years.length >= 2, `${fin?.years.length ?? 0} years`)) {
+      continue;
+    }
+    const years = fin!.years;
+    const latest = years[years.length - 1];
+    check(
+      `${ticker} reaches the most recent completed fiscal year`,
+      Date.now() - Date.parse(latest.end) < 400 * 86_400_000,
+      latest.end,
+    );
+    check(`${ticker} has an income statement for it`, latest.revenue !== null || latest.netIncome !== null);
+    const f = piotroskiFScore(latest, years[years.length - 2], years[years.length - 3]);
+    const z = altmanZScore(latest, cap);
+    check(`${ticker} scores on the nine-point scale`, f.criteria.length === 9 && f.score >= 0 && f.score <= 9);
+    console.log(
+      ` INFO  ${ticker} ${latest.end} — strength ${f.score}/9 (${f.measured} measurable) · ` +
+        `solvency ${z.z ?? "not computable"} (${z.zone}) · shares from ${latest.sources.shares ?? "no source"}`,
+    );
+    for (const fl of fin!.flags) console.log(`       ${fl}`);
+  }
+
   banner(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
   return failures === 0 ? 0 : 1;
 }
