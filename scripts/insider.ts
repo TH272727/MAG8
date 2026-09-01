@@ -1,9 +1,10 @@
 /**
  * The Insider Turnaround Scanner — headless operator CLI.
  *
- *   npm run insider -- --probe                      live feed smoke test
- *   npm run insider -- --refresh [--dry] [--days N] walk the filings, store what is found
- *   npm run insider -- --coverage                   what is stored, without fetching anything
+ *   npm run insider -- --probe                       live feed smoke test
+ *   npm run insider -- --refresh [--dry] [--days N]  walk the filings, fetch the survivors
+ *   npm run insider -- --board [--risk PROFILE]      the ranked list, from stored data only
+ *   npm run insider -- --coverage                    what is stored, without fetching anything
  *
  * Deterministic and free: everything here is HTTP plus arithmetic, so it never
  * touches the research plan's usage window.
@@ -233,19 +234,21 @@ async function probe(): Promise<number> {
  * -------------------------------------------------------------------------- */
 
 async function refresh(dry: boolean): Promise<number> {
-  const { ingestFilings } = await import("../lib/insider/ingest");
+  const { refreshScan } = await import("../lib/insider/scanner");
   const days = Number(argValue("--days"));
 
-  banner(`INSIDER SCANNER — FILINGS${dry ? " (dry run)" : ""}`);
+  banner(`INSIDER SCANNER — REFRESH${dry ? " (dry run)" : ""}`);
   const t0 = Date.now();
-  const report = await ingestFilings({
+  const scan = await refreshScan({
     lookbackDays: Number.isFinite(days) && days > 0 ? days : undefined,
     dryRun: dry,
     force: has("--force"),
+    skipIngest: has("--workup-only"),
     onProgress: (line) => console.log(` ${line}`),
   });
+  const report = scan.ingest;
 
-  if (report.disabled) {
+  if (scan.disabled) {
     console.log(" INFO  the scanner is switched off (MAG8_INSIDER=0); nothing was fetched");
     return 0;
   }
@@ -267,6 +270,11 @@ async function refresh(dry: boolean): Promise<number> {
     ` lines           ${report.linesStored.toLocaleString("en-US")} ${dry ? "parsed (not stored)" : "stored"} · ` +
       `${report.buyLines} open-market purchases`,
   );
+  console.log(
+    ` companies       ${scan.candidates} with qualifying buying · ${scan.workedUp} worked up · ` +
+      `${scan.outcomes.filter((o) => o.pricesOk).length} priced · ` +
+      `${scan.outcomes.filter((o) => o.financialsOk).length} with statements`,
+  );
   console.log(` elapsed         ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   if (report.notes.length > 0) {
@@ -275,10 +283,144 @@ async function refresh(dry: boolean): Promise<number> {
     if (report.notes.length > 20) console.log(` … and ${report.notes.length - 20} more`);
   }
 
-  if (report.readNothing) {
+  if (scan.readNothing) {
     console.log("\n FAIL  nothing was read — stored filings left untouched");
     return 1;
   }
+  return 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * --board : the ranked list, computed from stored bytes. No network.
+ * -------------------------------------------------------------------------- */
+
+const money = (n: number | null | undefined): string =>
+  n === null || n === undefined ? "n/a" : `$${Math.round(n).toLocaleString("en-US")}`;
+const pct1 = (n: number | null | undefined): string =>
+  n === null || n === undefined ? "n/a" : `${n.toFixed(1)}%`;
+const dec = (n: number | null | undefined, dp = 2): string =>
+  n === null || n === undefined ? "n/a" : n.toFixed(dp);
+
+async function board(): Promise<number> {
+  const { readScan } = await import("../lib/insider/scanner");
+  const { describeProfile } = await import("../lib/insider/profiles");
+
+  const t0 = Date.now();
+  const view = readScan({ profile: argValue("--risk") });
+  const ms = Date.now() - t0;
+
+  banner(`INSIDER TURNAROUND SCANNER — ${view.asOf ?? "no data"}`);
+  if (view.disabled) {
+    console.log(" the scanner is switched off (MAG8_INSIDER=0)");
+    return 0;
+  }
+
+  // The document's requirement: whatever risk tolerance was actually applied is
+  // printed at the top of every run, never left implicit.
+  console.log(` risk tolerance   ${view.profile.label}`);
+  console.log(`                  ${view.profile.blurb}`);
+  const changed = describeProfile(view.settings, view.profile);
+  if (changed.length > 0) console.log(`                  departures: ${changed.join(" · ")}`);
+  console.log("");
+  console.log(
+    ` thresholds       buying >= ${money(view.settings.minDollarValue)} from >= ` +
+      `${view.settings.minClusterInsiders} insider(s) in ${view.settings.lookbackDays} days`,
+  );
+  console.log(
+    `                  ${pct1(view.settings.minDrawdownPct)}-${pct1(view.settings.maxDrawdownPct)} below ` +
+      `${view.settings.measureAgainst52WeekHigh ? "the 52-week high" : "the one-year average"}, high within ` +
+      `${view.settings.maxMonthsSinceHigh} months`,
+  );
+  console.log(
+    `                  fallen-angel guard ${view.settings.fallenAngelGuardPct > 0 ? pct1(view.settings.fallenAngelGuardPct) : "off"}` +
+      ` · stabilising ${view.settings.requireStabilizing ? "required" : "not required"}` +
+      ` · strength floor ${view.settings.fScoreFloor}/9` +
+      ` · grey zone ${view.settings.allowGreyZone ? "allowed" : "rejected"}`,
+  );
+  console.log(
+    `                  discount ${pct1(view.settings.discountRatePct)} · terminal growth ` +
+      `${pct1(view.settings.terminalGrowthPct)} · cushion required ${pct1(view.settings.minMarginOfSafetyPct)}`,
+  );
+  console.log("");
+  console.log(
+    ` data             last refresh ${view.lastRefresh ?? "never"} · screen week ${view.universeWeek ?? "-"}` +
+      `${view.stale ? " · STALE" : ""}`,
+  );
+
+  if (!view.asOf && view.ranked.length === 0 && view.rejected.length === 0) {
+    console.log("");
+    console.log(" nothing stored yet — run: npm run insider -- --refresh");
+    return 1;
+  }
+
+  console.log("");
+  console.log(" THE FUNNEL");
+  console.log("");
+  for (const step of view.funnel) {
+    console.log(` ${String(step.count).padStart(5)}  ${step.label}`);
+  }
+
+  console.log("");
+  console.log(" CANDIDATES");
+  console.log("");
+  if (view.ranked.length === 0) {
+    console.log(" none — no company cleared every filter at this risk tolerance");
+  } else {
+    console.log(
+      " ticker  score  conv  setup  strgth  value   off high  bought       ins  F/9  zone      value/sh  cushion",
+    );
+    for (const c of view.ranked) {
+      const k = c.composite.contributions;
+      console.log(
+        ` ${c.ticker.padEnd(7)} ${dec(c.composite.score, 1).padStart(5)} ` +
+          `${dec(c.cluster.conviction, 0).padStart(5)} ${dec(k.setup, 0).padStart(6)} ` +
+          `${dec(k.strength, 0).padStart(7)} ${dec(k.value, 0).padStart(6)}  ` +
+          `${pct1(c.drawdown?.pctOff52wHigh).padStart(8)}  ${money(c.cluster.totalBoughtUsd).padStart(11)}  ` +
+          `${String(c.cluster.distinctBuyers).padStart(3)}  ${String(c.fScore?.score ?? "-").padStart(3)}  ` +
+          `${(c.altman?.zone ?? "-").padEnd(9)} ${dec(c.dcf?.perShareLow, 2).padStart(8)}  ` +
+          `${c.dcf?.marginOfSafetyLow === null || c.dcf?.marginOfSafetyLow === undefined ? "n/a" : pct1(c.dcf.marginOfSafetyLow * 100)}`,
+      );
+      if (!c.composite.complete) {
+        console.log(`         partly measured — no reading for ${c.composite.missing.join(", ")}`);
+      }
+    }
+  }
+
+  if (view.rejected.length > 0) {
+    console.log("");
+    console.log(" STOPPED, AND WHERE");
+    console.log("");
+    for (const c of view.rejected) {
+      console.log(` ${c.ticker.padEnd(7)} ${c.stage.padEnd(10)} ${c.stopped[0] ?? ""}`);
+      for (const r of c.stopped.slice(1)) console.log(`                    ${r}`);
+    }
+  }
+
+  if (view.belowThreshold.length > 0) {
+    console.log("");
+    console.log(` BUYING BELOW YOUR THRESHOLDS (${view.belowThreshold.length})`);
+    console.log("");
+    for (const b of view.belowThreshold.slice(0, 15)) {
+      console.log(` ${b.ticker.padEnd(7)} ${money(b.totalBoughtUsd).padStart(12)}  ${b.reasons.join(" ")}`);
+    }
+    if (view.belowThreshold.length > 15) {
+      console.log(` … and ${view.belowThreshold.length - 15} more`);
+    }
+  }
+
+  if (view.flags.length > 0) {
+    console.log("");
+    console.log(" DISCLOSED GAPS");
+    console.log("");
+    for (const f of view.flags) console.log(` ${f}`);
+  }
+
+  console.log("");
+  console.log(
+    ` ${view.ranked.length} ranked · ${view.rejected.length} stopped · computed from stored data in ${ms}ms`,
+  );
+  console.log(" Form 4 data is legally required public disclosure of insiders' own trades, not advice to");
+  console.log(" mirror them. Not financial advice.");
   return 0;
 }
 
@@ -339,13 +481,18 @@ async function main() {
     process.exitCode = await refresh(has("--dry"));
     return;
   }
+  if (has("--board")) {
+    process.exitCode = await board();
+    return;
+  }
   if (has("--coverage")) {
     process.exitCode = await coverage();
     return;
   }
   console.log(
     "Usage: npm run insider -- --probe\n" +
-      "                       | --refresh [--dry] [--days N] [--force]\n" +
+      "                       | --refresh [--dry] [--days N] [--force] [--workup-only]\n" +
+      "                       | --board [--risk conservative|balanced|aggressive]\n" +
       "                       | --coverage",
   );
   process.exitCode = 2;
