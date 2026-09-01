@@ -24,6 +24,11 @@ import {
   ROTATION_SETTINGS_SPEC,
   effectiveRotationSettings,
 } from "@/lib/rotation-settings";
+import {
+  effectiveInsiderSettings,
+  INSIDER_SETTING_GROUPS,
+  INSIDER_SETTINGS_SPEC,
+} from "@/lib/insider-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -338,6 +343,119 @@ function RotationSection() {
   );
 }
 
+/**
+ * The Insider Turnaround Scanner's disclosure. Same contract as the three
+ * sections above: every threshold is the LIVE effective value from the
+ * scanner's own resolver, so the page and the product cannot drift apart.
+ *
+ * One thing is said here that is not said on the other three, because it is
+ * true only of this one: most of these numbers are not measurements, they are
+ * somebody's tolerance for risk, and the page has to say whose.
+ */
+function InsiderSection() {
+  const eff = effectiveInsiderSettings();
+  const shown = INSIDER_SETTINGS_SPEC.filter((s) => s.group !== "ops");
+  const s = eff.values;
+  return (
+    <section id="insider" className="mt-12 scroll-mt-24" aria-labelledby="insider-h">
+      <h2 id="insider-h" className="eyebrow">
+        The Insider Turnaround Scanner — a fourth product, starting from the rare event
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        When a company&apos;s officers, directors and large holders trade its shares, the law requires them
+        to disclose it within two business days.{" "}
+        <Link href="/insider" className="underline underline-offset-2 hover:text-ink">
+          The scanner
+        </Link>{" "}
+        reads that feed, keeps only genuine open-market purchases — not grants, not option exercises, not
+        shares withheld to pay tax on one — and works forward: is the price actually down, is the fall
+        recent rather than terminal, does the balance sheet survive the same published value-trap tests
+        used elsewhere here, and what does the business look worth on its own cash.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        The order is the design. Insider purchases are rare, so starting from them means the expensive work
+        only ever runs on names that already carry the signal. Roughly two hundred filings a trading day
+        come from companies inside the weekly screen; each is opened once and never again, because a filing
+        does not change after it is accepted.
+      </p>
+
+      <div className="panel mt-4 p-5">
+        <h3 className="font-display text-base font-semibold">Whose risk tolerance these are</h3>
+        <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-muted">
+          Most of the values below are not facts about the market. How far a stock may have fallen, how
+          convinced the buying must look, what discount rate future cash deserves, how much cushion an
+          estimate must leave — none of those has a correct answer, and a product that presented one as
+          settled would be smuggling in an opinion. So these are published as the HOUSE setting, and the
+          board offers a reader three named departures from it. Nothing derived is stored, so choosing one
+          re-derives the whole candidate list, including the reason each rejected company failed, without a
+          single request. The two financial filters are the exception: their thresholds are the
+          literature&apos;s, not ours, and a profile does not move them.
+        </p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {INSIDER_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((x) => x.group === g.key)
+                .map((x) => (
+                  <div key={x.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">{x.label}</dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(x, eff.values[x.key as keyof typeof eff.values])}
+                      {eff.sources[x.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1 text-[11px] text-dim">tuned</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-muted">
+        The financial filters are the same two the fundamentals method applies: a nine-point
+        fundamental-strength checklist and a five-ratio bankruptcy model, at the thresholds their authors
+        set. A company currently fails if it scores below {s.fScoreFloor} of nine
+        {s.allowGreyZone ? " or falls into the bankruptcy model's distress zone" : ", or does not reach the bankruptcy model's safe zone"}.
+        A criterion that cannot be judged from a company&apos;s filings scores no point rather than being
+        guessed at, so a score understates rather than flatters; a partial solvency score is refused
+        outright rather than placed on the same scale as a complete one; and statements that cannot be read
+        at all are never treated as evidence of trouble, which would quietly exclude every foreign issuer.
+      </p>
+      <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-muted">
+        The valuation deducts, from reported earnings plus non-cash charges, both the capital spending the
+        business needs to hold its position and the working capital its growth consumes. That first
+        deduction cannot be read off a filing — the method&apos;s originator said so when he defined it — so
+        two answers are published rather than one: a conservative bound deducting all capital spending, and
+        a higher bound treating depreciation as the maintenance figure. The distance between them is the
+        honest width of the estimate, and where it exceeds the estimate itself the page says so. Growth is
+        cut to {formatSettingValue(INSIDER_SETTINGS_SPEC.find((x) => x.key === "growthHaircutPct")!, s.growthHaircutPct)}{" "}
+        of the observed rate and then capped, because growth decays towards the average far faster than
+        extrapolation assumes.
+      </p>
+      <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-muted">
+        What it cannot do is worth stating plainly. The research finding that insider purchases predict
+        returns was strongest in companies smaller than the ones this pool draws from, so the effect this
+        scanner hunts may be weakest exactly where it is looking. Much insider trading is routine and
+        predicts nothing at all; a purchase affirmed as arranged in advance is therefore discounted, and
+        where no affirmation was made either way the board says unstated rather than assuming. And only
+        companies inside the weekly screen are searched, so buying at a company outside that band is
+        invisible here however large it is.
+      </p>
+      <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-muted">
+        Like the desk and the board, it shares this application&apos;s database and design and nothing else.
+        It cannot write to a run, a candidate, a score, or the leaderboard, and it reads the weekly screen
+        without ever being able to change it.
+      </p>
+    </section>
+  );
+}
+
 export default function MethodologyPage() {
   // Pre-launch curtain: hidden like every other page — the homepage stands alone.
   if (launchMode()) notFound();
@@ -492,6 +610,8 @@ export default function MethodologyPage() {
       <BottleneckSection />
 
       <RotationSection />
+
+      <InsiderSection />
 
       {/* Rubric — rendered from the same constants the pipeline enforces */}
       <section className="mt-12" aria-labelledby="rubric-h">

@@ -28,7 +28,16 @@ export interface Citation {
 }
 
 export interface CitationGroup {
-  key: "fundamentals" | "macro" | "consensus" | "discovery" | "universe" | "rubric" | "bottleneck" | "rotation";
+  key:
+    | "fundamentals"
+    | "macro"
+    | "consensus"
+    | "discovery"
+    | "universe"
+    | "rubric"
+    | "bottleneck"
+    | "rotation"
+    | "insider";
   title: string;
   intro: string;
   works: Citation[];
@@ -762,6 +771,86 @@ export const CITATION_GROUPS: CitationGroup[] = [
           "Momentum earns strong average returns punctuated by infrequent, severe and persistent losses. Those crashes are partly forecastable: they cluster in panic states — after market declines, when volatility is high — and coincide with rebounds.",
         usedFor:
           "Why a volatility gauge sits beside the ratios as context rather than as a signal of its own: the conditions under which a persistence reading is most likely to reverse are precisely the ones that gauge measures.",
+      },
+    ],
+  },
+  {
+    key: "insider",
+    title: "The Insider Turnaround Scanner",
+    intro:
+      "A fourth research product: it starts from company insiders buying their own shares on the open market, keeps the ones whose price has fallen recently but not catastrophically, checks the balance sheet against the same published value-trap filters used elsewhere here, and values what is left on owner earnings. The works below establish what insider buying has actually been found to predict — which is narrower than the idea suggests — and, deliberately included, the two results that argue hardest against a scanner built this way.",
+    works: [
+      {
+        short: "Lakonishok & Lee 2001",
+        authors: "Lakonishok, J., & Lee, I.",
+        year: "2001",
+        title: "Are Insider Trades Informative?",
+        source: "The Review of Financial Studies, 14(1), 79–111",
+        url: "https://doi.org/10.1093/rfs/14.1.79",
+        finding:
+          "Across every company on the three main US exchanges from 1975 to 1995, very little price movement occurs when insiders trade or when they report it, and insiders are contrarian in aggregate — but they do predict later returns, and that predictive power comes from PURCHASES rather than sales and is concentrated in SMALLER companies.",
+        usedFor:
+          "Two things at once. It is why only genuine open-market purchases are counted here and sales are treated as context rather than signal. It is also the strongest argument against this scanner's own design: the effect was found in small companies, and the pool it draws from excludes them.",
+      },
+      {
+        short: "Jeng, Metrick & Zeckhauser 2003",
+        authors: "Jeng, L. A., Metrick, A., & Zeckhauser, R.",
+        year: "2003",
+        title: "Estimating the Returns to Insider Trading: A Performance-Evaluation Perspective",
+        source: "The Review of Economics and Statistics, 85(2), 453–471",
+        url: "https://doi.org/10.1162/003465303765299936",
+        finding:
+          "Treating insiders' trades as a portfolio and evaluating its performance, purchases by insiders earned abnormal returns of more than 6% a year while their sales earned no significant abnormal return at all.",
+        usedFor:
+          "The asymmetry this product rests on. It is why a purchase is the event that starts a scan and a sale is only ever reported alongside it, never scored.",
+      },
+      {
+        short: "Cohen, Malloy & Pomorski 2012",
+        authors: "Cohen, L., Malloy, C., & Pomorski, L.",
+        year: "2012",
+        title: "Decoding Inside Information",
+        source: "The Journal of Finance, 67(3), 1009–1043",
+        url: "https://doi.org/10.1111/j.1540-6261.2012.01740.x",
+        finding:
+          "Much insider trading is predictable and routine, and carries essentially no information about a company's future. Separating it out and keeping only the remaining opportunistic trades produced value-weighted abnormal returns of 82 basis points a month, while the routine traders' abnormal returns were approximately zero.",
+        usedFor:
+          "Why a purchase the filer affirms was made under a pre-arranged plan is discounted rather than counted equally, and why the absence of that affirmation is never read as its denial. It is also a caution about the whole exercise: most of what a filings feed contains is noise.",
+      },
+      {
+        short: "Brochet 2010",
+        authors: "Brochet, F.",
+        year: "2010",
+        title: "Information Content of Insider Trades before and after the Sarbanes-Oxley Act",
+        source: "The Accounting Review, 85(2), 419–446",
+        url: "https://doi.org/10.2308/accr.2010.85.2.419",
+        finding:
+          "After the two-business-day filing deadline introduced in 2002, abnormal returns and trading volumes around the filing of insider PURCHASES became significantly greater than before it — the disclosure itself became more informative once it arrived quickly.",
+        usedFor:
+          "Why a scan reads the filings feed rather than a quarterly summary: the disclosure is the event, and it now arrives within two business days of the trade.",
+      },
+      {
+        short: "Seyhun 1986",
+        authors: "Seyhun, H. N.",
+        year: "1986",
+        title: "Insiders' Profits, Costs of Trading, and Market Efficiency",
+        source: "Journal of Financial Economics, 16(2), 189–212",
+        url: "https://doi.org/10.1016/0304-405X(86)90060-7",
+        finding:
+          "Across roughly 60,000 insider purchases and sales at NYSE and AMEX companies between 1975 and 1981, insiders bought before abnormal price rises and sold before abnormal declines, establishing that they can predict abnormal future price changes in their own shares.",
+        usedFor:
+          "The earliest large-sample evidence that the event this scanner starts from carries information at all.",
+      },
+      {
+        short: "Buffett 1986",
+        authors: "Buffett, W. E.",
+        year: "1986",
+        title: "Chairman's Letter, Appendix: Owner Earnings",
+        source: "Berkshire Hathaway Inc. Annual Report 1986",
+        url: "https://www.berkshirehathaway.com/letters/1986.html",
+        finding:
+          "Defines owner earnings as reported earnings, plus depreciation, depletion, amortisation and certain other non-cash charges, less the average annual capitalised spending on plant and equipment that the business requires to fully maintain its long-term competitive position and unit volume — and states plainly that this last term \"must be a guess — and one sometimes very difficult to make\".",
+        usedFor:
+          "The valuation method, and the reason it publishes two answers rather than one: the maintenance-spending term cannot be read off a filing, so both bounds are computed and the distance between them is reported.",
       },
     ],
   },

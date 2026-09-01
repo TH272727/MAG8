@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { adminLogout } from "@/app/actions";
 import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import BottleneckSettingsPanel from "@/components/admin/BottleneckSettingsPanel";
+import InsiderSettingsPanel from "@/components/admin/InsiderSettingsPanel";
 import RotationSettingsPanel from "@/components/admin/RotationSettingsPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
@@ -25,6 +26,11 @@ import {
   ROTATION_SETTINGS_SPEC,
   effectiveRotationSettings,
 } from "@/lib/rotation-settings";
+import {
+  effectiveInsiderSettings,
+  INSIDER_SETTING_GROUPS,
+  INSIDER_SETTINGS_SPEC,
+} from "@/lib/insider-settings";
 import { allPlaybooks } from "@/lib/bottleneck/playbook";
 import { formatSettingValue, type SettingSpec } from "@/lib/settings-registry";
 import {
@@ -113,6 +119,8 @@ export default async function AdminPage() {
   const bottleneckPanel = toPanelSettings(BOTTLENECK_SETTINGS_SPEC, bottleneckEff);
   const rotationEff = effectiveRotationSettings();
   const rotationPanel = toPanelSettings(ROTATION_SETTINGS_SPEC, rotationEff);
+  const insiderEff = effectiveInsiderSettings();
+  const insiderPanel = toPanelSettings(INSIDER_SETTINGS_SPEC, insiderEff);
   const playbooks = allPlaybooks().map((p) => ({ id: p.id, label: p.label, builtIn: p.builtIn }));
 
   return (
@@ -202,6 +210,31 @@ export default async function AdminPage() {
             key={JSON.stringify(rotationEff.values)}
             groups={ROTATION_SETTING_GROUPS}
             settings={rotationPanel}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="insider-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="insider-h" className="eyebrow">
+            Insider turnaround scanner
+          </h2>
+          <span className="chip">$0 · NO RESEARCH CAPACITY</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          A fourth research product sharing this database: it starts from company insiders buying their own
+          shares on the open market and works forward to a valuation. Most of the dials below are not
+          measurement choices but a statement of risk tolerance, and there is no correct setting — these are
+          the HOUSE answer, which a visitor can depart from on the page. Only filings, closes and statements
+          are stored, so every dial re-derives the whole candidate list on the next read. It never writes to a
+          pipeline table or touches the leaderboard.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <InsiderSettingsPanel
+            key={JSON.stringify(insiderEff.values)}
+            groups={INSIDER_SETTING_GROUPS}
+            settings={insiderPanel}
           />
         </div>
       </section>
