@@ -17,6 +17,7 @@ const GROUP_TO_SKILL: Partial<Record<CitationGroup["key"], string>> = {
   macro: "gt-predictor",
   consensus: "institutional-forecast",
   discovery: "new-gen-stock",
+  insider: "insider-turnaround",
   // "rubric" renders on /methodology only — the compiler is not a skill.
 };
 
@@ -65,7 +66,8 @@ for (const group of CITATION_GROUPS) {
   }
   wrote++;
 }
-if (wrote !== 4) {
-  console.error(`Expected to process 4 skill bibliographies, processed ${wrote}`);
+const EXPECTED = Object.keys(GROUP_TO_SKILL).length;
+if (wrote !== EXPECTED) {
+  console.error(`Expected to process ${EXPECTED} playbook bibliographies, processed ${wrote}`);
   process.exit(1);
 }
