@@ -10,6 +10,9 @@ next-env.d.ts
 # runtime data
 db/
 
+# generated scan reports (the board is the source of truth; these are exports)
+output/
+
 # env
 .env*
 !.env.example

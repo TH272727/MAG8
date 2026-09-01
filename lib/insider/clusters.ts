@@ -27,6 +27,8 @@ export interface InsiderBuy {
   accession: string;
   line: number;
   date: string;
+  /** Always P for a qualifying buy; carried so a reader can check the filing. */
+  code: string;
   filedDate: string;
   shares: number | null;
   price: number | null;
@@ -204,6 +206,7 @@ export function buildClusters(rows: InsiderTransactionRow[], o: ClusterOptions):
       accession: r.accession,
       line: r.line,
       date: r.transactionDate,
+      code: r.code,
       filedDate: r.filedDate,
       shares: r.shares,
       price: r.price,

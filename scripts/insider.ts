@@ -425,6 +425,43 @@ async function board(): Promise<number> {
 }
 
 /* ----------------------------------------------------------------------------
+ * --stock : one company, in full.
+ * -------------------------------------------------------------------------- */
+
+async function stock(ticker: string): Promise<number> {
+  const { readCandidate } = await import("../lib/insider/scanner");
+  const { renderCandidate } = await import("../lib/insider/report");
+
+  const hit = readCandidate(ticker, { profile: argValue("--risk") });
+  if (!hit) {
+    console.log(` no insider buying on record for ${ticker.toUpperCase()} inside the current window`);
+    return 1;
+  }
+  console.log(renderCandidate(hit.candidate, hit.view));
+  return 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * --report : the full markdown report, written to disk.
+ * -------------------------------------------------------------------------- */
+
+async function report(): Promise<number> {
+  const { readScan } = await import("../lib/insider/scanner");
+  const { renderReport, saveReport } = await import("../lib/insider/report");
+
+  const view = readScan({ profile: argValue("--risk") });
+  const markdown = renderReport(view);
+  if (has("--write")) {
+    const written = saveReport(markdown, view);
+    console.log(` wrote ${written.markdownPath}`);
+    console.log(` wrote ${written.csvPath}`);
+    return 0;
+  }
+  console.log(markdown);
+  return 0;
+}
+
+/* ----------------------------------------------------------------------------
  * --coverage : what is stored, no network.
  * -------------------------------------------------------------------------- */
 
@@ -483,6 +520,15 @@ async function main() {
   }
   if (has("--board")) {
     process.exitCode = await board();
+    return;
+  }
+  const wantedStock = argValue("--stock");
+  if (wantedStock) {
+    process.exitCode = await stock(wantedStock);
+    return;
+  }
+  if (has("--report")) {
+    process.exitCode = await report();
     return;
   }
   if (has("--coverage")) {
