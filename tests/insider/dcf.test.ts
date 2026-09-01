@@ -141,6 +141,9 @@ describe("projectOwnerEarnings", () => {
     const p = projectOwnerEarnings(history, ASSUMPTIONS);
     expect(p.historicalRate).toBeCloseTo(0.2, 4);
     expect(p.growthRate).toBeCloseTo(0.14, 4);
+    // The base stays the most recent year: a genuinely growing business should
+    // not be anchored at where it was three years ago.
+    expect(p.base).toBeCloseTo(100, 6);
     expect(p.values![0]).toBeCloseTo(114, 4);
   });
 
@@ -165,7 +168,76 @@ describe("projectOwnerEarnings", () => {
     const losing = [{ end: "2025-12-31", value: -40, netIncome: null, depreciation: null, capex: null, workingCapitalChange: null, missing: [] }];
     const p = projectOwnerEarnings(losing, ASSUMPTIONS);
     expect(p.values).toBeNull();
-    expect(p.notes[0]).toMatch(/negative, so there is nothing to compound/);
+    expect(p.notes[0]).toMatch(/nothing to compound/);
+  });
+
+  it("falls back to the middle year when working capital decided the last one", () => {
+    // Harley-Davidson's shape: four positive years, then current liabilities
+    // fall by nearly a billion and owner earnings read −$1,132M — a movement
+    // larger than the whole operating result of $357M. Anchored on that year
+    // there is no valuation at all; the middle year gives one, and says so.
+    const hog = [
+      { v: 1351, ni: 650, da: 165, capex: 120, wc: -656 },
+      { v: 732, ni: 741, da: 152, capex: 152, wc: 9 },
+      { v: 95, ni: 707, da: 158, capex: 207, wc: 563 },
+      { v: 760, ni: 455, da: 161, capex: 197, wc: -341 },
+      { v: -1132, ni: 339, da: 172, capex: 154, wc: 1489 },
+    ].map((r, i) => ({
+      end: `${2021 + i}-12-31`,
+      value: r.v,
+      netIncome: r.ni,
+      depreciation: r.da,
+      capex: r.capex,
+      workingCapitalChange: r.wc,
+      missing: [],
+    }));
+
+    const p = projectOwnerEarnings(hog, ASSUMPTIONS);
+    expect(p.latest).toBe(-1132);
+    expect(p.base).toBe(732);
+    expect(p.values).not.toBeNull();
+    expect(p.notes.some((n) => /decided by a movement in working capital/.test(n))).toBe(true);
+    // And nothing became NaN on the way: a negative endpoint raised to a
+    // fractional power would flow out the other side as a NaN price.
+    expect(p.values!.every((x) => Number.isFinite(x))).toBe(true);
+    expect(p.growthRate).toBe(0);
+  });
+
+  it("keeps the latest year when the business, not the balance sheet, produced it", () => {
+    // Somnigroup's shape: rising owner earnings, with the working-capital term
+    // smaller than the operating result throughout. Using a median here would
+    // value a growing company at roughly half what it earns.
+    const rising = [
+      { v: 447, ni: 625, da: 175, capex: 123, wc: 230 },
+      { v: 338, ni: 456, da: 180, capex: 307, wc: -9 },
+      { v: 385, ni: 368, da: 183, capex: 185, wc: -19 },
+      { v: 578, ni: 384, da: 202, capex: 97, wc: -89 },
+      { v: 884, ni: 384, da: 291, capex: 167, wc: -376 },
+    ].map((r, i) => ({
+      end: `${2021 + i}-12-31`,
+      value: r.v,
+      netIncome: r.ni,
+      depreciation: r.da,
+      capex: r.capex,
+      workingCapitalChange: r.wc,
+      missing: [],
+    }));
+    const p = projectOwnerEarnings(rising, ASSUMPTIONS);
+    expect(p.base).toBe(884);
+    expect(p.notes.some((n) => /decided by a movement in working capital/.test(n))).toBe(false);
+  });
+
+  it("still refuses when the base year itself is negative", () => {
+    const losing = [-60, -100].map((v, i) => ({
+      end: `${2024 + i}-12-31`,
+      value: v,
+      netIncome: null,
+      depreciation: null,
+      capex: null,
+      workingCapitalChange: null,
+      missing: [],
+    }));
+    expect(projectOwnerEarnings(losing, ASSUMPTIONS).values).toBeNull();
   });
 
   it("assumes no growth rather than inventing one from a negative first year", () => {

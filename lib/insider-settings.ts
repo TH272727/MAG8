@@ -351,6 +351,24 @@ export const INSIDER_SETTINGS_SPEC: SettingSpec<InsiderSettingGroupKey>[] = [
     cites: [],
   }),
   num({
+    key: "ownerEarningsBaseYears",
+    label: "Years the earnings base is normalised over",
+    group: "valuation",
+    envVar: "MAG8_INSIDER_BASE_YEARS",
+    default: 5,
+    min: 1,
+    max: 6,
+    step: 1,
+    unit: "years",
+    integer: true,
+    blurb:
+      "The projection is anchored on the middle year of this many, not on the latest one. The working-capital " +
+      "term is a difference between two balance sheets, so a single reclassification can swamp the rest of the " +
+      "formula and even flip its sign — which on real companies produced either no estimate at all or a " +
+      "confident absurd one. Set to one to anchor on the most recent year alone.",
+    cites: [],
+  }),
+  num({
     key: "growthHaircutPct",
     label: "Share of past growth carried forward",
     group: "valuation",
@@ -529,6 +547,7 @@ export interface InsiderSettings {
   discountRatePct: number;
   terminalGrowthPct: number;
   projectionYears: number;
+  ownerEarningsBaseYears: number;
   growthHaircutPct: number;
   maxGrowthRatePct: number;
   minMarginOfSafetyPct: number;

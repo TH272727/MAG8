@@ -398,7 +398,7 @@ export function readScan(opts: { profile?: string | null; now?: Date } = {}): Sc
     funnel: [
       { key: "buying", label: "Companies with open-market insider buying in the window", count: qualifying.length + belowThreshold.length },
       { key: "threshold", label: "Buying that meets your conviction thresholds", count: qualifying.length },
-      { key: "worked", label: "Worked up with prices and statements", count: candidates.filter((c) => c.stage !== "unworked").length },
+      { key: "worked", label: "Price history fetched and measured", count: candidates.filter((c) => c.stage !== "unworked").length },
       { key: "price", label: "Inside your drawdown band, recent and steadied", count: candidates.filter((c) => c.stage !== "unworked" && c.stage !== "price").length },
       { key: "strength", label: "Through the financial-strength gate", count: candidates.filter((c) => c.stage === "ranked").length },
     ],
@@ -525,6 +525,7 @@ export function assessCandidate(
     years.length >= 2
       ? valueCompany(years, drawdown.price, latest?.shares ?? null, {
           years: s.projectionYears,
+          baseYears: s.ownerEarningsBaseYears,
           growthHaircut: s.growthHaircutPct / 100,
           maxGrowthRate: s.maxGrowthRatePct / 100,
           discountRate: s.discountRatePct / 100,

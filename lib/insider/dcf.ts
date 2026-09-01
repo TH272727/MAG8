@@ -112,6 +112,8 @@ export interface ProjectionAssumptions {
   growthHaircut: number;
   /** Hard ceiling on the projected rate, as a fraction. */
   maxGrowthRate: number;
+  /** How many recent years the base is normalised over. 1 uses the latest year alone. */
+  baseYears?: number;
 }
 
 export interface Projection {
@@ -121,8 +123,57 @@ export interface Projection {
   growthRate: number | null;
   /** The rate observed in the history, before either was applied. */
   historicalRate: number | null;
+  /** The figure the projection is anchored on — a median, not the latest year. */
   base: number | null;
+  /** The latest year alone, so the difference from the base is visible. */
+  latest: number | null;
+  /** How many years the base was taken over. */
+  baseYears: number;
   notes: string[];
+}
+
+/** Middle value of a list; the mean of the middle two when the count is even. */
+function median(xs: number[]): number {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * How many recent years the base is normalised over.
+ *
+ * NOT ONE. Anchoring on the latest year alone was the first implementation and
+ * it is wrong at scale, which only became visible on real companies: the
+ * working-capital term is a difference between two balance sheets, and a single
+ * reclassification can swamp the rest of the formula and even flip its sign.
+ * Harley-Davidson's current liabilities fell by nearly a billion in one year,
+ * producing owner earnings of −$1.13B after four positive years; Parsons did
+ * the same; Dick's most recent year collapsed to $77M against a $563M middle
+ * year, and with it the whole valuation. Each of those produced either no
+ * estimate at all or a confident absurd one.
+ *
+ * The middle value of the recent years is used instead. A median rather than a
+ * mean because one artefact year should not move it at all, and it is reported
+ * alongside the latest year so the difference is visible rather than hidden.
+ */
+const DEFAULT_BASE_YEARS = 5;
+
+/**
+ * Whether a year's owner earnings were decided by a balance-sheet movement
+ * rather than by the business.
+ *
+ * The working-capital term is a difference between two balance sheets. When it
+ * is larger than the whole operating result it is not describing this year's
+ * economics — a reclassification, a debt maturity moving between current and
+ * non-current, a captive finance book shifting — and anchoring a ten-year
+ * projection on it produces a confident wrong answer.
+ */
+function workingCapitalDominated(y: OwnerEarningsYear): boolean {
+  if (!num(y.netIncome) || !num(y.depreciation) || !num(y.capex) || !num(y.workingCapitalChange)) {
+    return false;
+  }
+  const operating = y.netIncome + y.depreciation - y.capex;
+  return Math.abs(y.workingCapitalChange) > Math.abs(operating);
 }
 
 /**
@@ -144,22 +195,50 @@ export function projectOwnerEarnings(
 ): Projection {
   const notes: string[] = [];
   const usable = history.filter((h) => h.value !== null) as (OwnerEarningsYear & { value: number })[];
+  const baseYears = Math.max(1, a.baseYears ?? DEFAULT_BASE_YEARS);
 
   if (usable.length === 0) {
-    return { values: null, growthRate: null, historicalRate: null, base: null, notes: ["No year of owner earnings could be computed."] };
+    return {
+      values: null,
+      growthRate: null,
+      historicalRate: null,
+      base: null,
+      latest: null,
+      baseYears,
+      notes: ["No year of owner earnings could be computed."],
+    };
   }
 
-  const base = usable[usable.length - 1].value;
+  const latestYear = usable[usable.length - 1];
+  const latest = latestYear.value;
+  const window = usable.slice(-baseYears).map((h) => h.value);
+
+  /*
+   * The latest year is the base — it is the most recent evidence, and a median
+   * over five years anchors a genuinely growing business at its position three
+   * years ago and then applies growth from there, which loses the compounding
+   * twice over. Somnigroup's owner earnings rose 447 → 884 across this window;
+   * the median would value it at half what it earns.
+   *
+   * The exception is a year the working-capital term decided rather than the
+   * business. Then the middle year is used and the difference is stated.
+   */
+  const dominated = workingCapitalDominated(latestYear);
+  const base = dominated && window.length > 1 ? median(window) : latest;
+
   if (base <= 0) {
     return {
       values: null,
       growthRate: null,
       historicalRate: null,
       base,
+      latest,
+      baseYears: window.length,
       notes: [
-        "The most recent year of owner earnings is negative, so there is nothing to compound and no value " +
-          "is estimated. A business can be worth a great deal while consuming cash; this method simply " +
-          "cannot say so.",
+        `Owner earnings are negative in a typical year of this history — the middle value of the last ` +
+          `${window.length} computable years is negative — so there is nothing to compound and no value is ` +
+          "estimated. A business can be worth a great deal while consuming cash; this method simply cannot " +
+          "say so.",
       ],
     };
   }
@@ -167,12 +246,18 @@ export function projectOwnerEarnings(
   const first = usable[0];
   const spans = usable.length - 1;
   let historicalRate: number | null = null;
-  if (spans >= 1 && first.value > 0) {
-    historicalRate = (base / first.value) ** (1 / spans) - 1;
+  // A negative endpoint raised to a fractional power is NaN, which would flow
+  // silently into every projected year and out the other side as a NaN price.
+  if (spans >= 1 && first.value > 0 && latest > 0) {
+    // Measured across the ACTUAL series, first to last. The base is normalised
+    // to resist a single artefact year; the growth rate is a different question
+    // and taking it to the median would understate or overstate it by however
+    // far the last year sits from the middle one.
+    historicalRate = (latest / first.value) ** (1 / spans) - 1;
   } else if (spans >= 1) {
     notes.push(
-      "The earliest year of owner earnings was not positive, so a compound rate cannot be taken from this " +
-        "history and no growth is assumed.",
+      "A compound rate cannot be taken from this history, because it begins or ends on a year that was not " +
+        "positive, so no growth is assumed.",
     );
   } else {
     notes.push("Only one year of owner earnings could be computed, so no growth is assumed.");
@@ -187,13 +272,21 @@ export function projectOwnerEarnings(
     );
   }
 
+  if (dominated && window.length > 1) {
+    notes.push(
+      `The most recent year's owner earnings of ${(latest / 1e6).toFixed(0)}M were decided by a movement in ` +
+        `working capital larger than the whole operating result, so the middle year of the last ` +
+        `${window.length} is used as the base instead: ${(base / 1e6).toFixed(0)}M.`,
+    );
+  }
+
   const values: number[] = [];
   let v = base;
   for (let i = 0; i < a.years; i++) {
     v = v * (1 + growthRate);
     values.push(v);
   }
-  return { values, growthRate, historicalRate, base, notes };
+  return { values, growthRate, historicalRate, base, latest, baseYears: window.length, notes };
 }
 
 /* ----------------------------------------------------------------------------

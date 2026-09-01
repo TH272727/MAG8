@@ -295,11 +295,11 @@ async function refresh(dry: boolean): Promise<number> {
  * -------------------------------------------------------------------------- */
 
 const money = (n: number | null | undefined): string =>
-  n === null || n === undefined ? "n/a" : `$${Math.round(n).toLocaleString("en-US")}`;
+  n === null || n === undefined || !Number.isFinite(n) ? "n/a" : `$${Math.round(n).toLocaleString("en-US")}`;
 const pct1 = (n: number | null | undefined): string =>
-  n === null || n === undefined ? "n/a" : `${n.toFixed(1)}%`;
+  n === null || n === undefined || !Number.isFinite(n) ? "n/a" : `${n.toFixed(1)}%`;
 const dec = (n: number | null | undefined, dp = 2): string =>
-  n === null || n === undefined ? "n/a" : n.toFixed(dp);
+  n === null || n === undefined || !Number.isFinite(n) ? "n/a" : n.toFixed(dp);
 
 async function board(): Promise<number> {
   const { readScan } = await import("../lib/insider/scanner");
