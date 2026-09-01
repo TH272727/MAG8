@@ -1,4 +1,4 @@
-# Mag8 — agent notes, state 2026-08-30. README = user-facing; this file = authoritative. One commit per phase (`git log`).
+# Mag8 — agent notes, state 2026-08-31. README = user-facing; this file = authoritative. One commit per phase (`git log`).
 Four-stage pipeline over `@anthropic-ai/claude-agent-sdk` + live SSE "Mission Control" UI. S0 `lib/universe.ts`
 deterministic universe screen ($0, no model; weekly snapshot; NASDAQ+NYSE+AMEX + SEC XBRL fundamentals, every knob
 owner-tunable — see universe-settings entry) hands S1 a ~300-name screened pool (top-100 fundamentals-RANKED head
@@ -166,6 +166,47 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   nav/footer/hero/404/admin); `app/opengraph-image.png` re-shoot = headless-Edge (`--headless=new`) over scratch HTML
   with the vendored woff2 (satori/sharp can't render them); `metadataBase` ← `MAG8_SITE_URL`
 
+- `lib/insider/` THE INSIDER TURNAROUND SCANNER — fourth product, deterministic, $0, ZERO plan-window draw.
+  See HANDOFF-2026-08-31-insider-turnaround.md. Starts at the RARE EVENT (a Form 4 open-market
+  purchase), then price setup → strength gate → owner-earnings DCF → composite.
+  `form4.ts` daily-index walk + parsing — **an absent daily index answers 403, NOT 404** (weekends,
+  holidays, today pre-publication), so a refusal is an absence per-day while a window of NOTHING BUT
+  refusals is a fault, never "no filings"; booleans arrive `1/0` AND `true/false` from different
+  agents in the same day (`=== "true"` reads a planned buy as discretionary = higher conviction);
+  `reportingOwnerRelationship` OMITS false flags; one filing can name several owners and its buys
+  were made ONCE by the group (per-owner rows multiply the dollars); index emits one row PER FILER —
+  811 rows = 382 filings, **381 reachable via a listed-issuer row**, so the company is known before a
+  doc is opened (~192/day worth fetching vs 382). Neither feed is edgar-cached: parsed rows + walked
+  days ARE the persistence.
+  `ingest.ts` universe resolution is **STRICTLY READ-ONLY** (`latestUniverseSnapshot()` + pure
+  `screenUniverse()`, NEVER `getWeeklyUniverse()` — a public refresh button must not trigger a
+  market-wide screener fetch); `prices.ts` reuses rotation's fetcher (+`assetClass` — it was pinned
+  to `etf` and a common share answers "Symbol not exists", so the fallback was silently DEAD for
+  every candidate); `drawdown.ts` PURE, windows are **CALENDAR not session counts** (deliberate
+  difference from the board — Yahoo has real holes, e.g. every ticker null on 2026-08-28);
+  `fundamentals.ts` Piotroski/Altman exactly as `.claude/skills/stock-scanner/references/
+  screening-thresholds.md` §3–4 states them + **MERGED tag chains w/ per-year provenance** (first-
+  populated-wins loses a whole FY — Ford FY2025 revenue migrated tags; before the fix Ford looked
+  unfiled, after it: −$8.16B net income, Z 0.794 DISTRESS) + share counts matched to the nearest
+  instant within 100d **preferring on-or-after** (cover-page dated, so exact match found nothing for
+  the most complete filers); `dcf.ts` PURE owner earnings, BOTH capex bounds published (the 1986
+  letter says (c) "must be a guess"), refuses to compound a negative base or a non-converging
+  perpetuity; `clusters.ts` conviction (dollars log-saturating at 10× the floor / cluster / role /
+  recency, planned buys discounted); `score.ts` composite — an unmeasured component is NOT zero, the
+  company is scored on what exists, marked partial, and ranks BELOW every complete one;
+  `profiles.ts` conservative|balanced|aggressive applied ON READ; `scanner.ts` refreshScan (network)
+  + readScan (NEVER network, 50ms) + pure exported `assessCandidate`; `report.ts` deterministic
+  markdown + `verifyReportNumbers` (rotation's half-a-unit-of-the-last-place-WRITTEN rule);
+  `lib/insider-settings.ts` 27 knobs `MAG8_INSIDER_*` + `MAG8_INSIDER=0` kill.
+  **NOTHING DERIVED IS STORED** — no candidates/scores/rankings table — so a risk-tolerance change
+  re-derives the whole list INCLUDING each rejection reason, with zero fetches. That is what makes
+  the public preset picker free. Two financial filters are NOT risk preferences and no profile moves
+  them. Solvency correctly REFUSES to score banks/REITs (no classified balance sheet → no working
+  capital) and shows NOT MEASURED rather than 0.
+- `lib/xml.ts` shared namespace-agnostic XML helpers, extracted from the 13F parser (which still
+  reproduces byte-identically). NB the Bash-tool heredoc path EATS backslashes — write files
+  containing regex escapes with the Write/Edit tools, never a heredoc.
+
 ## Invariants — do not break
 1. SSE plumbing: `next.config.ts` keeps `compress:false` (gzip would buffer SSE) + `serverExternalPackages`
    `['better-sqlite3','@anthropic-ai/claude-agent-sdk']`. Persist progress events (sync INSERT) BEFORE emit;
@@ -260,12 +301,16 @@ npm run bottleneck -- --refresh [PLAYBOOK] [--dry] [--reuse-demand]          # d
 npm run rotation -- --probe                             # live price-source smoke; ALL PASS, exit 0
 npm run rotation -- --refresh [--dry] [--ticker T]      # 31 tickers, ~39k closes, ~24s
 npm run rotation -- --board [--indicator ID] | --note [--write] | --coverage
+npm run insider -- --probe                              # live feed smoke; ALL PASS, exit 0
+npm run insider -- --refresh [--dry] [--days N] [--force] [--workup-only]   # incremental; days already read are skipped
+npm run insider -- --board [--risk conservative|balanced|aggressive] | --stock TICKER | --report [--write] | --coverage
 ```
 Fixture regression (`npm run seed`): ASTS 90.3 pass+confluence, RKLB 73.9, TMDX 69.5, SYM 51.5, IONQ 47.9,
 CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×gt cell (CRSP → 46.4 + gap note);
 ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any public-surface change): render `/`,
 `/rankings`, `/methodology`, `/lab`, `/bottleneck` (+`?playbook=<id>`), `/bottleneck/clone?cik=<n>`,
-`/bottleneck/exposure`, `/rotation`, `/rotation/<id>`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
+`/bottleneck/exposure`, `/rotation`, `/rotation/<id>`, `/insider` (+`?risk=<profile>`), `/insider/<ticker>`,
+`/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
@@ -607,4 +652,56 @@ never been seen in a real browser (recharts measures client-side; headless retur
 here — one look before shipping), and the model note has never actually run (off by default, owner
 spends nothing on API). Env note: git-bash heredocs are unreliable in this harness — write a Python
 script and run it.
+2026-08-31 (Code): THE INSIDER TURNAROUND SCANNER — a FOURTH product, feature-complete against
+its source document's eight phases (HANDOFF-2026-08-31-insider-turnaround.md; plan
+`~/.claude/plans/ive-uploaded-a-insider-melodic-truffle.md`; source doc
+`mag8-insider-turnaround-scanner-build-plan.md` at root). Owner: "code this feature as a new
+feature for MAG8". Owner decisions: sweep restricted to the Stage-0 eligible universe (~2,069
+names) / public risk presets recomputed on read PLUS admin knobs / public page with admin-only
+controls / product model-free with a separate playbook wrapper. Same Stage-0 shape as the desk
+and the board: $0, zero plan window. Branch `feat/rotation-board` — NOT PUSHED. FOUR of the
+document's stack choices did not survive (no Python here; lib/edgar.ts already is the SEC
+client; Stooq is dead so rotation's two-source fetcher stands in; the settings registry beats a
+config.yaml). THE ONE UPGRADE beyond the document: **nothing derived is stored** — no
+candidates/scores/rankings table — so changing the drawdown band, discount rate or required
+cushion re-derives the whole list INCLUDING each rejection reason with zero fetches, which is
+what turns "every threshold is a real parameter" into a control a VISITOR can use. Live: house
+3 ranked, aggressive 4, one company's estimate moving $142.17→$185.75 with the discount rate.
+TEN findings, each of which produced or would have produced a confident wrong number: (1)
+`aff10b5One` arrives `1/0` AND `true/false` from different agents the same day — `=== "true"`
+reads a planned buy as discretionary, the HIGHER-conviction reading; (2)
+`reportingOwnerRelationship` omits false flags; (3) one filing can name several owners and its
+buys were made ONCE by the group; (4) a purchase can be filed with no price — flagged, never
+summed as zero; (5) **SEC answers an absent daily index with 403, NOT 404** (every weekend,
+holiday, and today pre-publication) so the shared client's "403 = bad User-Agent" rule would
+declare a broken config 17× over ordinary weekends — a refusal is now an absence per-day while
+a window of NOTHING BUT refusals is a fault, never "no filings"; (6) **MY OWN BUG, the one this
+repo had already met**: first-populated-wins on an XBRL tag chain loses a whole fiscal year —
+Ford migrated FY2025 revenue to a new tag and looked unfiled; after merging the chain, FY2025 is
+−$8.16B net income and Z 0.794 DISTRESS (same shape as the AMZN/NVDA demand-module bug); (7)
+share counts are cover-page dated, not year-end, so an exact match found nothing for the MOST
+complete filers (RSG 7/9 on 8 criteria → 8/9 on 9); (8) rotation's fallback price source was
+pinned to `assetclass=etf` and a common share answers "Symbol not exists" — silently dead for
+every candidate; (9) three generated sentences true of the arithmetic and false about the stock
+(a +49.6% 8-week return called "the fall has slowed"; a price 8.6× the estimate called a
+"-759.5% cushion below it"); (10) **MY OWN WRONG CITATION ASSUMPTION**: I expected Brochet 2010
+to show the 2-day filing rule eroded Form 4 returns — it shows the OPPOSITE, purchase filings
+became MORE informative; and Seyhun's outsider-after-costs conclusion could not be verified from
+any reachable primary source so it is NOT claimed. 6 citations, each verified this session,
+including the two that argue AGAINST the product (Lakonishok & Lee: the effect is concentrated
+in SMALL companies, which this pool excludes — said on the board and on /methodology; Cohen,
+Malloy & Pomorski: routine insider trading predicts essentially nothing). Homepage chip
+auto-counts 58 → 64 ACADEMIC WORKS CITED (public copy — flagged). Solvency correctly REFUSES to
+score banks and REITs (no classified balance sheet) and shows NOT MEASURED rather than 0. Gates:
+tsc, 589 vitest (was 381), seed EXACT, gen:bib idempotent, build clean w/ both routes, probe ALL
+PASS, leak probe ZERO architecture hits across 10 surfaces incl. all three insider views and
+/methodology (only the 2 homepage exceptions), curtain 404s both routes w/ the homepage
+link-free, admin gating verified with a real ADMIN_TOKEN on a prod build, separation contract
+holds (read-only universe access, no FKs). OPEN: the 60-day backfill was still running at
+handoff (21/60 days, 7,941 lines, 273 purchases across 111 companies, only 7 worked up) — finish
+with `npm run insider -- --refresh --days 60`, it is idempotent; never seen at 375px (headless
+browsers return an empty DOM here); and the universe restriction is the real open question about
+the PRODUCT — widen the sweep (a knob, ~4× the fetching) or leave it and keep saying so.
+NB the Bash-tool heredoc path EATS backslashes: write files containing regex escapes with the
+Write/Edit tools.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
