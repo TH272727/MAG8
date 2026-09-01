@@ -231,6 +231,75 @@ CREATE TABLE IF NOT EXISTS rotation_briefs (
   body TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_rot_briefs ON rotation_briefs (created_at DESC);
+
+/* ---------------------------------------------------------------------------
+ * The Insider Turnaround Scanner — a fourth research product sharing this
+ * database file. Same rule as the desk and the board above: NO foreign key into
+ * runs/candidates/lens_analyses/rankings, so the scanner can never write to, or
+ * cascade from, the pipeline. It stores only raw inputs — filed transactions,
+ * daily closes, extracted annual statements — and recomputes every cluster,
+ * drawdown, score, gate, valuation and rank on read, which is what lets a
+ * visitor change the risk tolerance and re-derive the whole list for free.
+ * ------------------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS insider_transactions (
+  accession TEXT NOT NULL,
+  line INTEGER NOT NULL,
+  ticker TEXT NOT NULL,
+  issuer_cik INTEGER NOT NULL,
+  issuer_name TEXT NOT NULL,
+  period TEXT NOT NULL,
+  filed_date TEXT NOT NULL,
+  transaction_date TEXT NOT NULL,
+  code TEXT NOT NULL,
+  acquired_disposed TEXT NOT NULL,
+  shares REAL,
+  price REAL,
+  shares_after REAL,
+  ownership TEXT NOT NULL,
+  planned TEXT NOT NULL CHECK (planned IN ('yes','no','not-stated')),
+  owners_json TEXT NOT NULL,
+  flags_json TEXT NOT NULL,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (accession, line)
+);
+CREATE INDEX IF NOT EXISTS idx_ins_txn_ticker ON insider_transactions (ticker, transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_ins_txn_filed ON insider_transactions (filed_date DESC);
+
+CREATE TABLE IF NOT EXISTS insider_index_days (
+  day TEXT PRIMARY KEY,
+  walked_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  filings_listed INTEGER NOT NULL,
+  filings_fetched INTEGER NOT NULL,
+  no_session INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS insider_prices (
+  ticker TEXT NOT NULL,
+  date TEXT NOT NULL,
+  close REAL NOT NULL,
+  adjusted INTEGER NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('yahoo','nasdaq')),
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (ticker, date)
+);
+CREATE INDEX IF NOT EXISTS idx_ins_prices ON insider_prices (ticker, date DESC);
+
+CREATE TABLE IF NOT EXISTS insider_financials (
+  cik INTEGER PRIMARY KEY,
+  ticker TEXT NOT NULL,
+  entity_name TEXT NOT NULL,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  years_json TEXT NOT NULL,
+  tags_json TEXT NOT NULL,
+  flags_json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS insider_scans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  taken_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  payload_json TEXT NOT NULL
+);
 `;
 
 type GlobalWithDb = typeof globalThis & { __mag8_db?: Database.Database };
@@ -284,6 +353,13 @@ function migrate(db: Database.Database): void {
     // existing files for the same reason as step 4 — no column to patch, only
     // the version to record. Nothing here touches a pipeline table either.
     db.pragma("user_version = 5");
+  }
+  if (v < 6) {
+    // Insider Turnaround Scanner: five additive tables, created by SCHEMA_SQL on
+    // fresh AND existing files for the same reason as steps 4 and 5 — no column
+    // to patch, only the version to record. Nothing here touches a pipeline
+    // table either.
+    db.pragma("user_version = 6");
   }
 }
 
@@ -1563,4 +1639,405 @@ export function latestRotationBrief(): RotationBriefRow | null {
     )
     .get() as RawRotationBrief | undefined;
   return toBrief(row);
+}
+
+/* ---------------------------------------------------------------------------
+ * Insider Turnaround Scanner
+ *
+ * Raw inputs only. There is deliberately no table of candidates, scores or
+ * rankings: those are a function of the operator's — or the reader's — risk
+ * tolerance, and storing them would freeze one person's answer into the
+ * database and let it drift away from the settings that produced it. Everything
+ * the scanner reports is recomputed from these rows on read, and lib/insider
+ * owns every one of those shapes rather than this file.
+ * ------------------------------------------------------------------------- */
+
+export interface InsiderOwner {
+  cik: string;
+  name: string;
+  isDirector: boolean;
+  isOfficer: boolean;
+  isTenPercentOwner: boolean;
+  isOther: boolean;
+  officerTitle: string | null;
+}
+
+export interface InsiderTransactionRow {
+  accession: string;
+  line: number;
+  ticker: string;
+  issuerCik: number;
+  issuerName: string;
+  /** The date the filing reports the activity for. */
+  period: string;
+  filedDate: string;
+  transactionDate: string;
+  code: string;
+  acquiredDisposed: string;
+  shares: number | null;
+  price: number | null;
+  sharesAfter: number | null;
+  ownership: string;
+  planned: "yes" | "no" | "not-stated";
+  /** Every reporting owner on the filing — the transaction belongs to them jointly. */
+  owners: InsiderOwner[];
+  flags: string[];
+}
+
+interface RawInsiderTransaction {
+  accession: string;
+  line: number;
+  ticker: string;
+  issuer_cik: number;
+  issuer_name: string;
+  period: string;
+  filed_date: string;
+  transaction_date: string;
+  code: string;
+  acquired_disposed: string;
+  shares: number | null;
+  price: number | null;
+  shares_after: number | null;
+  ownership: string;
+  planned: InsiderTransactionRow["planned"];
+  owners_json: string;
+  flags_json: string;
+}
+
+function toInsiderTransaction(r: RawInsiderTransaction): InsiderTransactionRow {
+  const owners = parseJson<InsiderOwner[]>(r.owners_json);
+  const flags = parseJson<string[]>(r.flags_json);
+  return {
+    accession: r.accession,
+    line: r.line,
+    ticker: r.ticker,
+    issuerCik: r.issuer_cik,
+    issuerName: r.issuer_name,
+    period: r.period,
+    filedDate: r.filed_date,
+    transactionDate: r.transaction_date,
+    code: r.code,
+    acquiredDisposed: r.acquired_disposed,
+    shares: r.shares,
+    price: r.price,
+    sharesAfter: r.shares_after,
+    ownership: r.ownership,
+    planned: r.planned,
+    owners: Array.isArray(owners) ? owners : [],
+    flags: Array.isArray(flags) ? flags : [],
+  };
+}
+
+/** Upsert filed transaction lines. A filing is immutable, so a re-read is a no-op. */
+export function saveInsiderTransactions(rows: InsiderTransactionRow[]): number {
+  if (rows.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO insider_transactions
+       (accession, line, ticker, issuer_cik, issuer_name, period, filed_date, transaction_date,
+        code, acquired_disposed, shares, price, shares_after, ownership, planned, owners_json,
+        flags_json, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(accession, line) DO UPDATE SET
+       ticker=excluded.ticker, issuer_cik=excluded.issuer_cik, issuer_name=excluded.issuer_name,
+       period=excluded.period, filed_date=excluded.filed_date,
+       transaction_date=excluded.transaction_date, code=excluded.code,
+       acquired_disposed=excluded.acquired_disposed, shares=excluded.shares, price=excluded.price,
+       shares_after=excluded.shares_after, ownership=excluded.ownership, planned=excluded.planned,
+       owners_json=excluded.owners_json, flags_json=excluded.flags_json`,
+  );
+  const tx = db.transaction(() => {
+    for (const r of rows) {
+      stmt.run(
+        r.accession,
+        r.line,
+        r.ticker,
+        r.issuerCik,
+        r.issuerName,
+        r.period,
+        r.filedDate,
+        r.transactionDate,
+        r.code,
+        r.acquiredDisposed,
+        r.shares,
+        r.price,
+        r.sharesAfter,
+        r.ownership,
+        r.planned,
+        JSON.stringify(r.owners),
+        JSON.stringify(r.flags),
+      );
+    }
+  });
+  tx();
+  return rows.length;
+}
+
+/**
+ * Every stored line filed on or after a date, newest activity first.
+ *
+ * Filed date, not transaction date, because that is what the lookback window
+ * means: a filing that reaches the public late is news on the day it lands.
+ */
+export function getInsiderTransactionsSince(filedFrom: string): InsiderTransactionRow[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM insider_transactions WHERE filed_date >= ?
+       ORDER BY transaction_date DESC, ticker, line`,
+    )
+    .all(filedFrom) as RawInsiderTransaction[];
+  return rows.map(toInsiderTransaction);
+}
+
+/** One company's stored lines, newest first. Used by the per-stock page. */
+export function getInsiderTransactionsForTicker(ticker: string, limit = 400): InsiderTransactionRow[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT * FROM insider_transactions WHERE ticker=?
+       ORDER BY transaction_date DESC, line LIMIT ?`,
+    )
+    .all(ticker.toUpperCase(), limit) as RawInsiderTransaction[];
+  return rows.map(toInsiderTransaction);
+}
+
+export interface InsiderDayRow {
+  day: string;
+  walkedAt: string;
+  filingsListed: number;
+  filingsFetched: number;
+  noSession: boolean;
+}
+
+/** Which days have been read already — the whole of the scan's incrementality. */
+export function insiderWalkedDays(): Map<string, InsiderDayRow> {
+  const rows = getDb()
+    .prepare(
+      `SELECT day, walked_at, filings_listed, filings_fetched, no_session
+       FROM insider_index_days ORDER BY day DESC`,
+    )
+    .all() as {
+    day: string;
+    walked_at: string;
+    filings_listed: number;
+    filings_fetched: number;
+    no_session: number;
+  }[];
+  return new Map(
+    rows.map((r) => [
+      r.day,
+      {
+        day: r.day,
+        walkedAt: r.walked_at,
+        filingsListed: r.filings_listed,
+        filingsFetched: r.filings_fetched,
+        noSession: r.no_session === 1,
+      },
+    ]),
+  );
+}
+
+export function markInsiderDayWalked(input: {
+  day: string;
+  filingsListed: number;
+  filingsFetched: number;
+  noSession: boolean;
+}): void {
+  getDb()
+    .prepare(
+      `INSERT INTO insider_index_days (day, walked_at, filings_listed, filings_fetched, no_session)
+       VALUES (?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?, ?, ?)
+       ON CONFLICT(day) DO UPDATE SET walked_at=excluded.walked_at,
+         filings_listed=excluded.filings_listed, filings_fetched=excluded.filings_fetched,
+         no_session=excluded.no_session`,
+    )
+    .run(input.day, input.filingsListed, input.filingsFetched, input.noSession ? 1 : 0);
+}
+
+/**
+ * Daily closes for a scanner candidate.
+ *
+ * A separate table from the rotation board's, on purpose. The board's coverage
+ * view and refresh loop are scoped to its own catalog of funds, and pouring
+ * hundreds of individual company tickers into the same table would leave that
+ * view describing something else entirely.
+ */
+export function saveInsiderBars(bars: PriceBar[]): number {
+  if (bars.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO insider_prices (ticker, date, close, adjusted, source, fetched_at)
+     VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(ticker, date) DO UPDATE SET close=excluded.close, adjusted=excluded.adjusted,
+       source=excluded.source, fetched_at=excluded.fetched_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const b of bars) stmt.run(b.ticker, b.date, b.close, b.adjusted ? 1 : 0, b.source);
+  });
+  tx();
+  return bars.length;
+}
+
+/** One candidate's closes, oldest first. */
+export function getInsiderBars(ticker: string, limit = 3000): PriceBar[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ticker, date, close, adjusted, source FROM insider_prices
+       WHERE ticker=? ORDER BY date DESC LIMIT ?`,
+    )
+    .all(ticker.toUpperCase(), limit) as RawPriceBar[];
+  return rows
+    .map((r) => ({
+      ticker: r.ticker,
+      date: r.date,
+      close: r.close,
+      adjusted: r.adjusted === 1,
+      source: r.source,
+    }))
+    .reverse();
+}
+
+/** Wipe one ticker's history — used when the price basis changes and merging would lie. */
+export function deleteInsiderBars(ticker: string): number {
+  return getDb().prepare(`DELETE FROM insider_prices WHERE ticker=?`).run(ticker.toUpperCase()).changes;
+}
+
+/** One row per stored candidate, without loading any series. */
+export function insiderBarCoverage(): BarCoverage[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ticker, COUNT(*) AS bars, MIN(date) AS first, MAX(date) AS latest,
+              COUNT(DISTINCT source) AS sources, COUNT(DISTINCT adjusted) AS bases,
+              MAX(source) AS source, MAX(adjusted) AS adjusted
+       FROM insider_prices GROUP BY ticker ORDER BY ticker`,
+    )
+    .all() as {
+    ticker: string;
+    bars: number;
+    first: string;
+    latest: string;
+    sources: number;
+    bases: number;
+    source: PriceBar["source"];
+    adjusted: number;
+  }[];
+  return rows.map((r) => ({
+    ticker: r.ticker,
+    bars: r.bars,
+    first: r.first,
+    latest: r.latest,
+    mixed: r.sources > 1 || r.bases > 1,
+    source: r.source,
+    adjusted: r.adjusted === 1,
+  }));
+}
+
+export interface InsiderFinancialsRow<T = unknown> {
+  cik: number;
+  ticker: string;
+  entityName: string;
+  fetchedAt: string;
+  years: T;
+  /** Which XBRL tag actually supplied each concept — reporting varies by filer. */
+  tags: Record<string, string>;
+  flags: string[];
+}
+
+export function saveInsiderFinancials(input: {
+  cik: number;
+  ticker: string;
+  entityName: string;
+  years: unknown;
+  tags: Record<string, string>;
+  flags: string[];
+}): void {
+  getDb()
+    .prepare(
+      `INSERT INTO insider_financials (cik, ticker, entity_name, fetched_at, years_json, tags_json, flags_json)
+       VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?, ?, ?)
+       ON CONFLICT(cik) DO UPDATE SET ticker=excluded.ticker, entity_name=excluded.entity_name,
+         fetched_at=excluded.fetched_at, years_json=excluded.years_json, tags_json=excluded.tags_json,
+         flags_json=excluded.flags_json`,
+    )
+    .run(
+      input.cik,
+      input.ticker.toUpperCase(),
+      input.entityName,
+      JSON.stringify(input.years),
+      JSON.stringify(input.tags),
+      JSON.stringify(input.flags),
+    );
+}
+
+interface RawInsiderFinancials {
+  cik: number;
+  ticker: string;
+  entity_name: string;
+  fetched_at: string;
+  years_json: string;
+  tags_json: string;
+  flags_json: string;
+}
+
+function toInsiderFinancials<T>(r: RawInsiderFinancials): InsiderFinancialsRow<T> {
+  const tags = parseJson<Record<string, string>>(r.tags_json);
+  const flags = parseJson<string[]>(r.flags_json);
+  return {
+    cik: r.cik,
+    ticker: r.ticker,
+    entityName: r.entity_name,
+    fetchedAt: r.fetched_at,
+    years: parseJson<T>(r.years_json) as T,
+    tags: tags && typeof tags === "object" ? tags : {},
+    flags: Array.isArray(flags) ? flags : [],
+  };
+}
+
+export function getInsiderFinancials<T = unknown>(cik: number): InsiderFinancialsRow<T> | null {
+  const r = getDb().prepare(`SELECT * FROM insider_financials WHERE cik=?`).get(cik) as
+    | RawInsiderFinancials
+    | undefined;
+  return r ? toInsiderFinancials<T>(r) : null;
+}
+
+/** Every stored statement set, keyed by ticker — one query for a whole board read. */
+export function allInsiderFinancials<T = unknown>(): Map<string, InsiderFinancialsRow<T>> {
+  const rows = getDb().prepare(`SELECT * FROM insider_financials`).all() as RawInsiderFinancials[];
+  return new Map(rows.map((r) => [r.ticker, toInsiderFinancials<T>(r)]));
+}
+
+export interface InsiderScanRow<T = unknown> {
+  id: number;
+  takenAt: string;
+  payload: T;
+}
+
+const INSIDER_KEEP_SCANS = 30;
+
+/** Record what one refresh actually did. Freshness and coverage come from here. */
+export function saveInsiderScan(payload: unknown): number {
+  const db = getDb();
+  let id = 0;
+  const tx = db.transaction(() => {
+    const info = db
+      .prepare(
+        `INSERT INTO insider_scans (taken_at, payload_json)
+         VALUES (strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?)`,
+      )
+      .run(JSON.stringify(payload));
+    id = Number(info.lastInsertRowid);
+    db.prepare(
+      `DELETE FROM insider_scans WHERE id NOT IN
+         (SELECT id FROM insider_scans ORDER BY taken_at DESC LIMIT ?)`,
+    ).run(INSIDER_KEEP_SCANS);
+  });
+  tx();
+  return id;
+}
+
+export function latestInsiderScan<T = unknown>(): InsiderScanRow<T> | null {
+  const r = getDb()
+    .prepare(`SELECT id, taken_at, payload_json FROM insider_scans ORDER BY taken_at DESC LIMIT 1`)
+    .get() as { id: number; taken_at: string; payload_json: string } | undefined;
+  if (!r) return null;
+  return { id: r.id, takenAt: r.taken_at, payload: parseJson<T>(r.payload_json) as T };
 }

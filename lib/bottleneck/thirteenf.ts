@@ -8,6 +8,7 @@ import {
 import { getFilingSnapshot, saveFilingSnapshot } from "../db";
 import { bottleneckSettings } from "../bottleneck-settings";
 import { isUsListing, resolveCusips, type ResolutionSource } from "./cusip";
+import { elementBlocks, elementText, tagRe } from "../xml";
 
 /* ============================================================================
  * Module A — the institutional clone.
@@ -79,33 +80,12 @@ export interface RawHolding {
 }
 
 /**
- * Namespace-agnostic element matcher. Every tag is optionally prefixed because
- * the prefix depends on the filing agent rather than on anything meaningful.
+ * Element reading is shared (lib/xml.ts) so this parser and the Form 4 parser
+ * cannot drift into two XML styles. `text` keeps its local name here: the
+ * padding on `titleOfClass` and the namespace-agnostic matching are the same
+ * problem the shared helper solves.
  */
-const tagRe = (name: string) => new RegExp(`<(?:\\w+:)?${name}\\b[^>]*>([\\s\\S]*?)</(?:\\w+:)?${name}>`, "i");
-
-const XML_ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-};
-
-function decode(s: string): string {
-  return s.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/gi, (m, ent: string) => {
-    const key = ent.toLowerCase();
-    if (key.startsWith("#x")) return String.fromCodePoint(Number.parseInt(key.slice(2), 16));
-    if (key.startsWith("#")) return String.fromCodePoint(Number(key.slice(1)));
-    return XML_ENTITIES[key] ?? m;
-  });
-}
-
-/** One element's text, trimmed and entity-decoded. `titleOfClass` arrives padded. */
-function text(block: string, name: string): string {
-  const m = tagRe(name).exec(block);
-  return m ? decode(m[1]).trim() : "";
-}
+const text = elementText;
 
 function numberIn(block: string, name: string): number {
   const raw = text(block, name).replace(/,/g, "");
@@ -115,7 +95,7 @@ function numberIn(block: string, name: string): number {
 
 /** Split the document into `<infoTable>` blocks, whatever prefix they carry. */
 function infoTableBlocks(xml: string): string[] {
-  return [...xml.matchAll(/<(?:\w+:)?infoTable\b[^>]*>([\s\S]*?)<\/(?:\w+:)?infoTable>/gi)].map((m) => m[1]);
+  return elementBlocks(xml, "infoTable");
 }
 
 /** How many holdings rows a document contains — used to pick the right file. */
