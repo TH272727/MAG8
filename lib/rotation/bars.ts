@@ -58,8 +58,18 @@ export interface PriceSource {
    * MUST NOT throw: an unreachable source returns a null series and a reason,
    * and the board discloses the gap rather than failing the refresh.
    */
-  fetch(ticker: string, opts: { years: number; timeoutMs: number }): Promise<FetchResult>;
+  fetch(ticker: string, opts: { years: number; timeoutMs: number; assetClass?: AssetClass }): Promise<FetchResult>;
 }
+
+/**
+ * Which instrument a symbol is, for sources that need telling.
+ *
+ * The rotation board reads funds, so `etf` is the default and its behaviour is
+ * unchanged. The insider scanner reads individual companies, and the fallback
+ * source returns nothing at all for a common share asked for as a fund — a
+ * silent empty answer, not an error.
+ */
+export type AssetClass = "etf" | "stocks";
 
 /** Funds and one index. A leading caret is legal here and is rejected elsewhere in the app. */
 const TICKER_RE = /^\^?[A-Za-z][A-Za-z0-9.-]{0,9}$/;
@@ -228,7 +238,7 @@ function makeNasdaq(gapMs: number): PriceSource {
     id: "nasdaq",
     label: "Independent daily closes, not adjusted for distributions",
     adjusted: false,
-    async fetch(ticker, { years, timeoutMs }) {
+    async fetch(ticker, { years, timeoutMs, assetClass }) {
       if (!isValidTicker(ticker)) return { series: null, note: `"${ticker}" is not a usable symbol` };
       if (isIndexSymbol(ticker)) {
         return { series: null, note: "this source carries funds and shares, not index levels" };
@@ -236,9 +246,11 @@ function makeNasdaq(gapMs: number): PriceSource {
       const to = new Date();
       const from = new Date(to);
       from.setUTCFullYear(from.getUTCFullYear() - years);
+      // This source needs telling what it is looking at: asked for a common
+      // share as a fund it returns an empty table rather than an error.
       const url =
         `https://api.nasdaq.com/api/quote/${encodeURIComponent(ticker.toUpperCase())}/historical` +
-        `?assetclass=etf&fromdate=${ymd(from)}&todate=${ymd(to)}&limit=9999`;
+        `?assetclass=${assetClass ?? "etf"}&fromdate=${ymd(from)}&todate=${ymd(to)}&limit=9999`;
       try {
         const body = await paced(url, timeoutMs, gapMs);
         const parsed = JSON.parse(body) as NasdaqHistorical;
@@ -287,6 +299,8 @@ export interface FetchOptions {
   gapMs: number;
   minBars: number;
   fallbackEnabled: boolean;
+  /** Defaults to `etf` — the rotation board's whole catalog. */
+  assetClass?: AssetClass;
 }
 
 /**
@@ -302,7 +316,11 @@ export async function fetchTicker(ticker: string, opts: FetchOptions): Promise<T
 
   for (const source of sources) {
     if (source.id !== "yahoo" && !opts.fallbackEnabled) break;
-    const { series, note } = await source.fetch(ticker, { years: opts.years, timeoutMs: opts.timeoutMs });
+    const { series, note } = await source.fetch(ticker, {
+      years: opts.years,
+      timeoutMs: opts.timeoutMs,
+      assetClass: opts.assetClass,
+    });
     if (!series) {
       attempts.push({ source: source.id, ok: false, bars: 0, note });
       continue;

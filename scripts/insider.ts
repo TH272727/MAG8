@@ -159,6 +159,39 @@ async function probe(): Promise<number> {
     );
   }
 
+  console.log("\n price history for a company\n");
+  const { priceSources } = await import("../lib/rotation/bars");
+  const [yahoo, nasdaq] = priceSources(150);
+  const popts = { years: 5, timeoutMs: 20_000 };
+
+  const primary = await yahoo.fetch("RSG", popts);
+  check("the primary source returns a company series", primary.series !== null, primary.note ?? `${primary.series?.bars.length ?? 0} sessions`);
+  if (primary.series) check("closes are adjusted for distributions", primary.series.adjusted);
+
+  // The fallback has to be told it is looking at a share rather than a fund:
+  // asked for a company as a fund it answers "Symbol not exists" and returns
+  // nothing at all, which is not an error and produces no series.
+  const asFund = await nasdaq.fetch("RSG", { ...popts, assetClass: "etf" });
+  const asShare = await nasdaq.fetch("RSG", { ...popts, assetClass: "stocks" });
+  check("the fallback declines a company asked for as a fund", asFund.series === null, asFund.note);
+  check("the fallback answers when told it is a company", asShare.series !== null, asShare.note ?? `${asShare.series?.bars.length ?? 0} sessions`);
+  if (asShare.series) check("fallback closes are NOT adjusted (basis differs)", asShare.series.adjusted === false);
+
+  if (primary.series) {
+    const { computeDrawdownProfile } = await import("../lib/insider/drawdown");
+    const profile = computeDrawdownProfile(primary.series.bars.map((b) => ({ date: b.date, close: b.close })));
+    check("a drawdown profile computes from a live series", profile !== null);
+    if (profile) {
+      console.log(
+        ` INFO  RSG ${profile.price.toFixed(2)} · ${profile.pctOff52wHigh.toFixed(1)}% off its 52-week high ` +
+          `of ${profile.high52w.toFixed(2)} set ${profile.monthsSinceHigh.toFixed(1)} months ago · ` +
+          `${profile.pctOff3yHigh.toFixed(1)}% off its 3-year high · ` +
+          `${profile.stabilizing ? "steadied" : "not steadied"}`,
+      );
+      check("percentages are finite", Number.isFinite(profile.pctOff52wHigh) && Number.isFinite(profile.pctOff3yHigh));
+    }
+  }
+
   banner(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
   return failures === 0 ? 0 : 1;
 }
