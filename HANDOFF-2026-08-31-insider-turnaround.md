@@ -80,12 +80,44 @@ and one company's estimated value moves $142.17 → $185.75 with the discount ra
    rendering real companies: "one insider, X, including a named chief officer bought" is not
    a sentence; a +49.6% eight-week return is not "the fall has slowed"; and a price 8.6× the
    estimate is not a "-759.5% cushion below it".
-10. **MY OWN WRONG ASSUMPTION about a citation.** I expected Brochet (2010) to show the
+10. **MY OWN VALUATION BUG, found only by running 197 real companies.** Owner earnings deduct the
+    change in working capital — a difference between two balance sheets — so anchoring a ten-year
+    projection on the *single latest year* lets one reclassification decide a valuation.
+    Harley-Davidson's current liabilities fell nearly a billion in a year, its owner earnings read
+    −$1,132M after four positive years, and it got no valuation at all; Parsons the same; Dick's
+    latest year collapsed to $77M against a $563M middle year and took the estimate with it. Fixed
+    with the *cause*: the latest year stays the base unless the working-capital movement exceeded the
+    whole operating result for that year, in which case the middle year is used **and the page says
+    so with both figures**. My first attempt used a plain median, which fixed Harley-Davidson and
+    silently broke Somnigroup — a genuinely growing business whose owner earnings rose 447 → 884 and
+    which a median valued at half what it earns. Both shapes are now fixtures. Two further faults in
+    the same change: a negative endpoint raised to a fractional power is `NaN` and flowed out as a
+    NaN price, and the note explaining the substitution was guarded on a *positive* latest year,
+    excluding exactly the case it exists for.
+11. **MY OWN WRONG ASSUMPTION about a citation.** I expected Brochet (2010) to show the
     two-day filing rule had eroded the returns to reading Form 4s. It shows the opposite —
     purchase filings became *more* informative once they arrived quickly. Cited for what it
     says. And Seyhun's outsider-after-costs conclusion could not be verified from any
     reachable primary source, so it is **not claimed**; Seyhun is cited only for what is
     confirmed.
+
+## The full run
+
+`--refresh --days 60`: **41,110 filings listed, 9,594 read from screened companies, zero failures,
+24.7 minutes.** 18,557 transaction lines stored, 530 open-market purchases. The funnel then reads:
+
+| Companies | Stage |
+|---:|---|
+| 197 | with open-market insider buying in the window |
+| 136 | meeting the house conviction thresholds |
+| 58 | worked up with price history |
+| 39 | inside the drawdown band, recent and steadied |
+| 25 | through the financial-strength gate |
+
+Dick's Sporting Goods is the reading worth remembering: $2.70 a share on the conservative bound
+against $320.70 on the maintenance one — **11,796% apart** — because it spent $1,137M of capital
+against $489M of depreciation. Both are published and the page says most of its value depends on a
+judgement these figures cannot settle. That is what publishing two bounds is for.
 
 ## Live behaviour worth keeping
 
@@ -125,7 +157,7 @@ and one company's estimated value moves $142.17 → $185.75 with the discount ra
 
 ## Gates, all passed
 
-tsc clean · **589 vitest** (was 381) · seed regression EXACT (ASTS 90.3 … ACHR 19.3 #8) ·
+tsc clean · **592 vitest** (was 381) · seed regression EXACT (ASTS 90.3 … ACHR 19.3 #8) ·
 `gen:bib` idempotent · `next build` clean, both routes registered · `npm run insider --
 --probe` ALL PASS · leak probe **zero architecture hits** across 10 surfaces including all
 three insider views and /methodology (only the two approved homepage `26 AGENTS`
@@ -137,11 +169,9 @@ carries neither the controls nor the refresh action) · separation contract hold
 
 ## Open
 
-1. **The 60-day backfill was still running when this was written.** At 21 of 60 days it had
-   7,941 filed lines and 273 open-market purchases across 111 companies; only 7 companies
-   had prices and statements fetched, because the work-up runs after the walk. Finish it
-   with `npm run insider -- --refresh --days 60` (idempotent — days already read are
-   skipped) and then re-read the board.
+1. **Only the top 60 of 136 qualifying companies are worked up per refresh**
+   (`maxCandidates`). The rest are listed as *not worked up* rather than as failing anything,
+   which is correct, but raising the cap or running a second refresh would deepen the board.
 2. **Never seen in a browser at 375px.** Headless Chrome and Edge return an empty DOM in
    this environment. Structural checks and a real production render were used instead.
 3. **The universe restriction is the biggest open question about the product itself**, not

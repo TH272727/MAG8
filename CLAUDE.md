@@ -191,7 +191,12 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   instant within 100d **preferring on-or-after** (cover-page dated, so exact match found nothing for
   the most complete filers); `dcf.ts` PURE owner earnings, BOTH capex bounds published (the 1986
   letter says (c) "must be a guess"), refuses to compound a negative base or a non-converging
-  perpetuity; `clusters.ts` conviction (dollars log-saturating at 10× the floor / cluster / role /
+  perpetuity; **projection base = the LATEST year UNLESS that year's working-capital movement exceeded
+  its whole operating result** (then the median of `ownerEarningsBaseYears`, stated with both figures)
+  — anchoring on the latest year alone let ONE balance-sheet reclassification decide a valuation (HOG
+  −$1,132M after 4 positive years → no estimate; DKS $77M vs a $563M middle year → estimate collapsed),
+  while a plain median silently HALVED a genuinely growing business (SGI 447→884); a negative endpoint
+  raised to a fractional power is NaN and flowed out as a NaN price; `clusters.ts` conviction (dollars log-saturating at 10× the floor / cluster / role /
   recency, planned buys discounted); `score.ts` composite — an unmeasured component is NOT zero, the
   company is scored on what exists, marked partial, and ranks BELOW every complete one;
   `profiles.ts` conservative|balanced|aggressive applied ON READ; `scanner.ts` refreshScan (network)
@@ -693,13 +698,16 @@ in SMALL companies, which this pool excludes — said on the board and on /metho
 Malloy & Pomorski: routine insider trading predicts essentially nothing). Homepage chip
 auto-counts 58 → 64 ACADEMIC WORKS CITED (public copy — flagged). Solvency correctly REFUSES to
 score banks and REITs (no classified balance sheet) and shows NOT MEASURED rather than 0. Gates:
-tsc, 589 vitest (was 381), seed EXACT, gen:bib idempotent, build clean w/ both routes, probe ALL
-PASS, leak probe ZERO architecture hits across 10 surfaces incl. all three insider views and
+tsc, 592 vitest (was 381), seed EXACT, gen:bib idempotent, build clean w/ both routes, probe ALL
+PASS, leak probe ZERO architecture hits across 14 PRODUCTION surfaces + snapshot JSON incl. every insider view and
 /methodology (only the 2 homepage exceptions), curtain 404s both routes w/ the homepage
 link-free, admin gating verified with a real ADMIN_TOKEN on a prod build, separation contract
-holds (read-only universe access, no FKs). OPEN: the 60-day backfill was still running at
-handoff (21/60 days, 7,941 lines, 273 purchases across 111 companies, only 7 worked up) — finish
-with `npm run insider -- --refresh --days 60`, it is idempotent; never seen at 375px (headless
+holds (read-only universe access, no FKs). FULL 60-DAY RUN DONE: 41,110 filings listed → 9,594 read from
+screened companies, ZERO failures, 24.7 min; funnel 197 with insider buying → 136 meeting thresholds →
+58 worked up → 39 through the band → 25 through the strength gate. DKS is the reading to remember:
+$2.70/sh conservative vs $320.70 maintenance, **11,796% apart**, disclosed — which is what publishing
+two bounds is FOR. OPEN: only the top `maxCandidates` (60) of 136 are worked up per refresh, the rest
+listed as not-worked-up; never seen at 375px (headless
 browsers return an empty DOM here); and the universe restriction is the real open question about
 the PRODUCT — widen the sweep (a knob, ~4× the fetching) or leave it and keep saying so.
 NB the Bash-tool heredoc path EATS backslashes: write files containing regex escapes with the
