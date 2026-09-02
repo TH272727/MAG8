@@ -119,31 +119,35 @@ export const REACH_SETTINGS_SPEC: SettingSpec<ReachSettingGroupKey>[] = [
     label: "Release window",
     group: "feeds",
     envVar: "MAG8_REACH_FEED_DAYS",
-    default: 21,
+    default: 35,
     min: 3,
-    max: 90,
+    max: 120,
     step: 1,
     unit: "days",
     integer: true,
     blurb:
-      "How recent an official release must be to be listed. Three weeks spans a full cycle of scheduled " +
-      "statistical publications without reaching back into material the market has already absorbed.",
+      "How recent an official release must be to be listed. Five weeks, because the releases that matter " +
+      "most to a macro view are MONTHLY: at three weeks the jobs report and the price index both fall " +
+      "outside the window most of the time, so the block fills with central-bank speeches and silently " +
+      "omits the two figures anyone would actually want.",
     cites: [],
   }),
   num({
     key: "maxFeedItems",
-    label: "Releases listed",
+    label: "Releases listed per source",
     group: "feeds",
     envVar: "MAG8_REACH_MAX_FEED_ITEMS",
-    default: 8,
+    default: 2,
     min: 1,
-    max: 30,
+    max: 10,
     step: 1,
     unit: "releases",
     integer: true,
     blurb:
-      "A cap across all sources combined, newest first. Same budget logic as the filing cap — this block is " +
-      "shared by every candidate in a week, so it earns its length once and pays for it many times.",
+      "A cap PER source rather than across all of them, which is deliberate. A single newest-first cap " +
+      "starves the low-frequency publishers: a central bank posts most days while the jobs report comes " +
+      "once a month, so the monthly releases would always be the oldest items in the pool and never " +
+      "survive the cut. Per source, each publisher keeps a place.",
     cites: [],
   }),
 

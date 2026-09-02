@@ -1,10 +1,13 @@
 import { getReachSnapshot, isoWeekKey, latestReachSnapshot, saveReachSnapshot } from "../db";
 import { reachEnabled, reachSettings } from "../reach-settings";
+import { feedSources } from "./catalog";
+import { readFeeds, type ReleaseItem } from "./feeds";
 import { readCompanyFilings, type CompanyFilings } from "./filings";
 import { emptySnapshot, mergeSnapshot, normalizeTickers, type ReachSnapshot } from "./snapshot";
 
 export { companyEvidence, type ReachSnapshot } from "./snapshot";
 export type { CompanyFilings, FilingKind, FilingRef } from "./filings";
+export type { ReleaseItem } from "./feeds";
 
 /* ============================================================================
  * The evidence layer — orchestration (the only module here that stores).
@@ -44,6 +47,13 @@ export function readReach(opts: { weekKey?: string; allowStale?: boolean } = {})
 export interface RefreshOptions {
   /** Re-read companies already present in this week's snapshot. */
   force?: boolean;
+  /**
+   * Read the official-release feeds too. Off unless the week has none, because
+   * they are week-level: re-reading them mid-week would change the block every
+   * already-cached cell was shown, which is the freeze this layer exists to
+   * keep. `force` overrides, and so does an empty week.
+   */
+  withReleases?: boolean;
   /** Compute without persisting — the --dry path. */
   dryRun?: boolean;
   /** Fixed clock, so a test and a frozen week agree. */
@@ -68,10 +78,16 @@ export async function refreshReach(tickers: string[], opts: RefreshOptions = {})
   const s = reachSettings();
   const prior = getReachSnapshot<ReachSnapshot>(week)?.payload ?? null;
 
-  const known = new Map<string, CompanyFilings>();
-  if (prior && !opts.force) for (const c of prior.companies) known.set(c.ticker.toUpperCase(), c);
-
   const wanted = normalizeTickers(tickers);
+
+  // Force re-reads the tickers you ASKED for; it never discards ones you did
+  // not mention. Clearing the whole map instead made `--refresh --force` with
+  // no tickers — the natural way to refresh only the feeds — delete every
+  // company in the week. Caught live, twice.
+  const known = new Map<string, CompanyFilings>();
+  if (prior) for (const c of prior.companies) known.set(c.ticker.toUpperCase(), c);
+  if (opts.force) for (const t of wanted) known.delete(t);
+
   const todo = wanted.filter((t) => !known.has(t));
   opts.onProgress?.(
     `${wanted.length} ticker(s): ${todo.length} to read, ${wanted.length - todo.length} already in week ${week}`,
@@ -90,12 +106,34 @@ export async function refreshReach(tickers: string[], opts: RefreshOptions = {})
     );
   }
 
+  // Read the week's releases when it has none yet, or when told to. Otherwise
+  // keep what the week already holds, so a second run adding one candidate
+  // does not rewrite the macro block every earlier cell was shown.
+  let releases: ReleaseItem[] | null = null;
+  let feedNotes: string[] | undefined;
+  if (opts.force || opts.withReleases || !prior || prior.releases.length === 0) {
+    const sources = feedSources();
+    opts.onProgress?.(`reading ${sources.length} official-release source(s)`);
+    const read = await readFeeds(sources, {
+      lookbackDays: s.feedLookbackDays,
+      maxPerSource: s.maxFeedItems,
+      asOf,
+      timeoutMs: s.fetchTimeoutMs,
+    });
+    releases = read.items;
+    feedNotes = read.notes;
+    opts.onProgress?.(`  ${read.items.length} release(s) in the window`);
+    for (const n of read.notes) opts.onProgress?.(`  not read — ${n}`);
+  }
+
   const snapshot = mergeSnapshot({
     weekKey: week,
     fetchedAt: new Date().toISOString(),
     prior,
     wanted,
     known,
+    releases,
+    feedNotes,
   });
 
   if (!opts.dryRun) saveReachSnapshot(week, snapshot);

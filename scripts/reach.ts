@@ -2,7 +2,7 @@
  * The evidence layer — headless operator CLI.
  *
  *   npm run reach -- --probe                        live source smoke test
- *   npm run reach -- --refresh TICKER[,TICKER…] [--dry] [--force]
+ *   npm run reach -- --refresh [TICKER,…] [--dry] [--force]   no ticker = feeds only
  *   npm run reach -- --board [--ticker T]           what is stored, no network
  *
  * Deterministic and free: everything here is HTTP plus arithmetic, so it never
@@ -23,7 +23,12 @@ const args = process.argv.slice(2);
 const has = (flag: string) => args.includes(flag);
 const argValue = (name: string): string | undefined => {
   const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
+  const v = i >= 0 ? args[i + 1] : undefined;
+  // A following FLAG is not this flag's value. Without this, `--refresh
+  // --force` reads "--force" as the ticker list — which, combined with force
+  // clearing the week's existing entries, silently replaced a snapshot of
+  // eight real companies with one entry named "--FORCE". Caught live.
+  return v !== undefined && !v.startsWith("--") ? v : undefined;
 };
 
 let failures = 0;
@@ -101,18 +106,20 @@ async function probe(): Promise<number> {
 
 async function refresh(tickers: string[], dryRun: boolean, force: boolean): Promise<number> {
   banner(`EVIDENCE LAYER — REFRESH${dryRun ? " (DRY RUN — nothing persisted)" : ""}`);
-  if (tickers.length === 0) {
-    console.error("Give at least one ticker: --refresh IONQ,RKLB");
-    return 2;
-  }
   const { refreshReach } = await import("../lib/reach");
-  const snap = await refreshReach(tickers, { dryRun, force, onProgress: (l) => console.log(l) });
+  // No tickers is legal: it reads the official-release feeds alone, which is
+  // the weekly maintenance call.
+  const snap = await refreshReach(tickers, {
+    dryRun,
+    force,
+    withReleases: tickers.length === 0,
+    onProgress: (l) => console.log(l),
+  });
 
-  console.log(`\n week ${snap.weekKey} — ${snap.companies.length} company(ies) held`);
-  if (snap.notes.length > 0) {
-    console.log("\n not read:");
-    for (const n of snap.notes) console.log(`   ${n}`);
-  }
+  console.log(
+    `\n week ${snap.weekKey} — ${snap.companies.length} company(ies), ${snap.releases.length} release(s) held`,
+  );
+  for (const n of [...snap.notes, ...snap.feedNotes]) console.log(`   not read — ${n}`);
   return 0;
 }
 
@@ -129,6 +136,15 @@ async function board(one: string | undefined): Promise<number> {
     return 0;
   }
   console.log(` week ${snap.weekKey} · read ${snap.fetchedAt.slice(0, 19).replace("T", " ")}Z\n`);
+
+  if (!one && snap.releases.length > 0) {
+    console.log(` official releases (${snap.releases.length}):`);
+    for (const r of snap.releases) {
+      console.log(`   ${r.date}  ${r.publisher}`);
+      console.log(`             ${r.title.slice(0, 96)}`);
+    }
+    console.log("");
+  }
 
   const rows = one ? [companyEvidence(snap, one)].filter((c) => c !== null) : snap.companies;
   if (rows.length === 0) {
@@ -165,7 +181,7 @@ async function main() {
   }
   console.log(
     "Usage: npm run reach -- --probe\n" +
-      "                     | --refresh TICKER[,TICKER…] [--dry] [--force]\n" +
+      "                     | --refresh [TICKER[,TICKER…]] [--dry] [--force]\n" +
       "                     | --board [--ticker SYMBOL]",
   );
   process.exitCode = 2;

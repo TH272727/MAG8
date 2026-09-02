@@ -185,7 +185,9 @@ describe("the weekly merge", () => {
     weekKey: "2026-W36",
     fetchedAt: "2026-09-02T00:00:00.000Z",
     companies,
+    releases: [],
     notes,
+    feedNotes: [],
   });
 
   const merge = (prior: ReachSnapshot | null, wanted: string[], known: Map<string, CompanyFilings>) =>
@@ -217,6 +219,15 @@ describe("the weekly merge", () => {
     expect(out.notes).toEqual(["OKLO: no SEC filer record for this ticker"]);
   });
 
+  it("drops a note whose company is no longer in the snapshot", () => {
+    // A note describes a company that is held. When a force drops the company,
+    // its note must go too — otherwise it describes something not there any
+    // more, for ever. This is how a junk entry's note got permanently stuck.
+    const prior = snap([co("JUNK", 0, "no SEC filer record")], ["JUNK: no SEC filer record"]);
+    const known = new Map([["IONQ", co("IONQ")]]); // force cleared the week
+    expect(merge(prior, ["IONQ"], known).notes).toEqual([]);
+  });
+
   it("records a fresh failure as a note", () => {
     const known = new Map([["ZZZ", co("ZZZ", 0, "no SEC filer record for this ticker")]]);
     expect(merge(null, ["ZZZ"], known).notes).toEqual(["ZZZ: no SEC filer record for this ticker"]);
@@ -229,7 +240,9 @@ describe("lookup helpers", () => {
       weekKey: "2026-W36",
       fetchedAt: "",
       companies: [{ ticker: "IONQ", cik: 1, entityName: "IonQ", recent: [], offeringCount: 0 }],
+      releases: [],
       notes: [],
+      feedNotes: [],
     };
     expect(companyEvidence(s, "ionq")?.ticker).toBe("IONQ");
     expect(companyEvidence(s, "RKLB")).toBeNull();
@@ -238,5 +251,14 @@ describe("lookup helpers", () => {
 
   it("normalizes and de-duplicates a ticker list without reordering it", () => {
     expect(normalizeTickers([" ionq ", "RKLB", "ionq", "", "  "])).toEqual(["IONQ", "RKLB"]);
+  });
+
+  it("refuses anything that is not shaped like a ticker", () => {
+    // The week's snapshot is shared state several runs read. A CLI bug passed
+    // "--force" here as a ticker; combined with force clearing the week, it
+    // stored an entry named "--FORCE" and dropped eight real companies.
+    expect(normalizeTickers(["--FORCE", "-x", "A B", "TOOLONGSYMBOL", "1ABC", "IONQ"])).toEqual(["IONQ"]);
+    // Real symbols that carry punctuation must still survive.
+    expect(normalizeTickers(["BRK.B", "RDS-A", "GOOG"])).toEqual(["BRK.B", "RDS-A", "GOOG"]);
   });
 });

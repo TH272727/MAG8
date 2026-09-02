@@ -1,4 +1,5 @@
 import type { CompanyFilings } from "./filings";
+import type { ReleaseItem } from "./feeds";
 
 /* ============================================================================
  * The snapshot shape and the pure merge that maintains it.
@@ -13,15 +14,30 @@ export interface ReachSnapshot {
   weekKey: string;
   fetchedAt: string;
   companies: CompanyFilings[];
-  /** What could not be read, in plain language. Surfaced, never swallowed. */
+  /**
+   * Dated official releases for the week. Week-level rather than per-company:
+   * every candidate in a week is shown the same list, which is what makes it
+   * cheap — it is fetched once and cited many times.
+   */
+  releases: ReleaseItem[];
+  /**
+   * Companies that could not be read, as "TICKER: reason". Kept separate from
+   * feed failures rather than partitioned out of one list by pattern-matching
+   * the text: a transport error carries arbitrary punctuation, so any sniffing
+   * rule would eventually put a note in the wrong bucket and drop it.
+   */
   notes: string[];
+  /** Sources that could not be read, as "Publisher — Label: reason". */
+  feedNotes: string[];
 }
 
 export const emptySnapshot = (weekKey: string, fetchedAt = new Date().toISOString()): ReachSnapshot => ({
   weekKey,
   fetchedAt,
   companies: [],
+  releases: [],
   notes: [],
+  feedNotes: [],
 });
 
 /** One company out of a snapshot. Null when this week never looked it up. */
@@ -31,9 +47,22 @@ export function companyEvidence(snap: ReachSnapshot | null, ticker: string): Com
   return snap.companies.find((c) => c.ticker.toUpperCase() === t) ?? null;
 }
 
-/** Normalized, de-duplicated ticker list, order preserved. */
+/**
+ * Normalized, de-duplicated ticker list, order preserved.
+ *
+ * Shape-checked as well as trimmed. The week's snapshot is shared state that
+ * several runs read, so one caller passing something that is not a ticker must
+ * not be able to put it there — a CLI bug did exactly that, storing an entry
+ * named "--FORCE" and dropping eight real companies with it.
+ */
+const TICKER_SHAPE = /^[A-Z][A-Z0-9]*(?:[.-][A-Z0-9]+)*$/;
+
 export const normalizeTickers = (tickers: string[]): string[] => [
-  ...new Set(tickers.map((t) => t.trim().toUpperCase()).filter(Boolean)),
+  ...new Set(
+    tickers
+      .map((t) => t.trim().toUpperCase())
+      .filter((t) => t.length > 0 && t.length <= 10 && TICKER_SHAPE.test(t)),
+  ),
 ];
 
 /**
@@ -59,6 +88,10 @@ export function mergeSnapshot(args: {
   wanted: string[];
   /** Everything now known, keyed by upper-case ticker (prior entries included). */
   known: Map<string, CompanyFilings>;
+  /** This call's releases, or null to keep the week's existing list. */
+  releases?: ReleaseItem[] | null;
+  /** Source-level failures from this call's feed read. */
+  feedNotes?: string[];
 }): ReachSnapshot {
   const { weekKey, fetchedAt, prior, wanted, known } = args;
   const asked = new Set(wanted);
@@ -66,8 +99,31 @@ export function mergeSnapshot(args: {
   const leading = wanted.map((t) => known.get(t)).filter((c): c is CompanyFilings => c !== undefined);
   const trailing = [...known.entries()].filter(([t]) => !asked.has(t)).map(([, c]) => c);
 
-  const freshNotes = leading.filter((c) => c.unavailable).map((c) => `${c.ticker}: ${c.unavailable}`);
-  const keptNotes = (prior?.notes ?? []).filter((n) => !asked.has(n.split(":")[0]?.trim().toUpperCase() ?? ""));
+  const companies = [...leading, ...trailing];
 
-  return { weekKey, fetchedAt, companies: [...leading, ...trailing], notes: [...keptNotes, ...freshNotes] };
+  // A note describes a company in the snapshot. Keep a prior note only when
+  // this call did not re-read that ticker AND the ticker is still held —
+  // otherwise a force that drops a company leaves its note behind for ever,
+  // describing something no longer there. (Observed: a CLI bug stored a
+  // company named "--FORCE"; removing it left its note permanently stuck.)
+  const held = new Set(companies.map((c) => c.ticker.toUpperCase()));
+  const noteSubject = (n: string) => n.split(":")[0]?.trim().toUpperCase() ?? "";
+  const freshNotes = leading.filter((c) => c.unavailable).map((c) => `${c.ticker}: ${c.unavailable}`);
+  const keptNotes = (prior?.notes ?? []).filter(
+    (n) => !asked.has(noteSubject(n)) && held.has(noteSubject(n)),
+  );
+
+  // Releases are week-level: a call that did not read them keeps what the week
+  // already had, so adding one candidate never silently empties the list every
+  // other candidate's cells were shown. Their notes travel with them.
+  const readFeeds = args.releases !== undefined && args.releases !== null;
+
+  return {
+    weekKey,
+    fetchedAt,
+    companies,
+    releases: readFeeds ? args.releases! : (prior?.releases ?? []),
+    notes: [...keptNotes, ...freshNotes],
+    feedNotes: readFeeds ? (args.feedNotes ?? []) : (prior?.feedNotes ?? []),
+  };
 }
