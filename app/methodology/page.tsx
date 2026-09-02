@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { CITATION_GROUPS, groundingShorts } from "@/lib/citations";
 import { launchMode } from "@/lib/config";
 import { buildRubricText } from "@/lib/ranking";
+import { buildSourceStandardText, sourceStandardCitations } from "@/lib/source-standard";
 import { PUBLIC_DISCOVERY, PUBLIC_LENS_META } from "@/lib/public-lens";
 import {
   UNIVERSE_SETTING_GROUPS,
@@ -616,6 +617,38 @@ export default function MethodologyPage() {
       <RotationSection />
 
       <InsiderSection />
+
+      {/* Source standard — the exact text injected into every research prompt */}
+      <section id="source-standard" className="mt-12 scroll-mt-24" aria-labelledby="source-h">
+        <h2 id="source-h" className="eyebrow">
+          What counts as evidence — verbatim
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm text-muted">
+          Reaching more places to look does not lower the bar on what may move a number. One rule
+          decides that, and every research stage runs under it. This is the text itself, not a
+          description of it:
+        </p>
+        <div className="panel mt-4 p-6">
+          <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-muted">
+            {buildSourceStandardText()}
+          </pre>
+        </div>
+        <p className="mt-3 max-w-2xl text-[13px] text-dim">
+          Injected into every discovery and lens prompt from one module, and written into each
+          research playbook by the same generator — so the rule the research runs under, the rule the
+          playbook states, and the rule published here cannot drift apart. It narrows what is usable;
+          it never relaxes a hard gate, a veto, or the requirement to cite a fetched, dated source.
+        </p>
+        <p className="mt-3 max-w-2xl text-[13px] text-dim">
+          Grounded in:{" "}
+          {sourceStandardCitations()
+            .map((c) => c.short)
+            .join(" · ")}
+          . The third is the inconvenient one — unaided expert forecasters were no better than
+          novices — which is why the practitioner tier is decided on what a claim actually contains
+          and never on a credential.
+        </p>
+      </section>
 
       {/* Rubric — rendered from the same constants the pipeline enforces */}
       <section className="mt-12" aria-labelledby="rubric-h">

@@ -21,6 +21,7 @@ The value of this report is that every number is real and current. The failure m
 - **Institution over individual.** Cite the institution and the dated report by default. Analyst rosters change constantly and misattributing a call to the wrong person is a common error — name a specific analyst only when a fetched source directly quotes them.
 - **Date everything.** Label figures "as of [date]." Never present an old target as current, and cross-check the aggregate against the live spot price so a stale number is not shown as fresh upside.
 - **Be honest about coverage.** If fewer than ~4 institutions can be verified, state that coverage is thin and lower the confidence of the whole report accordingly.
+- **Judge material by content, not by where it appeared.** `references/source-standard.md` carries the shared bar and does not loosen any rule above it. Read it as a narrowing, not a widening: a social post or a public profile page may help you *find* that a desk published something, or confirm whose name is on it — it is never itself the source of a target, a stance, or a figure, and it may never stand in for the Consensus Dashboard's Consensus Stance or Balance of Views. Those come only from fetched, dated institutional publications, exactly as specified above. Always resolve back to the publication.
 
 ---
 

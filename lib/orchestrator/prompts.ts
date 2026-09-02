@@ -1,5 +1,6 @@
 import { isoWeekKey, type CoverageEntry } from "../db";
 import { buildRubricText } from "../ranking";
+import { buildSourceStandardText } from "../source-standard";
 import { fmtUsdCompact, type LensGroundTruth, type UniversePool, type UniverseRow } from "../universe";
 import {
   DISCOVERY_SKILL,
@@ -131,6 +132,8 @@ export function discoveryPrompt(count: number, ctx: DiscoveryPromptContext): str
 
 ${ctx.dateLine} Anchor every "current" claim to live web data retrieved today and state as-of dates for figures.
 
+${buildSourceStandardText()}
+
 Use the "${DISCOVERY_SKILL}" skill. It is the only skill available to you.
 
 Operative constraints (from the skill's own mandate):
@@ -211,6 +214,8 @@ export function blindResearchPrompt(
 
 ${dateLine} Anchor every "current" claim to live web data retrieved today and state as-of dates for figures.
 
+${buildSourceStandardText()}
+
 Use the "${DISCOVERY_SKILL}" skill. It is the only skill available to you.
 
 HOW THIS SHORTLIST WAS BUILT — read carefully: every name below was selected from its structured SEC filings ALONE, with its ticker and company name hidden, specifically so that name recognition played no part in the selection. Your job now is to research them with identities revealed and keep the best ${count} — narrowing on what your research actually finds (traction, moat, secular-wave fit, path to scale, red flags), NEVER on how familiar or famous a name is. Treat an unfamiliar name and a famous one identically; that discipline is the entire point of this run.
@@ -275,6 +280,8 @@ const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate, dateLine: string, g
   `You are one of three INDEPENDENT Stage-2 lenses in the Mag8 research pipeline, analyzing ${c.ticker} (${c.companyName}, ${c.sector}). Use the "${skill}" skill — it is the only skill available to you. Do not reference or assume the other lenses' outputs; independence is the point.
 
 ${dateLine} Ground every figure in live web data retrieved this session and state its as-of date; where a value cannot be verified, use null rather than a guess.
+
+${buildSourceStandardText()}
 
 Public identity: to readers you are the "${LENS_META[skill].label}" lens. Title your report "${LENS_META[skill].label} — ${c.ticker}" and never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform anywhere in the write-up. That ban covers GENERIC self-reference too: never write "the skill" / "this skill" / "per the skill's rules" — if you need to cite your own methodology, call it "the playbook" or just state the rule. (Writing about agents or skills as SUBJECT MATTER — an AI-agent software market, a workforce skills gap — is fine; it is describing yourself that is not.)
 

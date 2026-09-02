@@ -46,6 +46,8 @@ Score each finalist **1–5** on each dimension. These are the reverse-engineere
 ### Step 0 — Refresh the lens
 Read `references/megacap-dna.md` to ground your pattern-matching in how the current giants actually looked pre-ascent. Treat any specific historical figures there as qualitative — verify current comparisons via web search rather than leaning on memorized numbers.
 
+Also read `references/source-standard.md`. It decides what the searches below are allowed to conclude: the entity's own dated words and specific practitioner detail are evidence; sentiment and hype are a lead to verify and nothing more. It is the rule already stated in Step 2 ("leads to verify, never as gospel"), written once so every step applies it the same way.
+
 ### Step 1 — World-State Scan (top-down)
 Web-search the *current* state of the world to map where trillion-dollar value will accrete. Produce a concise picture of:
 - **Which secular waves are cresting NOW** (search recent developments): AI & compute, energy transition & storage, robotics/humanoids, biotech (gene editing, GLP-1, longevity), space/satellite, defense/reshoring/deglobalization, etc.

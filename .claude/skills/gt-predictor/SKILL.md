@@ -23,13 +23,14 @@ Before running analysis, decide which reference files to load:
 | File | Load When |
 |---|---|
 | `references/prediction_log.md` | **Load on every run.** Base-rate / outside-view procedure, probability calibration, and the Brier-scored prediction log. This is the accountability layer — it's not optional. |
+| `references/source-standard.md` | **Load on every run, alongside `prediction_log.md`.** The source-quality bar for Step 2's live grounding: which material may move a probability and which is only a lead to verify. |
 | `references/gt_laws.md` | Need detailed law application, historical analogues, mathematical formulations |
 | `references/asset_map.md` | Mapping predictions to specific instruments, ETFs, sector rotation |
 | `references/event_templates.md` | Running a specific event type (war, CB policy, regime change, trade war, etc.) |
 | `references/scoring_rubric.md` | Calculating Asymmetry Score, M×E×C scoring, confidence calibration |
 | `references/bibliography.md` | ONLY if the user asks about the evidence base / methodological grounding — not needed for a normal run |
 
-For a full deep-dive prediction, load all five. For a quick situational read, load `prediction_log.md` (for the base-rate step) + `gt_laws.md` + `asset_map.md`.
+For a full deep-dive prediction, load all six. For a quick situational read, load `prediction_log.md` (for the base-rate step) + `source-standard.md` + `gt_laws.md` + `asset_map.md`.
 
 ---
 

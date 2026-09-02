@@ -72,6 +72,7 @@ Real-time accuracy is the whole point of this skill, so search actively and neve
 - Cross-check key figures (price, revenue, margins, F-Score inputs) across more than one source; financial-data sites disagree and some are out of date.
 - Never hardcode prices, valuations, or "as of" dates into the output — fetch them live each run and state the date you pulled them.
 - Prefer primary sources (company filings, earnings releases, reputable financial-data providers) over aggregators and forums.
+- `references/source-standard.md` states that preference in full and settles the harder cases: what a forum post has to contain before it counts as evidence rather than a lead, and what a lead may and may not do. Read it before any step that weighs someone's claim rather than a filed number. Nothing in it ever relaxes the hard gates or the Piotroski/Altman veto in `references/screening-thresholds.md` — a gate failure is a gate failure whatever the narrative around it says.
 
 ## Guidelines
 
