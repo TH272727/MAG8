@@ -161,6 +161,20 @@ async function board(one: string | undefined): Promise<number> {
     for (const f of c.recent) {
       console.log(`   ${f.form.padEnd(9)} ${f.filed}  ${f.period ? `(period ${f.period}) ` : ""}${f.url}`);
     }
+    const e = c.ecosystem;
+    if (e) {
+      if (e.notMeasured) {
+        console.log(`   ecosystem  NOT MEASURED — ${e.notMeasured}`);
+      } else {
+        const trend = e.since
+          ? ` (since ${e.since.weekKey}: repos ${e.publicRepos - e.since.publicRepos >= 0 ? "+" : ""}${e.publicRepos - e.since.publicRepos}, followers ${e.orgFollowers - e.since.orgFollowers >= 0 ? "+" : ""}${e.orgFollowers - e.since.orgFollowers})`
+          : " (no prior reading)";
+        console.log(
+          `   ecosystem  ${e.publicRepos} repos · ${e.orgFollowers} followers · ${e.pushedLast90d}/${e.sampledRepos} pushed in 90d${trend}`,
+        );
+        if (e.topRepo) console.log(`              top: ${e.topRepo.name} (${e.topRepo.stars} stars)`);
+      }
+    }
     console.log("");
   }
   return 0;

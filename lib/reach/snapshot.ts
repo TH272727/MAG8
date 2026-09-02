@@ -1,5 +1,6 @@
 import type { CompanyFilings } from "./filings";
 import type { ReleaseItem } from "./feeds";
+import type { EcosystemRead } from "./github";
 
 /* ============================================================================
  * The snapshot shape and the pure merge that maintains it.
@@ -10,10 +11,20 @@ import type { ReleaseItem } from "./feeds";
  * what a week's snapshot should CONTAIN lives here, where it can be pinned.
  * ========================================================================== */
 
+/**
+ * One company's evidence. Filings are always attempted; the ecosystem reading
+ * is present only for the minority of names with a curated handle, and absent
+ * (rather than empty) for everyone else — "not looked up" and "looked up and
+ * found nothing" are different facts and must not collapse into one shape.
+ */
+export interface CompanyEntry extends CompanyFilings {
+  ecosystem?: EcosystemRead | null;
+}
+
 export interface ReachSnapshot {
   weekKey: string;
   fetchedAt: string;
-  companies: CompanyFilings[];
+  companies: CompanyEntry[];
   /**
    * Dated official releases for the week. Week-level rather than per-company:
    * every candidate in a week is shown the same list, which is what makes it
@@ -41,7 +52,7 @@ export const emptySnapshot = (weekKey: string, fetchedAt = new Date().toISOStrin
 });
 
 /** One company out of a snapshot. Null when this week never looked it up. */
-export function companyEvidence(snap: ReachSnapshot | null, ticker: string): CompanyFilings | null {
+export function companyEvidence(snap: ReachSnapshot | null, ticker: string): CompanyEntry | null {
   if (!snap) return null;
   const t = ticker.trim().toUpperCase();
   return snap.companies.find((c) => c.ticker.toUpperCase() === t) ?? null;
@@ -87,7 +98,7 @@ export function mergeSnapshot(args: {
   /** Tickers this call asked about, normalized. */
   wanted: string[];
   /** Everything now known, keyed by upper-case ticker (prior entries included). */
-  known: Map<string, CompanyFilings>;
+  known: Map<string, CompanyEntry>;
   /** This call's releases, or null to keep the week's existing list. */
   releases?: ReleaseItem[] | null;
   /** Source-level failures from this call's feed read. */
@@ -96,7 +107,7 @@ export function mergeSnapshot(args: {
   const { weekKey, fetchedAt, prior, wanted, known } = args;
   const asked = new Set(wanted);
 
-  const leading = wanted.map((t) => known.get(t)).filter((c): c is CompanyFilings => c !== undefined);
+  const leading = wanted.map((t) => known.get(t)).filter((c): c is CompanyEntry => c !== undefined);
   const trailing = [...known.entries()].filter(([t]) => !asked.has(t)).map(([, c]) => c);
 
   const companies = [...leading, ...trailing];

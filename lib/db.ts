@@ -1135,6 +1135,18 @@ export function latestReachSnapshot<T>(): ReachSnapshotRow<T> | null {
   return r ? toReachSnapshot<T>(r) : null;
 }
 
+/**
+ * The most recent snapshot from BEFORE a given week — the baseline a trend is
+ * measured against. Returning null (no prior reading) is a normal answer, and
+ * the caller must say so rather than implying a flat trajectory.
+ */
+export function reachSnapshotBefore<T>(isoWeek: string): ReachSnapshotRow<T> | null {
+  const r = getDb()
+    .prepare(`SELECT * FROM reach_snapshots WHERE iso_week < ? ORDER BY iso_week DESC LIMIT 1`)
+    .get(isoWeek) as RawReachSnapshot | undefined;
+  return r ? toReachSnapshot<T>(r) : null;
+}
+
 /** Small payloads, but there is no reason to keep a year of them. */
 const REACH_KEEP_WEEKS = 12;
 

@@ -1,13 +1,15 @@
-import { getReachSnapshot, isoWeekKey, latestReachSnapshot, saveReachSnapshot } from "../db";
+import { getAppSettingJson, getReachSnapshot, isoWeekKey, latestReachSnapshot, reachSnapshotBefore, saveReachSnapshot } from "../db";
 import { reachEnabled, reachSettings } from "../reach-settings";
 import { feedSources } from "./catalog";
 import { readFeeds, type ReleaseItem } from "./feeds";
-import { readCompanyFilings, type CompanyFilings } from "./filings";
-import { emptySnapshot, mergeSnapshot, normalizeTickers, type ReachSnapshot } from "./snapshot";
+import { readCompanyFilings } from "./filings";
+import { ecosystemHandles, readEcosystem } from "./github";
+import { companyEvidence, emptySnapshot, mergeSnapshot, normalizeTickers, type CompanyEntry, type ReachSnapshot } from "./snapshot";
 
-export { companyEvidence, type ReachSnapshot } from "./snapshot";
+export { companyEvidence, type CompanyEntry, type ReachSnapshot } from "./snapshot";
 export type { CompanyFilings, FilingKind, FilingRef } from "./filings";
 export type { ReleaseItem } from "./feeds";
+export type { EcosystemRead } from "./github";
 
 /* ============================================================================
  * The evidence layer — orchestration (the only module here that stores).
@@ -84,7 +86,7 @@ export async function refreshReach(tickers: string[], opts: RefreshOptions = {})
   // not mention. Clearing the whole map instead made `--refresh --force` with
   // no tickers — the natural way to refresh only the feeds — delete every
   // company in the week. Caught live, twice.
-  const known = new Map<string, CompanyFilings>();
+  const known = new Map<string, CompanyEntry>();
   if (prior) for (const c of prior.companies) known.set(c.ticker.toUpperCase(), c);
   if (opts.force) for (const t of wanted) known.delete(t);
 
@@ -93,16 +95,48 @@ export async function refreshReach(tickers: string[], opts: RefreshOptions = {})
     `${wanted.length} ticker(s): ${todo.length} to read, ${wanted.length - todo.length} already in week ${week}`,
   );
 
+  const handles = s.ecosystemEnabled
+    ? ecosystemHandles(getAppSettingJson("reach_handles") as Record<string, string> | null)
+    : {};
+  // The baseline a trend is measured against. Looked up ONCE, and stamped onto
+  // each reading, so the trend can later be read off the snapshot alone.
+  const baseline = todo.length > 0 && s.ecosystemEnabled ? reachSnapshotBefore<ReachSnapshot>(week)?.payload ?? null : null;
+
   for (const ticker of todo) {
-    const read = await readCompanyFilings(ticker, {
+    const filings = await readCompanyFilings(ticker, {
       lookbackDays: s.filingsLookbackDays,
       max: s.maxFilingsPerCandidate,
       asOf,
       timeoutMs: s.fetchTimeoutMs,
     });
-    known.set(ticker, read);
+    const entry: CompanyEntry = { ...filings };
+
+    if (s.ecosystemEnabled) {
+      const eco = await readEcosystem(ticker, handles[ticker], {
+        minRepos: s.ecosystemMinRepos,
+        asOf,
+        timeoutMs: s.fetchTimeoutMs,
+      });
+      if (eco) {
+        const was = companyEvidence(baseline, ticker)?.ecosystem;
+        // Only a measured prior can be a baseline. Comparing against a week
+        // that measured nothing would turn "we could not read it then" into
+        // apparent growth from zero.
+        if (was && !was.notMeasured && !eco.notMeasured && baseline) {
+          eco.since = { weekKey: baseline.weekKey, publicRepos: was.publicRepos, orgFollowers: was.orgFollowers };
+        }
+        entry.ecosystem = eco;
+      }
+    }
+
+    known.set(ticker, entry);
+    const ecoNote = entry.ecosystem
+      ? entry.ecosystem.notMeasured
+        ? `, ecosystem NOT MEASURED (${entry.ecosystem.notMeasured})`
+        : `, ${entry.ecosystem.publicRepos} repos / ${entry.ecosystem.orgFollowers} followers`
+      : "";
     opts.onProgress?.(
-      `  ${ticker.padEnd(6)} ${read.unavailable ?? `${read.recent.length} filing(s), ${read.offeringCount} offering(s)`}`,
+      `  ${ticker.padEnd(6)} ${filings.unavailable ?? `${filings.recent.length} filing(s), ${filings.offeringCount} offering(s)${ecoNote}`}`,
     );
   }
 
