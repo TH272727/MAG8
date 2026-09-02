@@ -1,14 +1,55 @@
 # Mag8
 
-**Four independent research lenses hunt the next trillion-dollar stocks. Agreement is the signal.**
+**Four research desks over one US-equity universe. One of them asks AI models to agree. Three ask public filings to.**
 
-Mag8 is a Next.js app that orchestrates four existing Claude Skills (via `@anthropic-ai/claude-agent-sdk`) into a three-stage equity-research pipeline with a live multi-agent Mission Control:
+Mag8 is a Next.js app. A deterministic Stage-0 screen (~7,100 US listings → ~2,000 eligible, ranked on SEC XBRL fundamentals, every threshold owner-tunable from `/admin`) feeds four independent products:
+
+| Product | The question it answers | Cost per run |
+|---|---|---|
+| **The Pipeline** `/rankings` | Which small/mid caps carry trillion-dollar DNA? | 26 agent calls |
+| **The Bottleneck Desk** `/bottleneck` | What physical thing is this boom running out of? | **$0** |
+| **The Rotation Board** `/rotation` | What is the market actually rotating into? | **$0** |
+| **The Insider Scanner** `/insider` | Who is buying their own beaten-down stock? | **$0** |
+
+The three desks keep every model out of the critical path — fetch → parse → arithmetic — so they cost nothing to run, draw no plan window, and every number they publish is reproducible from a primary source. 639 offline tests. 64 academic works cited from one verified registry, including, on every product's own page, the papers that argue *against* it.
+
+---
+
+## 1. The Pipeline — `/rankings`
+
+Four Claude Skills orchestrated (via `@anthropic-ai/claude-agent-sdk`) into a three-stage research pipeline with a live multi-agent Mission Control:
 
 1. **Discovery** — a scout agent runs the `new-gen-stock` skill: the "trillion-dollar DNA" screen — heavy web research nominating small/mid-cap candidates that match the traits today's mega-caps had before they were big.
 2. **Analysis matrix** — every candidate is analyzed by three agents that never see each other's work: `stock-scanner` (fundamentals: Piotroski F, Altman Z, reverse-DCF, value-trap gates), `gt-predictor` (public label **Game Theory**: player maps scored M×E×C, compelled moves, 3–24-month horizon probabilities, an Asymmetry Score, a falsifier), and `institutional-forecast` (live-verified street consensus). 3×N cells, concurrency-capped.
 3. **Compile & verify** — a compiler agent applies the **Trillion-Dollar Confluence Score** rubric; deterministic TypeScript then re-derives the gate from the scanner's own labels, recomputes the arithmetic, re-sorts, and enforces the placement rule. The model judges; the code enforces.
 
 The product thesis: any single analysis can talk itself into anything. Independent methods agreeing is harder to fake — that agreement (all three lenses bullish → +10 confluence bonus) is itself the signal, rendered everywhere as the gold braid.
+
+## 2. The Bottleneck Desk — `/bottleneck`
+
+Every boom is a spending number chasing a physical thing. The desk reads what companies actually filed (XBRL capex, de-cumulated from fiscal-YTD — the naive "latest 10-Q" is a 2.8× overstatement), converts the dollars into physical units through a versioned, sourced conversion table, and ranks categories by the **gap between demand's growth rate and supply's** — rates, not levels, so a conversion factor can never decide the ranking.
+
+- **Seven themes.** Four of them fully researched: every conversion factor read from the primary document — Army FY2026 P-1 procurement exhibit, USGS Mineral Commodity Summaries 2026, BLS OEWS May 2025, EIA/Sargent & Lundy, EIA Uranium Marketing. The three older themes still carry placeholders and say so on the page.
+- **Live reading:** AI-infrastructure capex **+85.7% YoY ($573.7B TTM)** against data-centre power at **+3.8%** — an 81.9pp tightening gap. Quantum's demand is R&D, not capex, and the desk names what it read rather than assuming.
+- **13F clone** of any filer by CIK or name, diffed quarter over quarter by *share count* (a price move is not a trade). Holdings public; position sizing admin-only and never wired to a broker.
+- Unmeasured ranks **last** and reads NOT MEASURED — never zero. A reading in which nothing was read is never stored.
+
+## 3. The Rotation Board — `/rotation`
+
+26 ratios of traded funds (RSP/SPY, HYG/IEF, XLU/SPY…) across breadth, style, sector, credit and geography, each scored on trend, momentum and z-score into a 0–10 composite with tiers and a direction deadband. VIX is reported as context and **never scored**.
+
+- **State history is computed from bars, not logged** — five years of chart marks on day one, re-derived whenever the weights change. There is no state table, so there is nothing to drift.
+- Two independent price sources behind one fail-open interface. A ratio whose legs disagree on adjusted-vs-raw basis is shown, flagged, and **barred from raising a signal**.
+- The written brief is template-generated and then machine-verified: any numeral not traceable to an input is rejected before it can be published.
+- Calibration is disclosed rather than quietly tuned — the published formula scores the flagship 1.1/No Signal while it sits at the 22nd percentile of its 3-year range. The percentile weight ships at 0, and `/methodology` prints a different paragraph the moment an owner moves it.
+
+## 4. The Insider Turnaround Scanner — `/insider`
+
+Starts at the rare event — a Form 4 **open-market purchase** — then price setup → Piotroski F / Altman Z strength gate → Buffett owner-earnings DCF (both capex bounds published, because the 1986 letter says the maintenance figure "must be a guess") → composite.
+
+- **Nothing derived is stored.** No candidates, scores or rankings table — so changing the drawdown band, the discount rate or the required cushion re-derives the whole board *including every rejection reason*, with zero fetches. That is what makes the public conservative / balanced / aggressive picker free to a visitor.
+- **Last full sweep:** 41,110 filings listed → 9,594 read → 197 companies with insider buying → 25 through the strength gate. 24.7 minutes, zero failures, $0.
+- An unmeasured component is not zero: a company is scored on what exists, marked partial, and ranks below every complete one. Banks and REITs have no classified balance sheet, so solvency **refuses** to score them.
 
 ---
 
@@ -76,6 +117,21 @@ npm run seed                                 # (re)seed the demo fixture run
 npm run gen:bib                              # regenerate each skill's references/bibliography.md from lib/citations.ts
 ```
 
+The three deterministic desks each ship a headless twin of their page — all $0, no model, no plan usage:
+
+```bash
+npm run bottleneck -- --probe                # live EDGAR + OpenFIGI smoke test
+npm run bottleneck -- --refresh [PLAYBOOK]   # demand + supply, score the gaps
+npm run bottleneck -- --13f CIK|NAME         # clone a filer's book and diff it
+
+npm run rotation -- --refresh                # 31 tickers, ~39k closes, ~24s
+npm run rotation -- --board [--indicator ID] # read the board (never hits the network)
+
+npm run insider -- --refresh [--days N]      # incremental; days already read are skipped
+npm run insider -- --board [--risk conservative|balanced|aggressive]
+npm run insider -- --stock TICKER            # one company's full work-up
+```
+
 ## Focus runs & /lab
 
 The weekly no-input pipeline stays canonical, but a run can carry a one-line **focus directive**
@@ -112,6 +168,7 @@ section — and each skill's `references/bibliography.md` — render from one ve
 - **Cache** — lens analyses double as a cache keyed `(ticker, skill, ISO week)`, matching the scanner's weekly cadence. Cache hits render instantly as "cached" chips and cost $0. Demo/mock rows use a `-demo` suffixed week so fixture data can never leak into a real run's cache. `force` skips lookup.
 - **Progress** — every event is persisted to SQLite *before* it is emitted in-process; the rowid doubles as the SSE event id, so browser reconnects resume via `Last-Event-ID` for free. Mission Control is fully event-sourced; terminal runs render server-side from a snapshot with no stream.
 - **Resilience** — a lens-cell failure becomes an error cell (scored neutral, gap noted), never a run failure. Runs are watchdog-aborted after 45 min. On boot, any `pending/running` row left by a crash is marked `interrupted` with a synthetic terminal event so replaying clients always resolve.
+- **Separation contract** — each desk writes only its own tables (`bottleneck_*`, `rotation_*`, `edgar_cache`) and never the pipeline's runs, candidates, analyses or rankings. Enforced structurally: zero foreign keys into pipeline tables, and all SQL still lives in `lib/db.ts`. A desk cannot move the leaderboard.
 - **Skills are versioned in-repo** — the committed `.claude/skills/**` folders are the source of truth and carry improvements the original archives don't have: methodology grounding with verified citations, generated bibliographies, a widened discovery funnel, and honesty framing for the scoring heuristics. `npm run setup:skills` extracts an archive **only when its skill folder is missing**, so it can never clobber the repo versions (a deliberate factory reset = delete the folder, re-run setup, `git restore` to come back). Per-call wrapper prompts + the SDK `skills` filter still scope each agent to exactly one skill.
 
 ### Deviations from the build spec (all flagged, all additive)
@@ -136,4 +193,4 @@ This app needs a **single long-lived Node process**: runs execute in-process for
 
 ## Disclaimer
 
-Mag8 is a research experiment demonstrating multi-agent orchestration. **It is not investment advice.** Outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.
+Mag8 is a research experiment. **It is not investment advice.** The pipeline's outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The three deterministic desks don't hallucinate, but arithmetic over real filings is still not a forecast: heavy capital spending has historically predicted *worse* returns, insider buying is concentrated in companies smaller than this universe, and 26 ratios across 4 tiers is exactly the setting data-snooping bias was described for. Each page cites the paper that says so. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.
