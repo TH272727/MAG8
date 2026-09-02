@@ -18,7 +18,7 @@ import {
   BOTTLENECK_SETTINGS_SPEC,
   effectiveBottleneckSettings,
 } from "@/lib/bottleneck-settings";
-import { DEFAULT_PLAYBOOK_ID, getPlaybook, usesPlaceholderFactors } from "@/lib/bottleneck/playbook";
+import { allPlaybooks, DEFAULT_PLAYBOOK_ID, getPlaybook, usesPlaceholderFactors } from "@/lib/bottleneck/playbook";
 import {
   ROTATION_SETTING_GROUPS,
   ROTATION_SETTINGS_SPEC,
@@ -178,6 +178,8 @@ function BottleneckSection() {
   const eff = effectiveBottleneckSettings();
   const shown = BOTTLENECK_SETTINGS_SPEC.filter((s) => s.group !== "ops");
   const playbook = getPlaybook(DEFAULT_PLAYBOOK_ID);
+  const allThemes = allPlaybooks();
+  const sourcedThemes = allThemes.filter((p) => !usesPlaceholderFactors(p));
   return (
     <section id="bottleneck" className="mt-12 scroll-mt-24" aria-labelledby="bottleneck-h">
       <h2 id="bottleneck-h" className="eyebrow">
@@ -234,7 +236,9 @@ function BottleneckSection() {
               are still seeded placeholders, and the desk says so on its own page: the growth rates and
               the ranking do not depend on them — a rate is unaffected by the constant it is divided by —
               but the absolute physical quantities are order-of-magnitude arithmetic until sourced
-              benchmarks replace them.
+              benchmarks replace them. {sourcedThemes.length} of {allThemes.length} themes have had that
+              work done — {sourcedThemes.map((p) => p.label).join(", ")} — and each of those carries the
+              document and page its figures were read from, theme by theme.
             </>
           ) : (
             <>

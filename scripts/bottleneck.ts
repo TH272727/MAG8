@@ -313,7 +313,11 @@ const usd = (n: number): string => {
   const abs = Math.abs(n);
   if (abs >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
   if (abs >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-  return `$${Math.round(n).toLocaleString("en-US")}`;
+  // Conversion factors can be small — $58.46 a pound of uranium — and rounding
+  // one to $58 in the working shown beside it invites the reader to check the
+  // arithmetic and find it wrong.
+  if (abs >= 1e3) return `$${Math.round(n).toLocaleString("en-US")}`;
+  return `$${Math.round(n * 100) / 100}`;
 };
 const num = (n: number): string =>
   n >= 1000 ? Math.round(n).toLocaleString("en-US") : String(Math.round(n * 100) / 100);
@@ -338,7 +342,7 @@ async function refresh(playbookId: string, dry: boolean, reuseDemand: boolean): 
   const { demand: snap, supply, bottleneck } = await refreshDesk(pb, { dryRun: dry, reuseDemand });
   console.log(` read ${snap.companies.length} companies in ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
 
-  console.log(" CAPITAL SPENDING (per company)");
+  console.log(` ${pb.demand.measure.toUpperCase()} (per company)`);
   console.log(" ticker  status   latest qtr        TTM       QoQ       YoY  basis     tag");
   for (const c of snap.companies) {
     if (c.status !== "ok") {

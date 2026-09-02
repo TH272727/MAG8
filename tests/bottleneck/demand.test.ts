@@ -274,11 +274,15 @@ describe("flags — a fragile total is labelled as one", () => {
 });
 
 describe("the playbook abstraction holds for more than one sector", () => {
-  it("ships three built-in themes, each self-contained", () => {
+  it("ships seven built-in themes, each self-contained", () => {
     expect(BUILT_IN_PLAYBOOKS.map((p) => p.id)).toEqual([
       "ai-infrastructure",
       "ev-battery-supply-chain",
       "homebuilding",
+      "drone-industrial-base",
+      "robotics-automation",
+      "quantum-computing",
+      "nuclear-energy",
     ]);
     for (const pb of BUILT_IN_PLAYBOOKS) {
       expect(pb.demand.basket.length).toBeGreaterThan(0);

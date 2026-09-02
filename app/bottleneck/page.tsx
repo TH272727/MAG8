@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Bottleneck",
   description:
-    "Dollars are elastic. Turbines aren't. The Bottleneck desk converts disclosed capital spending into physical units and checks them against what the world can actually produce.",
+    "Dollars are elastic. Turbines aren't. The Bottleneck desk converts disclosed spending into physical units and checks them against what the world can actually produce.",
 };
 
 /** Status presentation. Gold is the leaderboard's verdict colour and is never used here. */
@@ -103,7 +103,7 @@ export default async function BottleneckPage({
             categories={scored.snapshot.categories}
             themeLabel={playbook.label}
           />
-          <DemandDetail demand={demand.snapshot} />
+          <DemandDetail demand={demand.snapshot} fallbackMeasure={playbook.demand.measure} />
           <Disclosures flags={[...scored.snapshot.flags, ...demand.snapshot.flags]} snapshot={demand.snapshot} />
         </>
       )}
@@ -301,7 +301,19 @@ function Ranking({
 
 /* ---- The demand side, in detail ---- */
 
-function DemandDetail({ demand }: { demand: NonNullable<ReturnType<typeof latestDemand>>["snapshot"] }) {
+function DemandDetail({
+  demand,
+  fallbackMeasure,
+}: {
+  demand: NonNullable<ReturnType<typeof latestDemand>>["snapshot"];
+  /**
+   * What this theme measures, for readings taken before the snapshot carried
+   * its own label. Falling back to a hardcoded "Capital spending" instead would
+   * mislabel exactly the themes the field exists for: homebuilding's stored
+   * reading is an inventory build, and calling it capital spending is false.
+   */
+  fallbackMeasure: string;
+}) {
   const contributors = demand.companies.filter((c) => c.status === "ok" && !c.stale);
   return (
     <>
@@ -315,7 +327,7 @@ function DemandDetail({ demand }: { demand: NonNullable<ReturnType<typeof latest
           </span>
         </div>
         <p className="mt-2 max-w-2xl text-[13px] text-muted">
-          Capital spending across the basket totals{" "}
+          {demand.measure ?? fallbackMeasure} across the basket totals{" "}
           <span className="text-ink">{fmtUsd(demand.aggregate.ttmUsd)}</span> over the trailing twelve months,
           growing {fmtPct(demand.aggregate.yoyPct)} year over year. That is the number the physical conversions
           above run on.

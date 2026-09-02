@@ -75,9 +75,17 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 - `lib/bottleneck/` THE BOTTLENECK DESK — second product, deterministic, $0, ZERO plan-window draw. FEATURE-
   COMPLETE (phases 1–8). See HANDOFF-2026-08-30-bottleneck-desk.md (1–4) + -phases-5-8.md (5–8).
   `playbook.ts` the ONLY sector-specific input (basket + tag chain + versioned/sourced conversion table +
-  supply series + owner map; built-ins in code, custom in app_settings) — THREE themes now: ai-infrastructure,
-  ev-battery-supply-chain, homebuilding (the last deliberately does NOT fit the capex shape: builders
-  capitalize land into INVENTORY, so its tag chain reads the inventory build and figures can go negative);
+  supply series + owner map + `demand.measure`; built-ins in code, custom in app_settings) — SEVEN themes
+  (2026-09-01): ai-infrastructure, ev-battery-supply-chain, homebuilding, **drone-industrial-base,
+  robotics-automation, quantum-computing, nuclear-energy**. The first three carry PLACEHOLDER factors and say
+  so; the four new ones are RESEARCHED — every factor read from the primary document named in its own `source`
+  (Army FY2026 P-1 exhibit, USGS MCS 2026, BLS OEWS May 2025, A3, EIA/Sargent&Lundy, EIA Uranium Marketing).
+  `demand.measure` (default "Capital spending") names what the tag chain READ — not every theme's demand is
+  capex: homebuilding capitalizes land into INVENTORY (figures can go negative) and quantum leads its chain
+  with `ResearchAndDevelopmentExpense`; it rides the demand SNAPSHOT so a stored reading keeps its label, and
+  a pre-field row falls back to the PLAYBOOK's measure (falling back to a hardcoded string mislabelled
+  homebuilding — the exact thing the field exists to fix). Series ids are REUSED across themes on purpose
+  (one fetch, one history) — a shared id must agree on connector/handle/unit, pinned by test;
   `xbrl.ts` de-cumulation (capex is filed fiscal-YTD — naive "latest 10-Q" = 2.8× error; quarters MUST sum to
   the filed FY) + `conceptFromFacts()` (**companyconcept can return `units:{USD:{}}` where companyfacts has
   158 facts** — Ford; fallback fires ONLY when the whole chain is empty); `demand.ts` Module B (**freshest tag
@@ -299,7 +307,7 @@ npm run pipeline -- --full [--count N] [--force] [--mock] [--focus "…"] [--bli
 npm run pipeline -- --resume RUN_ID                     # finish a stopped run IN PLACE (headless twin of the button)
 npm run pipeline -- --lens-probe TICKER [--effort L]    # one-cell A/B comparator
 npm run audit:salience                                  # fame-bias readout over all real runs ($0; between runs only)
-npm run test                                            # vitest, offline, 228 tests (the deterministic half)
+npm run test                                            # vitest, offline, 639 tests (the deterministic half)
 npm run bottleneck -- --probe                           # live EDGAR + OpenFIGI smoke; all PASS, exit 0
 npm run bottleneck -- --13f CIK|NAME [--offline] [--force] [--balance USD]   # clone a filer's book + diff
 npm run bottleneck -- --refresh [PLAYBOOK] [--dry] [--reuse-demand]          # demand + supply, score the gaps
@@ -712,4 +720,48 @@ browsers return an empty DOM here); and the universe restriction is the real ope
 the PRODUCT — widen the sweep (a knob, ~4× the fetching) or leave it and keep saying so.
 NB the Bash-tool heredoc path EATS backslashes: write files containing regex escapes with the
 Write/Edit tools.
+2026-09-01 (Code): BOTTLENECK — FOUR RESEARCHED THEMES (HANDOFF-2026-09-01-bottleneck-four-themes.md).
+Owner: "adding onto the bottleneck feature i want to add a few big major industries… the same quality of
+research… government filings, official company reports, the most accurate, validated, reliable, reputable
+information: drones, robotics, quantum, nuclear energy." Desk 3 themes → 7. NO new routes/tables/settings —
+a theme is data, which is what the abstraction was for. Every conversion factor read from the PRIMARY
+document this session: Army FY2026 Aircraft Procurement justification P-1 Line 5 ($250.141M / 951 systems =
+$263,029/sUAS); USGS MCS 2026 Rare Earths (NdPr oxide $69/kg) + Helium ($330/Mcf Grade-A); BLS OEWS May 2025
+(aircraft assemblers $71,420 · mechatronics techs $76,420, **15,520 in the whole US** · physicists $171,180,
+**20,430**); A3 full-year 2025 (36,766 robots / $2.25B = $61,198); EIA/Sargent&Lundy Jan-2024 Table 1-2 Case 9
+(AP1000 brownfield $7,861/kW 2023$, SMR $8,936/kW); EIA Uranium Marketing Annual rel. 2026-07-29 ($58.46/lb
+U3O8e · $108.70/SWU, 13M SWU from FOUR sellers). LIVE readings persisted: drones 6/6 $190.2M +62.4%
+(assembly labour +61.7pp tightest), robotics 6/6 $1.07B +36.6% (robots +36.5pp; spending implies 13,959
+technician-years against 15,520 technicians nationally), quantum 4/4 **$630.5M of R&D** +60.8% (physicist-years
++60.2pp; 3,683 implied against 20,430 physicists), nuclear 6/6 $4.60B +90.2% (U3O8 +89.4pp; **SWU correctly
+insufficient-data**, ranked last, disclosed). FLAGSHIP HELD byte-identical ($573.72B, +85.7%, MW +81.9pp,
+memory +68.7pp) after shared series ids gained writers. TEN findings, each a confident wrong number: (1) a web
+summary divided the SAME Army line $34.368M÷265 = $129,681 — the page buys 265 SRR **and 500 PBAS**, ~3× wrong;
+the figure used is the whole line over the whole quantity, cross-checked by three sub-lines summing to the
+stated total; (2) **RCAT = the THIRD tag-migration case** (after Ford, AMZN/NVDA): PPE stops 2019-07-31 at
+$3,000, ProductiveAssets runs to 2026-06-30 at $18.6M — freshest-wins caught it on a basket it was never
+designed against; (3) THREE government hosts, THREE opposite UA rules — asafm.army.mil 403s an honest UA AND
+WebFetch, needs FULL browser headers (Accept/Accept-Language/Referer/Sec-Fetch-*); comptroller.war.gov serves
+to an honest UA; FRED HANGS on a spoofed one (its /series/ pages too, not just the CSV); (4) **Census
+international-trade API now requires a key** ("Missing Key") — kills the HS 8806 / HS 8479.50 unit-value route
+(value AND quantity, the ideal $/drone and $/robot); named as stubs; (5) **DOE publishes NO He-3 price** —
+isotopes.gov is a quote form; the quoted $600/$1,000 per litre is a magazine, so He-3 is a supply STUB not a
+factor (USGS's helium chapter is the citation that names quantum computing); (6) **CAPG3364S does not exist** —
+FRED has aerospace OUTPUT, no aerospace CAPACITY (also absent: CAPG3345S, CAPG3251S, CES6054170001) — probed,
+never assumed; (7) SYM stopped tagging capex after 2024-12-28 across ALL 8 of its Payments* tags → kept OUT of
+the basket (permanent staleness flag, no contribution), put in the owner map; (8) **MY OWN fallback bug, caught
+by RENDERING not by a test**: `measure ?? "Capital spending"` mislabelled homebuilding's existing snapshot —
+the exact inaccuracy the field was added to remove; falls back to the PLAYBOOK's measure now; (9) the CLI
+printed `$58` for a $58.46 factor in the working shown beside it — `usd()` keeps cents under $1,000 (the web
+page was already right); (10) ATS = CIK 1394832, verified SIC 3569 / NYSE / 6-K = the Canadian automation
+company, not the defunct US IT-services firm — all 42 tickers resolved against SEC before shipping. NOT
+claimed: robotics' unit price is A3's, not a government statistic (no agency publishes one; the gated Census
+route would be); NOTHING added to `lib/citations.ts` (it is a registry of ACADEMIC WORKS — a budget book and a
+commodity summary are primary data; homepage chip stays 64). /methodology now says "4 of 7 themes have had that
+work done" and names them, so the placeholder note can't be read as covering the desk. Gates: tsc, 639 vitest
+(was 592), seed EXACT, gen:bib no-op, build, probe ALL PASS, leak 0 architecture hits across 18 surfaces incl.
+all 7 theme pages + /methodology (only the 2 homepage exceptions), curtain unchanged (themes are query params
+on the already-guarded page). OPEN: the 3 ORIGINAL themes still carry placeholders (same job, one at a time —
+homebuilding's trade wage is now easy, BLS OEWS is proven parsed); SWU has no automated feed (hand entry only);
+never seen at 375px.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

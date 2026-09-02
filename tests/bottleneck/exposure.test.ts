@@ -18,7 +18,7 @@ const playbook = {
   id: "test",
   label: "Test theme",
   blurb: "b",
-  demand: { basket: ["X"], capexTags: ["T"], narrativeKeywords: [] },
+  demand: { basket: ["X"], capexTags: ["T"], measure: "Capital spending", narrativeKeywords: [] },
   conversions: {
     version: "1",
     asOf: "2026-08",

@@ -46,7 +46,7 @@ const playbook: Playbook = PlaybookSchema.parse({
   id: "test",
   label: "Test theme",
   blurb: "A theme for testing.",
-  demand: { basket: ["AAA"], capexTags: ["Tag"], narrativeKeywords: [] },
+  demand: { basket: ["AAA"], capexTags: ["Tag"], measure: "Capital spending", narrativeKeywords: [] },
   conversions: {
     version: "t1",
     asOf: "2026-08",

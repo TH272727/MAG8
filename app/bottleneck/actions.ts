@@ -97,6 +97,8 @@ export interface PlaybookSummary {
   builtIn: boolean;
   basket: string[];
   capexTags: number;
+  /** What the tag chain measures — not every theme's demand is capital spending. */
+  measure: string;
   conversionVersion: string;
   conversionAsOf: string;
   factors: { key: string; unit: string; usdPer: number; source: string; asOf: string }[];
@@ -115,6 +117,7 @@ function summarize(id: string): PlaybookSummary | null {
     builtIn: pb.builtIn,
     basket: pb.demand.basket,
     capexTags: pb.demand.capexTags.length,
+    measure: pb.demand.measure,
     conversionVersion: pb.conversions.version,
     conversionAsOf: pb.conversions.asOf,
     factors: pb.conversions.factors.map((f) => ({

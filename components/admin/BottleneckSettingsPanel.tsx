@@ -239,7 +239,7 @@ export default function BottleneckSettingsPanel({
 
             <p className="mt-3 font-mono text-[11px] text-dim">
               demand basket ({inspected.basket.length}): {inspected.basket.join(" · ")} · {inspected.capexTags}{" "}
-              capital-spending tags tried in order
+              tags tried in order, measuring: {inspected.measure.toLowerCase()}
             </p>
 
             <div className="mt-3 overflow-x-auto">
