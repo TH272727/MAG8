@@ -295,6 +295,20 @@ CREATE TABLE IF NOT EXISTS insider_financials (
   flags_json TEXT NOT NULL
 );
 
+/* ---------------------------------------------------------------------------
+ * The evidence layer. ONE additive table, frozen per ISO week for the same
+ * reason universe_snapshots is: a lens cell cached inside a week must describe
+ * the same reference data the prompt that produced it was given. Nothing here
+ * is derived — it is a list of what was published, and every reading of it
+ * recomputes on read.
+ * ------------------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS reach_snapshots (
+  iso_week TEXT PRIMARY KEY,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  payload_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS insider_scans (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   taken_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -360,6 +374,12 @@ function migrate(db: Database.Database): void {
     // to patch, only the version to record. Nothing here touches a pipeline
     // table either.
     db.pragma("user_version = 6");
+  }
+  if (v < 7) {
+    // Evidence layer: one additive table, created by SCHEMA_SQL on fresh AND
+    // existing files for the same reason as steps 4-6 — no column to patch,
+    // only the version to record. Nothing here touches a pipeline table.
+    db.pragma("user_version = 7");
   }
 }
 
@@ -1077,6 +1097,60 @@ export function saveUniverseSnapshot(
       `DELETE FROM universe_snapshots WHERE iso_week NOT IN
          (SELECT iso_week FROM universe_snapshots ORDER BY iso_week DESC LIMIT ?)`,
     ).run(UNIVERSE_KEEP_WEEKS);
+  });
+  tx();
+}
+
+/* ============================================================================
+ * Evidence-layer snapshots. Stored whole and parsed on read: the payload is a
+ * list of what was published, never a score, so there is nothing in it that
+ * could go stale differently from the rest of it.
+ * ========================================================================== */
+
+export interface ReachSnapshotRow<T = unknown> {
+  isoWeek: string;
+  fetchedAt: string;
+  payload: T;
+}
+
+function toReachSnapshot<T>(r: { iso_week: string; fetched_at: string; payload_json: string }): ReachSnapshotRow<T> | null {
+  const payload = parseJson<T>(r.payload_json);
+  return payload === null ? null : { isoWeek: r.iso_week, fetchedAt: r.fetched_at, payload };
+}
+
+type RawReachSnapshot = { iso_week: string; fetched_at: string; payload_json: string };
+
+export function getReachSnapshot<T>(isoWeek: string): ReachSnapshotRow<T> | null {
+  const r = getDb().prepare(`SELECT * FROM reach_snapshots WHERE iso_week=?`).get(isoWeek) as
+    | RawReachSnapshot
+    | undefined;
+  return r ? toReachSnapshot<T>(r) : null;
+}
+
+/** Most recent snapshot of any week — the stale fallback when a refresh fails. */
+export function latestReachSnapshot<T>(): ReachSnapshotRow<T> | null {
+  const r = getDb().prepare(`SELECT * FROM reach_snapshots ORDER BY iso_week DESC LIMIT 1`).get() as
+    | RawReachSnapshot
+    | undefined;
+  return r ? toReachSnapshot<T>(r) : null;
+}
+
+/** Small payloads, but there is no reason to keep a year of them. */
+const REACH_KEEP_WEEKS = 12;
+
+export function saveReachSnapshot(isoWeek: string, payload: unknown): void {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare(
+      `INSERT INTO reach_snapshots (iso_week, payload_json, fetched_at)
+         VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+       ON CONFLICT(iso_week) DO UPDATE SET
+         payload_json=excluded.payload_json, fetched_at=excluded.fetched_at`,
+    ).run(isoWeek, JSON.stringify(payload));
+    db.prepare(
+      `DELETE FROM reach_snapshots WHERE iso_week NOT IN
+         (SELECT iso_week FROM reach_snapshots ORDER BY iso_week DESC LIMIT ?)`,
+    ).run(REACH_KEEP_WEEKS);
   });
   tx();
 }

@@ -15,6 +15,7 @@
     "bottleneck": "tsx scripts/bottleneck.ts",
     "rotation": "tsx scripts/rotation.ts",
     "insider": "tsx scripts/insider.ts",
+    "reach": "tsx scripts/reach.ts",
     "seed": "tsx scripts/seed-fixture.ts",
     "test": "vitest run",
     "test:watch": "vitest",
