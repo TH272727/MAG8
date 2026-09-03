@@ -11,6 +11,9 @@ import {
 } from "../db";
 import { priceCheckEnabled, priceSanityFlags, type PriceCheckInput } from "../price-sanity";
 import { describeScreen, getWeeklyUniverse, universeEnabled, universeScreenFlags, type UniverseResult } from "../universe";
+import { describeFetchError } from "../edgar";
+import { refreshReach, type ReachSnapshot } from "../reach";
+import { reachEnabled } from "../reach-settings";
 import {
   LENS_SKILLS,
   cellKey,
@@ -33,6 +36,49 @@ const round2 = (x: number) => Math.round(x * 100) / 100;
 /** Mutable spend accumulator — the catch path persists whatever was spent before the failure. */
 interface CostRef {
   total: number;
+}
+
+/**
+ * The evidence read, once the cohort is known: what each candidate has itself
+ * filed, what official bodies published this week, and public developer
+ * activity where a handle is curated. Deterministic, keyless, and free — it
+ * spends no research budget, and every entry it hands the lenses is a URL that
+ * resolves, so the analysis cites primary sources instead of hunting for them.
+ *
+ * Fail-open exactly like the screen: any failure returns null, every lens
+ * prompt simply carries no evidence block, and the run behaves as it did
+ * before this layer existed. Frozen per ISO week, so a cached cell and a fresh
+ * one were shown the same reading.
+ */
+async function runEvidenceLayer(
+  runId: string,
+  tickers: string[],
+  force: boolean,
+): Promise<ReachSnapshot | null> {
+  if (!reachEnabled()) return null;
+  emitProgress(runId, {
+    type: "discovery_activity",
+    activity: "Reading this week's primary sources…",
+    at: nowIso(),
+  });
+  try {
+    const snap = await refreshReach(tickers, { force });
+    const measured = snap.companies.filter((c) => !c.unavailable).length;
+    emitProgress(runId, {
+      type: "discovery_activity",
+      activity: `Primary sources: filings read for ${measured} of ${tickers.length} candidates; ${snap.releases.length} dated official releases this week.`,
+      at: nowIso(),
+    });
+    return snap;
+  } catch (err) {
+    // Never fatal. A missing evidence block costs context, not a run.
+    emitProgress(runId, {
+      type: "discovery_activity",
+      activity: `Primary-source read unavailable this run (${describeFetchError(err)}) — the lenses proceed on live research alone.`,
+      at: nowIso(),
+    });
+    return null;
+  }
 }
 
 /**
@@ -107,6 +153,8 @@ async function analyzeAndCompile(
   cost: CostRef,
   opts: {
     universe: UniverseResult | null;
+    /** Re-read the cohort's evidence even if this week already holds it. Never set on a resume. */
+    reachForce?: boolean;
     /** Run-level disclosures gathered before this point (selection discipline, resume notes). */
     extraGaps: string[];
     banked?: Map<CellKey, CellOutcome>;
@@ -114,6 +162,14 @@ async function analyzeAndCompile(
 ): Promise<void> {
   setRunStage(runId, "analysis");
   emitProgress(runId, { type: "stage_start", stage: "analysis", at: nowIso() });
+  // Read AFTER discovery, because only now is the cohort known — and shared by
+  // both entry points, so a fresh run and a resumed one cannot drift on what
+  // evidence their lenses were shown.
+  const reach = await runEvidenceLayer(
+    runId,
+    discovery.candidates.map((c) => c.ticker),
+    opts.reachForce ?? false,
+  );
   const { cells, costUsd: analysisCost } = await runAnalysisMatrix(runId, discovery.candidates, {
     force: params.force,
     signal: watchdog.signal,
@@ -121,6 +177,7 @@ async function analyzeAndCompile(
     // every lens prompt — deterministic anchors the models verify against
     // instead of re-deriving from search alone.
     universe: opts.universe,
+    reach,
     banked: opts.banked,
     // Plan-limit / auth failures hit every subsequent call too — abort the run
     // instead of cascading the same error through the whole matrix + compile.
@@ -232,6 +289,7 @@ export async function executeRun(runId: string, params: RunParams): Promise<void
 
     await analyzeAndCompile(runId, params, discovery, watchdog, cost, {
       universe,
+      reachForce: params.force,
       extraGaps: selectionFlags,
     });
   } catch (err) {

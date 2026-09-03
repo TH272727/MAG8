@@ -10,6 +10,8 @@ import {
   type LensSkill,
 } from "../schemas";
 import type { SelectionQuota } from "./selection";
+import type { CompanyEntry } from "../reach/snapshot";
+import type { ReleaseItem } from "../reach/feeds";
 
 /* ============================================================================
  * Thin call-time wrapper prompts. Each prompt names exactly one skill
@@ -243,8 +245,85 @@ ${discoveryOutputContract(count)}`;
  * lens verifies against filings data instead of re-deriving everything from
  * search, and long-context drift cannot rewrite a number stated in the prompt.
  */
-function groundBlock(g: LensGroundTruth | null | undefined): string {
-  if (!g) return "";
+/**
+ * Deterministic evidence gathered alongside the screen: what the company has
+ * itself filed, what official bodies have published, and what its public
+ * developer activity looks like. Every entry carries a real URL, which is the
+ * point — the lens is handed its primary sources instead of spending turns
+ * from a hard per-call budget hunting for them, and the links it cites are
+ * ones that resolve.
+ *
+ * Nothing here is interpreted. A filing is listed, never summarised: a gloss
+ * written here would be exactly the "description of the artifact" the source
+ * standard tells the lens to prefer the artifact over.
+ */
+export interface LensEvidence {
+  company?: CompanyEntry | null;
+  /** Week-level; passed only to the lens whose thesis turns on them. */
+  releases?: ReleaseItem[];
+  filingsWindowDays: number;
+  releaseWindowDays: number;
+}
+
+function evidenceLines(ev: LensEvidence | null | undefined): string[] {
+  if (!ev) return [];
+  const lines: string[] = [];
+  const c = ev.company;
+
+  if (c && !c.unavailable && c.recent.length > 0) {
+    const items = c.recent
+      .map((f) => `    · ${f.form} filed ${f.filed}${f.period ? ` (period ${f.period})` : ""} — ${f.url}`)
+      .join("\n");
+    const offerings =
+      c.offeringCount > 0
+        ? ` In the same window it filed ${c.offeringCount} registration or prospectus form(s) — a filed record of capital raising, stated as a count and not as a judgement.`
+        : "";
+    lines.push(
+      `- The company's own filings (last ${ev.filingsWindowDays} days, newest first). These are the artifacts themselves — cite them directly rather than a secondary write-up about them, and treat anything they contradict as wrong:\n${items}${offerings}`,
+    );
+  } else if (c?.unavailable) {
+    // Say we could not read it. Silence here would read as "nothing was filed".
+    lines.push(`- The company's own filings could not be read this week (${c.unavailable}) — absence of a list is not absence of filings.`);
+  }
+
+  const e = c?.ecosystem;
+  if (e && !e.notMeasured) {
+    const trend = e.since
+      ? ` Against ${e.since.weekKey}: ${fmtDelta(e.publicRepos - e.since.publicRepos)} repositories, ${fmtDelta(e.orgFollowers - e.since.orgFollowers)} followers.`
+      : " There is no earlier reading to compare against, so no trend is claimed.";
+    const top = e.topRepo ? ` Largest is ${e.topRepo.name} at ${e.topRepo.stars} stars.` : "";
+    const sampled = e.publicRepos > e.sampledRepos ? ` (figures below cover its ${e.sampledRepos} most recently updated non-fork repositories)` : "";
+    lines.push(
+      `- Public developer activity at ${e.url}${sampled}: ${e.publicRepos} public repositories, ${e.orgFollowers} followers, ${e.pushedLast90d} pushed to in the last 90 days.${top}${trend} This is evidence about ecosystem traction; it is not a score and nothing here weights it.`,
+    );
+  } else if (e?.notMeasured) {
+    lines.push(
+      `- Public developer activity: NOT MEASURED — ${e.notMeasured}. Read this as an absence of data, never as a low reading; many strong companies in this universe publish no code at all.`,
+    );
+  }
+
+  if (ev.releases && ev.releases.length > 0) {
+    const items = ev.releases
+      .map((r) => `    · ${r.date} ${r.publisher} — "${r.title}" — ${r.url}`)
+      .join("\n");
+    lines.push(
+      `- Dated official releases from the last ${ev.releaseWindowDays} days, published by the bodies themselves:\n${items}`,
+    );
+  }
+  return lines;
+}
+
+const fmtDelta = (n: number): string => `${n >= 0 ? "+" : ""}${n}`;
+
+function groundBlock(g: LensGroundTruth | null | undefined, ev?: LensEvidence | null): string {
+  const extra = evidenceLines(ev);
+  if (!g) {
+    // Evidence can stand alone: a candidate off the screened pool still has
+    // filings, and withholding them because the screen missed it helps nobody.
+    return extra.length === 0
+      ? ""
+      : `Platform-verified reference data (deterministic weekly read — not model output):\n${extra.join("\n")}\n\n`;
+  }
   const lines = [
     `- Weekly screen snapshot (${g.fetchedAt.slice(0, 10)}): last sale $${g.price} · market cap ${fmtUsdCompact(g.marketCap)} · day traded value ${fmtUsdCompact(g.dayDollarVolume)} · sector ${g.sector}. Prices move — verify the CURRENT spot by live search before any valuation math; treat these as scale anchors.`,
   ];
@@ -276,7 +355,13 @@ ${lines.join("\n")}
 `;
 }
 
-const LENS_INTRO = (skill: LensSkill, c: DiscoveryCandidate, dateLine: string, ground?: LensGroundTruth | null) =>
+const LENS_INTRO = (
+  skill: LensSkill,
+  c: DiscoveryCandidate,
+  dateLine: string,
+  ground?: LensGroundTruth | null,
+  evidence?: LensEvidence | null,
+) =>
   `You are one of three INDEPENDENT Stage-2 lenses in the Mag8 research pipeline, analyzing ${c.ticker} (${c.companyName}, ${c.sector}). Use the "${skill}" skill — it is the only skill available to you. Do not reference or assume the other lenses' outputs; independence is the point.
 
 ${dateLine} Ground every figure in live web data retrieved this session and state its as-of date; where a value cannot be verified, use null rather than a guess.
@@ -285,7 +370,7 @@ ${buildSourceStandardText()}
 
 Public identity: to readers you are the "${LENS_META[skill].label}" lens. Title your report "${LENS_META[skill].label} — ${c.ticker}" and never mention internal tool, skill, plugin, or file names (e.g. SKILL.md), session mechanics, or the AI platform anywhere in the write-up. That ban covers GENERIC self-reference too: never write "the skill" / "this skill" / "per the skill's rules" — if you need to cite your own methodology, call it "the playbook" or just state the rule. (Writing about agents or skills as SUBJECT MATTER — an AI-agent software market, a workforce skills gap — is fine; it is describing yourself that is not.)
 
-${groundBlock(ground)}Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
+${groundBlock(ground, evidence)}Stage-1 discovery context (treat as a hypothesis to verify, not as fact): ${c.thesis}
 
 `;
 
@@ -306,10 +391,11 @@ export function lensPrompt(
   c: DiscoveryCandidate,
   dateLine: string = runDateLine(),
   ground?: LensGroundTruth | null,
+  evidence?: LensEvidence | null,
 ): string {
   switch (skill) {
     case "stock-scanner":
-      return `${LENS_INTRO(skill, c, dateLine, ground)}Run the skill's FULL Ticker Analysis framework on ${c.ticker}: hard gates (Piotroski F-Score, Altman Z-Score, quality, confirmation), deep research, reverse-DCF plus scenario valuation, the eight-dimension composite with the Financial-Strength veto, and the final verdict.
+      return `${LENS_INTRO(skill, c, dateLine, ground, evidence)}Run the skill's FULL Ticker Analysis framework on ${c.ticker}: hard gates (Piotroski F-Score, Altman Z-Score, quality, confirmation), deep research, reverse-DCF plus scenario valuation, the eight-dimension composite with the Financial-Strength veto, and the final verdict.
 
 Populate keyMetrics exactly with:
 - piotroskiF (0–9, null only if genuinely not computable)
@@ -326,7 +412,7 @@ Plus these OPTIONAL-but-preferred fields — include them when your analysis pro
 Map scannerVerdict to the top-level verdict: Buy → bullish, Watchlist → neutral, Pass → bearish (deviate only with strong reason, explained in summary).${LENS_OUTRO}`;
 
     case "gt-predictor":
-      return `${LENS_INTRO(skill, c, dateLine, ground)}Run a GT analysis of the macro / game-theoretic situation AROUND ${c.ticker}: which structural theses and laws (if any) bear on its sector, the outside-view base rate, the steelmanned opposing case, and the asset implication for ${c.ticker} specifically — with an Asymmetry Score and falsification conditions per the skill. Ground everything in live web data; a mostly-idiosyncratic read ("low structural setup, no macro edge") is a perfectly valid output.
+      return `${LENS_INTRO(skill, c, dateLine, ground, evidence)}Run a GT analysis of the macro / game-theoretic situation AROUND ${c.ticker}: which structural theses and laws (if any) bear on its sector, the outside-view base rate, the steelmanned opposing case, and the asset implication for ${c.ticker} specifically — with an Asymmetry Score and falsification conditions per the skill. Ground everything in live web data; a mostly-idiosyncratic read ("low structural setup, no macro edge") is a perfectly valid output.
 
 Populate keyMetrics exactly with:
 - asymmetryScore (1–10; 10 = maximum mispricing)
@@ -341,7 +427,7 @@ Plus these OPTIONAL-but-preferred fields — include them when your analysis pro
 Map the VERDICT direction to the top-level verdict: Bullish → bullish, Neutral → neutral, Bearish → bearish.${LENS_OUTRO}`;
 
     case "institutional-forecast":
-      return `${LENS_INTRO(skill, c, dateLine, ground)}Run the skill in DEEP mode for ${c.ticker} equity. Live-verify every target and stance per the skill's sourcing rules; omit anything you cannot verify this session and say so. Build the Consensus Dashboard, base/bull/bear cases, and the institution-by-institution table.
+      return `${LENS_INTRO(skill, c, dateLine, ground, evidence)}Run the skill in DEEP mode for ${c.ticker} equity. Live-verify every target and stance per the skill's sourcing rules; omit anything you cannot verify this session and say so. Build the Consensus Dashboard, base/bull/bear cases, and the institution-by-institution table.
 
 Populate keyMetrics exactly with:
 - currentPrice (spot, USD, null if unverifiable)

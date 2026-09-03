@@ -96,6 +96,45 @@ async function probe(): Promise<number> {
   check("an unlisted ticker states a reason", bogus.unavailable !== undefined, bogus.unavailable ?? "");
   check("and returns no filings rather than a fabricated empty read", bogus.recent.length === 0);
 
+  console.log("\n official releases\n");
+  const { feedSources, REJECTED_FEEDS } = await import("../lib/reach/catalog");
+  const { readFeeds } = await import("../lib/reach/feeds");
+  const sources = feedSources();
+  const { items, notes } = await readFeeds(sources, { lookbackDays: 60, maxPerSource: 2, timeoutMs: 20_000 });
+  check("every configured source answered", notes.length === 0, notes.join(" | "));
+  check("releases come back", items.length > 0, `${items.length} across ${sources.length} sources`);
+  const publishers = new Set(items.map((i) => i.publisher));
+  // The per-source cap exists so the monthly publishers are not starved by the
+  // daily ones. If a publisher vanishes from the mix, that has regressed.
+  check("every publisher is represented", publishers.size === new Set(sources.map((s) => s.publisher)).size,
+    [...publishers].join(", "));
+  check("newest first", items.every((x, i) => i === 0 || items[i - 1].date >= x.date));
+
+  // A citation that does not resolve is worse than an omitted one — and the
+  // EIA feed genuinely ships one of these, with the id missing from its own XML.
+  let dead = 0;
+  for (const r of items) {
+    const res = await fetch(r.url, { headers: { "User-Agent": process.env.MAG8_EDGAR_UA ?? "Mag8/1.0 (research pipeline; +https://themag8.com)" }, signal: AbortSignal.timeout(20_000) }).catch(() => null);
+    if (!res?.ok) {
+      dead++;
+      console.log(`   DEAD ${r.publisher} — ${r.url}`);
+    }
+  }
+  check("every release URL resolves", dead === 0, `${items.length - dead}/${items.length} live`);
+  for (const r of REJECTED_FEEDS) console.log(`   (not configured: ${r.url} — ${r.why})`);
+
+  console.log("\n developer ecosystem\n");
+  const { readEcosystem, BUILTIN_HANDLES } = await import("../lib/reach/github");
+  const measured = await readEcosystem("RGTI", BUILTIN_HANDLES.RGTI, { minRepos: 1, timeoutMs: 20_000 });
+  check("a resolved organisation is measured", measured?.notMeasured === undefined, measured?.notMeasured ?? `${measured?.publicRepos} repos`);
+  const emptyOrg = await readEcosystem("SYM", BUILTIN_HANDLES.SYM, { minRepos: 1, timeoutMs: 20_000 });
+  check(
+    "a registered but empty organisation is NOT MEASURED, never a zero",
+    emptyOrg?.notMeasured !== undefined,
+    emptyOrg?.notMeasured ?? "REPORTED FIGURES — this is the bug this check exists for",
+  );
+  check("an unmapped ticker reports nothing at all", (await readEcosystem("ASTS", undefined, { minRepos: 1 })) === null);
+
   banner(failures === 0 ? "ALL PASS" : `${failures} CHECK(S) FAILED`);
   return failures === 0 ? 0 : 1;
 }

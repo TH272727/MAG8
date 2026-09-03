@@ -13,6 +13,8 @@ import {
 } from "../schemas";
 import { PUBLIC_LENS_LABEL } from "../public-view";
 import { lensGroundTruth, type UniverseResult } from "../universe";
+import { companyEvidence, type ReachSnapshot } from "../reach/snapshot";
+import { reachSettings } from "../reach-settings";
 import { ContractError, runAgentWithContract } from "./agent";
 import { createLimiter } from "./limit";
 import { lensPrompt } from "./prompts";
@@ -86,6 +88,8 @@ export async function runAnalysisMatrix(
     onFatal?: (reason: string) => void;
     /** Stage-0 snapshot — per-ticker verified reference data for lens prompts (null: unscreened run). */
     universe?: UniverseResult | null;
+    /** This week's frozen evidence read — filings, official releases, developer activity. */
+    reach?: ReachSnapshot | null;
     /** Cells an earlier attempt of THIS run banked — see lib/orchestrator/resume.ts. */
     banked?: Map<CellKey, CellOutcome>;
   },
@@ -144,6 +148,8 @@ async function runOneCell(
     signal: AbortSignal;
     onFatal?: (reason: string) => void;
     universe?: UniverseResult | null;
+    /** This week's frozen evidence read — filings, official releases, developer activity. */
+    reach?: ReachSnapshot | null;
   },
 ): Promise<CellOutcome> {
   const { ticker } = candidate;
@@ -170,8 +176,22 @@ async function runOneCell(
     // Same-week ground truth is cache-safe: within an ISO week the snapshot is
     // frozen, so an injected prompt and a cached cell describe the same data.
     const ground = opts.universe ? lensGroundTruth(ticker, opts.universe) : null;
+    // Same week-freeze contract as the screen above: within an ISO week the
+    // evidence snapshot does not move, so an injected prompt and a cached cell
+    // describe the same reading. Official releases go ONLY to the lens whose
+    // thesis turns on them — the other two would pay tokens for context they
+    // have no use for, out of the same per-call budget as the analysis.
+    const reachCfg = reachSettings();
+    const evidence = opts.reach
+      ? {
+          company: companyEvidence(opts.reach, ticker),
+          releases: skill === "gt-predictor" ? opts.reach.releases : undefined,
+          filingsWindowDays: reachCfg.filingsLookbackDays,
+          releaseWindowDays: reachCfg.feedLookbackDays,
+        }
+      : null;
     const { data, costUsd, narrativeText, numTurns } = await runAgentWithContract(lensWireNoMarkdownSchema(skill), {
-      prompt: lensPrompt(skill, candidate, undefined, ground),
+      prompt: lensPrompt(skill, candidate, undefined, ground, evidence),
       model: CONFIG.models.lens,
       allowedTools: ["WebSearch", "WebFetch", "Bash", "Read"],
       skills: [skill],

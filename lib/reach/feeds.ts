@@ -73,6 +73,23 @@ const cleanTitle = (raw: string): string =>
   decodeXml(stripCdata(raw).replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
 
 /**
+ * A link worth citing.
+ *
+ * The protocol check is not enough. The EIA feed ships its NEWEST item with
+ * `detail.php?id=` — the identifier missing from the publisher's own XML. That
+ * is a valid URL and a dead page, so it would appear in a reference block as a
+ * citation that does not resolve, which is worse than an omitted one. Any
+ * address left hanging on an unfilled parameter is refused.
+ *
+ * NOT normalised: the ECB emits a doubled slash after its host. That resolves
+ * fine, and silently rewriting a publisher's own URL risks breaking one that
+ * genuinely needs its shape.
+ */
+export function isCitableUrl(url: string): boolean {
+  return /^https?:\/\/[^\s]+$/i.test(url) && !/[?&=]$/.test(url);
+}
+
+/**
  * PURE: read one feed body into items.
  *
  * The dialect is sniffed rather than declared, because it has already been
@@ -93,7 +110,7 @@ export function parseFeed(xml: string, source: FeedSource): ReleaseItem[] {
     const date = feedDate(isAtom ? elementText(b, "published") || elementText(b, "updated") : elementText(b, "pubDate"));
     // All three are required. An item missing any of them cannot be cited,
     // and an uncitable item has no business in a reference block.
-    if (!title || !/^https?:\/\//i.test(url) || !date) continue;
+    if (!title || !isCitableUrl(url) || !date) continue;
     items.push({ sourceId: source.id, publisher: source.publisher, title, date, url });
   }
   return items;

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { attrValue, elementText, stripCdata } from "../../lib/xml";
 import { BUILTIN_FEEDS, validateFeedSet, type FeedSource } from "../../lib/reach/catalog";
-import { decodeBody, feedDate, parseFeed, readFeeds } from "../../lib/reach/feeds";
+import { decodeBody, feedDate, isCitableUrl, parseFeed, readFeeds } from "../../lib/reach/feeds";
 
 /* ============================================================================
  * Offline. Every body below is the shape a real source actually serves —
@@ -123,6 +123,23 @@ describe("parsing", () => {
         `<item><title>Good</title><link>https://a.test/z</link><pubDate>Thu, 27 Aug 2026 15:00:00 GMT</pubDate></item>`,
     );
     expect(parseFeed(body, SRC).map((i) => i.title)).toEqual(["Good"]);
+  });
+
+  it("refuses a link left hanging on an unfilled parameter", () => {
+    // Not hypothetical: the EIA feed ships its NEWEST item as
+    // "detail.php?id=" with the identifier missing from the publisher's own
+    // XML. A valid URL and a dead page — which in a reference block reads as a
+    // citation that does not resolve, worse than an omitted one.
+    expect(isCitableUrl("https://www.eia.gov/todayinenergy/detail.php?id=")).toBe(false);
+    expect(isCitableUrl("https://www.eia.gov/todayinenergy/detail.php?id=68044")).toBe(true);
+    // The ECB's doubled slash is the publisher's own and resolves; not rewritten.
+    expect(isCitableUrl("https://www.ecb.europa.eu//press/key/x.html")).toBe(true);
+
+    const body = rss(
+      `<item><title>Missing id</title><link>https://a.test/d.php?id=</link><pubDate>2026-09-01T00:00:00Z</pubDate></item>` +
+        `<item><title>Has id</title><link>https://a.test/d.php?id=7</link><pubDate>2026-09-01T00:00:00Z</pubDate></item>`,
+    );
+    expect(parseFeed(body, SRC).map((i) => i.title)).toEqual(["Has id"]);
   });
 
   it("cleans markup and entities out of a title", () => {
