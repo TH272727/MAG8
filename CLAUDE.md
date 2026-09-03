@@ -217,8 +217,52 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   them. Solvency correctly REFUSES to score banks/REITs (no classified balance sheet → no working
   capital) and shows NOT MEASURED rather than 0.
 - `lib/xml.ts` shared namespace-agnostic XML helpers, extracted from the 13F parser (which still
-  reproduces byte-identically). NB the Bash-tool heredoc path EATS backslashes — write files
+  reproduces byte-identically) + `stripCdata`/`attrValue` (2026-09-02, additive — feeds need both,
+  filings need neither). NB the Bash-tool heredoc path EATS backslashes — write files
   containing regex escapes with the Write/Edit tools, never a heredoc.
+
+- `lib/source-standard.ts` THE SOURCE STANDARD — what counts as evidence, one place. Tier A =
+  primary-source statement (the entity's own dated words, the ARTIFACT not a summary) OR practitioner
+  material citing specifics a casual observer could not produce, judged on CONTENT never on platform
+  or credential; Tier B = sentiment/hype = a lead, never evidence, alone moves no verdict/score/
+  probability/target. Same single-source pattern as `buildRubricText`: `buildSourceStandardText()`
+  (compact, **311 tokens** — injected into EVERY discovery + lens prompt, which is what actually
+  BINDS since a reference file can go unread) and `buildSourceStandardDoc()` (full → each playbook's
+  `references/source-standard.md` via `gen:bib`, and /methodology verbatim). Cites only works ALREADY
+  in the registry (Barber&Odean 2008 · Cohen/Malloy/Pomorski 2012 · Green 2005 — the last is the
+  inconvenient one: unaided experts were no better than novices, which is WHY the practitioner tier
+  is content-judged) → homepage chip stays 64. Tests pin the token ceiling AND run the text through
+  the leak grep itself (it governs PUBLISHED prose).
+- `lib/reach/` THE EVIDENCE LAYER — not a product, a layer UNDER the pipeline. Deterministic, keyless,
+  $0, ZERO plan-window draw. See HANDOFF-2026-09-02-reach-evidence.md + `docs/agent-reach/README.md`
+  (why the Agent Reach CLI was rejected: the leak grep bans `\bagents?\b` and `agent-reach` MATCHES
+  it; $1/30-turn/8-min lens cap; CLI text carries no URLs so it would PUSH cells into the <3-link
+  thin-sourcing flag; Railway container; bypassPermissions + a 3rd-party installer).
+  `filings.ts` over the existing `getSubmissions` — **~100% coverage**, 1 cached request/candidate,
+  form matched by PREFIX not an exact set (424B3/B5/B7, `/A` of anything); **S-8 is NOT an offering**
+  (employee comp — ASTS's only S-form in 180d IS an S-8, counting it turns a true zero into a false
+  raise); Forms 3/4/5/144 left to the insider scanner; empty-with-no-reason = filed nothing,
+  empty-WITH-reason = could not read, two different fields. `feeds.ts`+`catalog.ts` Fed/ECB/EIA/
+  BLS×2 — dialect **SNIFFED not declared** (BLS release feeds are ATOM served from `.rss`), Fed
+  CDATA-wraps every link+date, charset read from the declaration (`Response.text()` always assumes
+  UTF-8), **cap is PER SOURCE** (a global newest-first cap starves the MONTHLY publishers — jobs
+  report + CPI are always the oldest items; window 35d so a monthly cycle fits), and a URL left
+  hanging on an unfilled parameter is REFUSED (EIA ships `detail.php?id=` with the id missing from
+  its own XML). `github.ts` **~15% coverage on this universe, reported not hidden**; resolution
+  CURATED never guessed (17 verified handles; C3.ai left unresolved); **an empty org is NOT MEASURED
+  never a zero** (SYM/ACHR/RKLB/S all hold a registered handle publishing nothing) — three states:
+  no handle → nothing reported / handle+empty → NOT MEASURED+reason / handle+real → figures; forks
+  excluded (23 of Rigetti's 64); org totals separate from the 100-repo SAMPLE; a rate-limited request
+  says so rather than falling through as zero. `snapshot.ts` pure merge (extracted so a test can
+  reach it WITHOUT importing lib/db); `index.ts` `refreshReach` (network) / `readReach` (NEVER).
+  **FROZEN PER ISO WEEK** — a lens cell is cached on (ticker,skill,week), so evidence that moved
+  mid-week would mean a cached cell and a fresh one describe different worlds. Merge is ADDITIVE;
+  **force re-reads what you ASK for and never discards what you did not mention** (it once deleted
+  a whole week), and `normalizeTickers` shape-checks so no caller bug can put junk in shared state.
+  Wired into `analyzeAndCompile` (the ONE path fresh + resume share) AFTER discovery, inside the
+  EXISTING groundBlock — one block, one vocabulary; releases go to gt-predictor ONLY. Fail-open,
+  pinned byte-for-byte; mock/fixture runs return before it. `lib/reach-settings.ts` 8 knobs
+  `MAG8_REACH_*` + `MAG8_REACH=0`; optional free `MAG8_GITHUB_TOKEN` (60→5000 req/hr).
 
 ## Invariants — do not break
 1. SSE plumbing: `next.config.ts` keeps `compress:false` (gzip would buffer SSE) + `serverExternalPackages`
@@ -317,6 +361,9 @@ npm run rotation -- --board [--indicator ID] | --note [--write] | --coverage
 npm run insider -- --probe                              # live feed smoke; ALL PASS, exit 0
 npm run insider -- --refresh [--dry] [--days N] [--force] [--workup-only]   # incremental; days already read are skipped
 npm run insider -- --board [--risk conservative|balanced|aggressive] | --stock TICKER | --report [--write] | --coverage
+npm run reach -- --probe                                # live source smoke; ALL PASS, exit 0
+npm run reach -- --refresh [TICKER,…] [--dry] [--force]  # no ticker = official-release feeds only
+npm run reach -- --board [--ticker T]                   # what is stored, no network
 ```
 Fixture regression (`npm run seed`): ASTS 90.3 pass+confluence, RKLB 73.9, TMDX 69.5, SYM 51.5, IONQ 47.9,
 CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×gt cell (CRSP → 46.4 + gap note);
@@ -327,7 +374,10 @@ ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any publ
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
-NB the grep bans the bare ENGLISH words too — public copy must write around skill/agent vocabulary
+NB the grep bans the bare ENGLISH words too — public copy must write around skill/agent vocabulary,
+and it is exactly why the Agent Reach CLI could never be named in a prompt or shelled out to:
+`agent-reach` MATCHES the agents? word pattern (a hyphen is a word boundary), and Mission Control renders every
+Bash call verbatim as `Running: <command>` (progress.ts:59). The native layer is `lib/reach/` — "reach" alone does not match.
 (Grinold citation reworded "skill"→"edge" 2026-07-13; Griffin&Xu cite reworded "not skill"→"not proof of an
 edge" 2026-08-30; blurbs on /admin are exempt, /methodology is not). Curl a dev page mid-recompile and you get
 a ~3KB Next shell that greps clean — check `wc -c` before trusting a 0.
@@ -764,4 +814,42 @@ all 7 theme pages + /methodology (only the 2 homepage exceptions), curtain uncha
 on the already-guarded page). OPEN: the 3 ORIGINAL themes still carry placeholders (same job, one at a time —
 homebuilding's trade wage is now easy, BLS OEWS is proven parsed); SWU has no automated feed (hand entry only);
 never seen at 375px.
+2026-09-02 (Code): THE SOURCE STANDARD + THE EVIDENCE LAYER (HANDOFF-2026-09-02-reach-evidence.md;
+review + rejected design in `docs/agent-reach/README.md`, source doc moved there). Owner: "review the
+mag8 agent reach integration prompts… ensure agent reach can be built smoothly into mag8… then
+integrate it to improve the quality of the outputs", noting the prompts were written without codebase
+access and the method was my call. VERDICT: idea right, mechanism wrong. SIX structural reasons the
+CLI path fails here, all verified — the leak gate fails PROVABLY (`agent-reach` matches the banned
+agents? pattern AND every Bash call is rendered verbatim into Mission Control); $1/30-turn/8-min lens
+cap that has already killed a cell; CLI text carries no URLs so it would PUSH cells INTO the <3-link
+thin-sourcing flag; the Railway container; bypassPermissions + a 3rd-party installer. NINE factual
+errors in the doc (new-gen-stock/SKILL.md is an 8-LINE STUB and all five of its Prompt-3 targets live
+in references/playbook.md, which it never names; institutional-forecast DOES have references/;
+gt-predictor has no "Step 2A" heading; "load all five" breaks on a new row; stock-scanner Step 2 is
+Broad-Scan-ONLY; bibliographies are GENERATED; no shared/ dir, no project-brief; a .sh is the wrong
+shape). MEASURED coverage decided the build: SEC filings ~100% (and ALREADY half-built in lib/edgar.ts,
+never called by the pipeline) · official releases per-thesis · GitHub ~15% · issuer IR RSS brittle,
+skipped · **Jina Reader, Reach's flagship zero-config channel, is DEAD from this network** (401
+"blocked from performing anonymous queries due to bad network reputation (AS7922)") · Reddit/X/FB/IG/
+XHS = NOWHERE (owner decision: cannot run headless, ban risk on a real account, and Tier B by the
+doc's own standard). Owner decisions: native equivalent only / all three channels / social nowhere.
+Shipped `lib/source-standard.ts` (311-token block in EVERY discovery+lens prompt, generated into 4
+playbooks, verbatim on /methodology) + `lib/reach/` + 8 knobs + /admin panel w/ two catalogue editors
++ /methodology section + `npm run reach`. ELEVEN findings, each a confident wrong number: S-8 is NOT
+a capital raise (ASTS's ONLY S-form in 180d IS one — counting it turns a true zero into a false
+raise); form PREFIXES not an exact set; the Fed CDATA-wraps every link+date; **BLS release feeds are
+ATOM served from `.rss`** so the dialect is sniffed never declared; charset read not assumed; **the
+cap had to be PER SOURCE** — a global newest-first cap silently excluded BOTH monthly BLS releases,
+the jobs report and CPI, visible only by READING the output; EIA ships a dead link (`detail.php?id=`
+with the id missing from its own XML); an empty org is NOT MEASURED never a zero (SYM/ACHR/RKLB/S all
+hold a registered handle publishing nothing); resolution curated never guessed; and MY OWN
+destructive CLI bug caught live TWICE (`--refresh --force` read "--force" as a ticker and replaced 8
+real companies with an entry named "--FORCE"; then force itself deleted a whole week). Gates: tsc,
+721 vitest (was 639), seed EXACT, gen:bib idempotent, build, probe ALL PASS, 13F+Form4 byte-identical
+after the xml.ts additions, leak 0 hits across 13 surfaces, curtain 404s even with a valid token,
+admin gating verified on a prod build, separation holds (user_version 7, one additive table, zero
+FKs). OPEN: never run live — the ONE plan-window step is the owner's, `npm run pipeline --
+--lens-probe IONQ` before/after (+376 tokens for a normal lens, +786 for gt-predictor; expect source
+links to go UP); the handle map is 17 names and extending it is research; no prior week yet so trends
+start next week; never seen at 375px.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

@@ -11,7 +11,9 @@ Mag8 is a Next.js app. A deterministic Stage-0 screen (~7,100 US listings → ~2
 | **The Rotation Board** `/rotation` | What is the market actually rotating into? | **$0** |
 | **The Insider Scanner** `/insider` | Who is buying their own beaten-down stock? | **$0** |
 
-The three desks keep every model out of the critical path — fetch → parse → arithmetic — so they cost nothing to run, draw no plan window, and every number they publish is reproducible from a primary source. 639 offline tests. 64 academic works cited from one verified registry, including, on every product's own page, the papers that argue *against* it.
+The three desks keep every model out of the critical path — fetch → parse → arithmetic — so they cost nothing to run, draw no plan window, and every number they publish is reproducible from a primary source. 721 offline tests. 64 academic works cited from one verified registry, including, on every product's own page, the papers that argue *against* it.
+
+Under all of it sits a fifth thing that is not a product: **one rule for what counts as evidence**, and a deterministic layer that fetches the primary sources before any research starts — see §6.
 
 ---
 
@@ -50,6 +52,16 @@ Starts at the rare event — a Form 4 **open-market purchase** — then price se
 - **Nothing derived is stored.** No candidates, scores or rankings table — so changing the drawdown band, the discount rate or the required cushion re-derives the whole board *including every rejection reason*, with zero fetches. That is what makes the public conservative / balanced / aggressive picker free to a visitor.
 - **Last full sweep:** 41,110 filings listed → 9,594 read → 197 companies with insider buying → 25 through the strength gate. 24.7 minutes, zero failures, $0.
 - An unmeasured component is not zero: a company is scored on what exists, marked partial, and ranks below every complete one. Banks and REITs have no classified balance sheet, so solvency **refuses** to score them.
+
+## 6. The source standard and the evidence layer — under everything
+
+Not a product. Two things that sit beneath the pipeline, both deterministic and both free.
+
+**One rule for what counts as evidence** (`lib/source-standard.ts`, published verbatim on `/methodology`). Usable signal is either a primary-source statement — the entity's own dated words, the artifact and not a summary of it — or practitioner material citing specifics a casual observer could not produce, judged on what it contains and never on which platform carried it. Everything else is a lead: it can tell you what to verify, it can never stand in for the verification, and alone it moves no verdict, score, probability or target. Three of the four playbooks already said a version of this in their own words; now they decide it the same way, because the same text is injected into every research prompt, written into every playbook by one generator, and printed on the methodology page.
+
+**The primary sources, fetched before the research starts** (`lib/reach/`). Reaching further for evidence should not mean trusting more loosely, so the fetching is deterministic: what each candidate has itself filed (≈100% coverage — every US-listed company has a filing history), what the Fed, ECB, EIA and BLS have themselves published, and public developer activity for the ~15% of this universe that publishes code. Every item carries its date and a link that resolves, so an analysis cites the artifact instead of spending its budget hunting for one. Frozen weekly, so two readings of the same company in one week were shown the same evidence.
+
+Absence is never a low reading. A company that could not be read says so; an organisation that publishes nothing is reported as *not measured*, never as zero — four companies here hold a registered developer account with nothing in it, and reading that emptiness as weak traction would be confidently wrong about all of them.
 
 ---
 

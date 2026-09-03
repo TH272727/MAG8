@@ -5,6 +5,7 @@ import { adminLogout } from "@/app/actions";
 import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import BottleneckSettingsPanel from "@/components/admin/BottleneckSettingsPanel";
 import InsiderSettingsPanel from "@/components/admin/InsiderSettingsPanel";
+import ReachSettingsPanel from "@/components/admin/ReachSettingsPanel";
 import RotationSettingsPanel from "@/components/admin/RotationSettingsPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
@@ -16,6 +17,12 @@ import { findCitation } from "@/lib/citations";
 import { CONFIG, estimateRun, launchMode } from "@/lib/config";
 import { listRuns, runTallies } from "@/lib/db";
 import { universeEnabled } from "@/lib/universe";
+import { getAppSettingJson } from "@/lib/db";
+import {
+  REACH_SETTING_GROUPS,
+  REACH_SETTINGS_SPEC,
+  effectiveReachSettings,
+} from "@/lib/reach-settings";
 import {
   BOTTLENECK_SETTING_GROUPS,
   BOTTLENECK_SETTINGS_SPEC,
@@ -121,6 +128,10 @@ export default async function AdminPage() {
   const rotationPanel = toPanelSettings(ROTATION_SETTINGS_SPEC, rotationEff);
   const insiderEff = effectiveInsiderSettings();
   const insiderPanel = toPanelSettings(INSIDER_SETTINGS_SPEC, insiderEff);
+  const reachEff = effectiveReachSettings();
+  const reachPanel = toPanelSettings(REACH_SETTINGS_SPEC, reachEff);
+  const reachFeeds = JSON.stringify(getAppSettingJson("reach_feeds") ?? [], null, 2);
+  const reachHandles = JSON.stringify(getAppSettingJson("reach_handles") ?? {}, null, 2);
   const playbooks = allPlaybooks().map((p) => ({ id: p.id, label: p.label, builtIn: p.builtIn }));
 
   return (
@@ -235,6 +246,30 @@ export default async function AdminPage() {
             key={JSON.stringify(insiderEff.values)}
             groups={INSIDER_SETTING_GROUPS}
             settings={insiderPanel}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="evidence-h">
+        <h2 id="evidence-h" className="eyebrow">
+          Primary sources
+        </h2>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          Not a product — a layer under the pipeline. Before the lenses run, deterministic code reads what
+          each candidate has itself filed, what official bodies have themselves published, and the public
+          developer activity of the minority of names that have any. It costs nothing and draws no research
+          budget; what it hands the analysis is dated links that resolve, so the write-ups cite artifacts
+          rather than spend turns hunting for them. A source that cannot be read is said so explicitly, never
+          silently treated as nothing to report.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <ReachSettingsPanel
+            key={JSON.stringify(reachEff.values)}
+            groups={REACH_SETTING_GROUPS}
+            settings={reachPanel}
+            feeds={reachFeeds}
+            handles={reachHandles}
           />
         </div>
       </section>

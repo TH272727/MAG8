@@ -7,6 +7,11 @@ import { CITATION_GROUPS, groundingShorts } from "@/lib/citations";
 import { launchMode } from "@/lib/config";
 import { buildRubricText } from "@/lib/ranking";
 import { buildSourceStandardText, sourceStandardCitations } from "@/lib/source-standard";
+import {
+  REACH_SETTING_GROUPS,
+  REACH_SETTINGS_SPEC,
+  effectiveReachSettings,
+} from "@/lib/reach-settings";
 import { PUBLIC_DISCOVERY, PUBLIC_LENS_META } from "@/lib/public-lens";
 import {
   UNIVERSE_SETTING_GROUPS,
@@ -162,6 +167,65 @@ function UniverseScreenSection() {
         the operator; the research behind each default is in the evidence base below. When a
         delivered pick sits outside the band or trips a solvency check, the run says so in its
         published gap notes.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The evidence layer's disclosure. Same contract as the sections around it:
+ * every window and cap below is the LIVE effective value from the same
+ * resolver the pipeline reads, so the page and the behaviour cannot drift.
+ */
+function EvidenceLayerSection() {
+  const eff = effectiveReachSettings();
+  const shown = REACH_SETTINGS_SPEC.filter((s) => s.group !== "ops");
+  return (
+    <section id="primary-sources" className="mt-12 scroll-mt-24" aria-labelledby="evidence-h">
+      <h2 id="evidence-h" className="eyebrow">
+        The primary sources, fetched before the research starts
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Reaching further for evidence should not mean trusting more loosely, so what each analysis
+        is handed is fetched deterministically and costs nothing: the filings a company has itself
+        submitted, the releases official bodies have themselves published, and — for the minority
+        of candidates that publish code — their public developer activity. Every item carries the
+        date it was published and a link that resolves, so the analysis cites the artifact instead
+        of spending its budget hunting for one. Nothing in it is summarised or scored. It is read
+        once a week and frozen, so two readings of the same company in the same week were shown the
+        same evidence.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {REACH_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((s) => s.group === g.key)
+                .map((s) => (
+                  <div key={s.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">{s.label}</dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(s, eff.values[s.key as keyof typeof eff.values])}
+                      {eff.sources[s.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        Two honest limits. Coverage of the filings channel is effectively complete — every
+        US-listed company has a filing history — but developer activity reaches roughly one
+        candidate in seven, because most of this universe builds hardware rather than software; a
+        company with no public code is reported as <em>not measured</em>, never as a weak reading,
+        and several here hold a registered account that publishes nothing at all. And every source
+        is fail-open: when one cannot be read, the analysis is told so explicitly and proceeds on
+        its own research, because an absent list is not evidence that there was nothing to list.
       </p>
     </section>
   );
@@ -617,6 +681,8 @@ export default function MethodologyPage() {
       <RotationSection />
 
       <InsiderSection />
+
+      <EvidenceLayerSection />
 
       {/* Source standard — the exact text injected into every research prompt */}
       <section id="source-standard" className="mt-12 scroll-mt-24" aria-labelledby="source-h">
