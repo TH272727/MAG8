@@ -114,10 +114,19 @@ const FRED = (
 });
 
 /**
- * Staleness budgets are generous on purpose — roughly two publication cycles
- * plus the publisher's own lag. A quarterly national-accounts series is a
- * quarter behind before it is even released, so 200 days of silence is normal
- * and 400 is not.
+ * Staleness budgets, in days a series may go without a new observation.
+ *
+ * These are NOT derived from publication frequency, and getting that wrong is
+ * the trap. A quarterly series is not stale after a hundred days: the national
+ * financial accounts date an observation at the START of a quarter and publish
+ * it about ten weeks after that quarter ENDS, so the newest available figure is
+ * routinely more than two hundred days old and entirely current. Live data
+ * caught this — the corporate-equities series sat 247 days old against a budget
+ * of 250, three days from declaring the Federal Reserve's own accounts dead.
+ *
+ * The rule is therefore: frequency PLUS the publisher's lag, plus slack for one
+ * missed release. Where the lag exceeds the interval, the budget is nearer a
+ * year than a quarter.
  */
 const BUILT_IN_SERIES: TideSeries[] = [
   /* ---- Rates and the curve ---- */
@@ -131,8 +140,8 @@ const BUILT_IN_SERIES: TideSeries[] = [
 
   /* ---- Credit ---- */
   FRED("baa10y", "BAA10Y", "Moody's Baa corporate bond spread over 10-year Treasury", "percentage points", "daily", 10),
-  FRED("drccl", "DRCCLACBS", "Credit-card delinquency rate, all commercial banks", "percent", "quarterly", 200),
-  FRED("dral", "DRALACBN", "Loan delinquency rate, all commercial banks", "percent", "quarterly", 200),
+  FRED("drccl", "DRCCLACBS", "Credit-card delinquency rate, all commercial banks", "percent", "quarterly", 280),
+  FRED("dral", "DRALACBN", "Loan delinquency rate, all commercial banks", "percent", "quarterly", 280),
   FRED("drtscilm", "DRTSCILM", "Banks tightening standards on business loans", "net percent", "quarterly", 200),
 
   /* ---- Activity and labour ---- */
@@ -156,12 +165,12 @@ const BUILT_IN_SERIES: TideSeries[] = [
   FRED("totll", "TOTLL", "Bank credit, all commercial banks", "billions of dollars", "weekly", 21),
 
   /* ---- Valuation and positioning (quarterly national accounts) ---- */
-  FRED("gdp", "GDP", "Gross domestic product", "billions of dollars", "quarterly", 200),
-  FRED("cp", "CP", "Corporate profits after tax", "billions of dollars", "quarterly", 200),
-  FRED("equities", "NCBEILQ027S", "Nonfinancial corporate business, corporate equities outstanding", "millions of dollars", "quarterly", 250),
-  FRED("networth", "TNWMVBSNNCB", "Nonfinancial corporate business, net worth at market value", "millions of dollars", "quarterly", 250),
-  FRED("hheq", "BOGZ1FL153064486Q", "Household corporate equities as a share of financial assets", "percent", "quarterly", 250),
-  FRED("mmf", "MMMFFAQ027S", "Money market fund assets", "millions of dollars", "quarterly", 250),
+  FRED("gdp", "GDP", "Gross domestic product", "billions of dollars", "quarterly", 280),
+  FRED("cp", "CP", "Corporate profits after tax", "billions of dollars", "quarterly", 280),
+  FRED("equities", "NCBEILQ027S", "Nonfinancial corporate business, corporate equities outstanding", "millions of dollars", "quarterly", 330),
+  FRED("networth", "TNWMVBSNNCB", "Nonfinancial corporate business, net worth at market value", "millions of dollars", "quarterly", 330),
+  FRED("hheq", "BOGZ1FL153064486Q", "Household corporate equities as a share of financial assets", "percent", "quarterly", 330),
+  FRED("mmf", "MMMFFAQ027S", "Money market fund assets", "millions of dollars", "quarterly", 330),
 
   /* ---- Recession dating: context only, never scored ---- */
   FRED("usrec", "USREC", "NBER recession indicator", "0 or 1", "monthly", 70),
@@ -795,6 +804,34 @@ const FAST_GAUGES: TideGauge[] = [
     highMeans: "Freight operators are committing to new equipment, which they do when they expect goods to move.",
     lowMeans: "Orders for heavy equipment are falling.",
     falsification: "A small, lumpy series that can swing on emissions rules and order backlogs rather than demand.",
+  }),
+  g({
+    id: "housing-starts",
+    label: "Housing starts, year on year",
+    family: "cycle",
+    horizon: "fast",
+    polarity: "high-is-good",
+    inputs: ["houst"],
+    transform: { mode: "changePct", periods: M },
+    highMeans: "More homes are being started than a year ago. Housebuilding commits money and labour well ahead of the activity it produces.",
+    lowMeans: "Housebuilding is contracting, which has led general downturns by a wide margin in most post-war cycles.",
+    falsification:
+      "Starts follow the permits reading above by a month or two and are driven hard by mortgage rates, so " +
+      "the two should be read as one signal rather than as agreement between two.",
+  }),
+  g({
+    id: "card-delinquencies",
+    label: "Change in credit-card delinquencies",
+    family: "credit",
+    horizon: "fast",
+    polarity: "high-is-bad",
+    inputs: ["drccl"],
+    transform: { mode: "change", periods: Q },
+    highMeans: "Households are falling behind on card balances at a rising rate — the part of credit that turns first when budgets tighten.",
+    lowMeans: "Household card delinquency is falling.",
+    falsification:
+      "Card delinquency rises as lenders extend credit to weaker borrowers as well as when existing " +
+      "borrowers weaken, so a rise can reflect who was lent to rather than what happened to them.",
   }),
   g({
     id: "credit-spread-change",

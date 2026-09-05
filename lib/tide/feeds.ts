@@ -282,7 +282,10 @@ export const getConnector = (id: string): TideSource | null => CONNECTORS[id] ??
 export interface Freshness {
   latest: string | null;
   ageDays: number | null;
+  /** Had observations once and has stopped. */
   stale: boolean;
+  /** Has never had an observation at all. A different thing, and said differently. */
+  never: boolean;
   /** A sentence, ready to print. Null when the series is current. */
   reason: string | null;
 }
@@ -308,19 +311,30 @@ export function freshnessOf(
   now: Date,
   budgetPct = 100,
 ): Freshness {
+  // Three states, not two. "Never published anything here" and "published for
+  // years and then stopped" are different facts about a reading and are
+  // reported differently: the first is a gap waiting to be filled, the second
+  // is a source that has died, and collapsing them would hide the death.
   if (!latest) {
-    return { latest: null, ageDays: null, stale: true, reason: "nothing has been stored for this reading yet" };
+    return {
+      latest: null,
+      ageDays: null,
+      stale: false,
+      never: true,
+      reason: "nothing has been stored for this reading yet",
+    };
   }
   const ageDays = daysBetween(latest, now);
   if (ageDays === null) {
-    return { latest, ageDays: null, stale: true, reason: "the stored date could not be read" };
+    return { latest, ageDays: null, stale: true, never: false, reason: "the stored date could not be read" };
   }
   const budget = Math.round((series.staleAfterDays * budgetPct) / 100);
-  if (ageDays <= budget) return { latest, ageDays, stale: false, reason: null };
+  if (ageDays <= budget) return { latest, ageDays, stale: false, never: false, reason: null };
   return {
     latest,
     ageDays,
     stale: true,
+    never: false,
     reason:
       `the most recent observation is ${latest}, ${ageDays} days ago, against the ${budget} days this ` +
       `${series.frequency} series is allowed before it is treated as no longer published`,

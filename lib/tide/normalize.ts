@@ -326,6 +326,25 @@ export function stressFrom(
 
 export const round1 = (n: number): number => Math.round(n * 10) / 10;
 
+/**
+ * The sentence describing what this reading actually says.
+ *
+ * It is chosen by the gauge's own PERCENTILE, never by its stress score, and
+ * the distinction is not pedantic — getting it wrong prints a sentence that is
+ * true of the arithmetic and false about the market. On a gauge where a high
+ * reading is good, a low stress score means the reading is HIGH, so selecting
+ * the prose by stress prints the opposite of what happened.
+ *
+ * The build caught exactly that: with the market near a record high the desk
+ * wrote "the index is below its ten-month average" as a favourable reading,
+ * because the trend gauge scored a reassuring 25 and 25 looked low. Every
+ * number on the page was right and the sentence beside them was backwards.
+ */
+export function meaningFor(reading: Pick<GaugeReading, "gauge" | "percentile">): string {
+  if (reading.percentile === null) return reading.gauge.highMeans;
+  return reading.percentile >= 50 ? reading.gauge.highMeans : reading.gauge.lowMeans;
+}
+
 export interface GaugeReading {
   gauge: TideGauge;
   /** The reading in its own units, after combining and transforming. */
@@ -451,6 +470,45 @@ export function scoreGauge(prepared: PreparedGauge, opts: ScoreGaugeOptions): Ga
 function lastDefined(values: (number | null)[]): number {
   for (let i = values.length - 1; i >= 0; i--) if (values[i] !== null) return i;
   return -1;
+}
+
+/**
+ * Collapse a prepared gauge onto one observation per calendar month, keeping
+ * the LAST reading of each month.
+ *
+ * Every gauge on this desk is scored from this view, including its current
+ * reading. That is a deliberate single code path: if today's score were taken
+ * against a daily window while its own history were drawn against a monthly
+ * one, the number on the board and the last point of the chart beneath it
+ * would be computed differently and could disagree, which is the kind of
+ * discrepancy nobody ever tracks down.
+ *
+ * The transform has already been applied at the series' native frequency, so a
+ * year-on-year change computed daily stays a year-on-year change; only the
+ * sampling of the finished quantity is monthly.
+ *
+ * `dates` keeps the REAL observation date rather than a month end, so a
+ * reading published on the 3rd is reported as of the 3rd.
+ */
+export function toMonthly(prepared: PreparedGauge): PreparedGauge & { months: string[] } {
+  const picks = monthEndIndices(prepared.dates);
+  return {
+    ...prepared,
+    frequency: "monthly",
+    dates: picks.map((i) => prepared.dates[i]),
+    raw: picks.map((i) => prepared.raw[i]),
+    values: picks.map((i) => prepared.values[i]),
+    months: picks.map((i) => prepared.dates[i].slice(0, 7)),
+  };
+}
+
+/** One value per month from a plain dated series, keeping the last of each month. */
+export function monthlyFrom(observations: Dated[]): { month: string; value: number }[] {
+  const dates = observations.map((o) => o.date);
+  return monthEndIndices(dates).map((i) => ({
+    month: observations[i].date.slice(0, 7),
+    value: observations[i].value,
+  }));
 }
 
 /* ---------------------------------------------------------------------------

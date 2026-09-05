@@ -161,6 +161,55 @@ export function aggregateFamily(
  * Composites
  * ------------------------------------------------------------------------- */
 
+/**
+ * The weighted composite of a set of family readings.
+ *
+ * Extracted so that today's composite and every month of its history come out
+ * of ONE implementation. A second copy of this arithmetic for the chart would
+ * be a second chance to disagree with the headline about what the desk says.
+ *
+ * A family with no measured member contributes NO WEIGHT rather than a middling
+ * score, so an absent group redistributes the weight across the groups that
+ * were measured instead of quietly dragging the result toward the middle.
+ */
+export function weightedComposite(
+  members: { family: TideFamily; stress: number | null }[],
+  horizon: TideHorizon,
+  s: ScoreSettings,
+): { stress: number | null; usedWeight: number; declaredWeight: number; measured: number } {
+  const byFamily = new Map<TideFamily, number[]>();
+  let measured = 0;
+  for (const m of members) {
+    if (m.stress === null) continue;
+    measured++;
+    const list = byFamily.get(m.family) ?? [];
+    list.push(m.stress);
+    byFamily.set(m.family, list);
+  }
+
+  const families = new Set(members.map((m) => m.family));
+  let declaredWeight = 0;
+  for (const f of families) declaredWeight += weightFor(f, horizon, s);
+
+  let usedWeight = 0;
+  let total = 0;
+  for (const [family, values] of byFamily) {
+    const weight = weightFor(family, horizon, s);
+    if (weight <= 0) continue;
+    const familyStress = values.reduce((a, b) => a + b, 0) / values.length;
+    total += weight * familyStress;
+    usedWeight += weight;
+  }
+
+  return {
+    stress: usedWeight > 0 ? round1(total / usedWeight) : null,
+    usedWeight,
+    declaredWeight,
+    measured,
+  };
+}
+
+
 export interface Composite {
   horizon: TideHorizon;
   /** 0-100, where 100 is maximally bad for an equity owner. */

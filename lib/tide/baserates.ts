@@ -1,4 +1,3 @@
-import { clusterEpisodes } from "../rotation/baserates";
 import type { TideSettings } from "../tide-settings";
 import { round1 } from "./normalize";
 
@@ -13,11 +12,26 @@ import { round1 } from "./normalize";
  * FOUR RULES, all of them the difference between a base rate and a flattering
  * anecdote:
  *
- * 1. EPISODES, NEVER MONTHS. A twelve-month forward reading taken in March and
- *    again in April shares eleven of its twelve months with itself. Counting
- *    those as two observations inflates the apparent sample precisely when the
- *    real one is small, so a run of qualifying months is ONE visit, and visits
- *    closer together than the operator's tolerance belong to the same visit.
+ * 1. NON-OVERLAPPING DRAWS, NEVER MONTHS. A twelve-month forward reading taken
+ *    in March and again in April shares eleven of its twelve months with
+ *    itself. Counting those as two observations inflates the apparent sample
+ *    precisely when the real one is small.
+ *
+ *    The obvious fix — merge nearby months into one "visit" — was tried and
+ *    discarded, because it does not survive contact with real data. A condition
+ *    occupying a fifth of the record recurs constantly, so ANY proximity
+ *    tolerance chains the whole history together: at a three-month tolerance
+ *    the desk reported a single visit running from February 2022 to January
+ *    2025, and at twelve months a single visit running from March 2018 to
+ *    August 2025. Averaging a forward return across seven years of scattered
+ *    months and calling it one observation is not a sample size, it is a
+ *    sentence with a number in it.
+ *
+ *    So draws are selected GREEDILY instead: take the earliest qualifying
+ *    month, skip everything inside its forward window, take the next. Every
+ *    draw is one month with one forward return, and no two draws share a single
+ *    month of future. That is a real sample, and it is much smaller than the
+ *    alternatives — which is the point.
  *
  * 2. THE PLAIN FIGURE IS ALWAYS PUBLISHED BESIDE THE CONDITIONAL ONE. Knowing
  *    that the market rose 9% on average after readings like today's means
@@ -59,13 +73,10 @@ export interface Band {
   label: string;
 }
 
-export interface Episode {
-  startMonth: string;
-  endMonth: string;
-  months: number;
-  meanChangePct: number;
-  bestPct: number;
-  worstPct: number;
+/** One independent observation: a month, and what the market did over the window after it. */
+export interface Draw {
+  month: string;
+  changePct: number;
 }
 
 export interface Stats {
@@ -77,13 +88,33 @@ export interface Stats {
 }
 
 export interface ConditionalSample extends Stats {
-  /** The honest sample size. */
+  /** The honest sample size: draws whose forward windows do not overlap. */
   episodes: number;
-  /** Mean of the per-episode means — every visit weighted equally. */
+  /** Mean across those draws. */
   episodeMeanPct: number | null;
-  /** Share of EPISODES whose mean was positive. */
+  /** Share of draws that were positive. */
   episodeHitRatePct: number | null;
-  list: Episode[];
+  list: Draw[];
+}
+
+/**
+ * Qualifying months thinned to non-overlapping forward windows.
+ *
+ * Greedy from the earliest: take a month, skip everything inside its window,
+ * take the next. The starting point is arbitrary in principle — beginning from
+ * a later month would select a slightly different set — but earliest-first is
+ * the only choice that does not depend on anything the desk knows about the
+ * outcome, which is the property that matters.
+ */
+export function independentDraws(indices: number[], horizon: number): number[] {
+  const out: number[] = [];
+  let blockedUntil = Number.NEGATIVE_INFINITY;
+  for (const i of indices) {
+    if (i < blockedUntil) continue;
+    out.push(i);
+    blockedUntil = i + horizon;
+  }
+  return out;
 }
 
 export interface TideBaseRates {
@@ -99,6 +130,12 @@ export interface TideBaseRates {
   differencePct: number | null;
   /** Share of usable history spent inside this band. Above 40% the reading is barely conditional. */
   bandSharePct: number | null;
+  /**
+   * True when visits are allowed closer together than the forward window, so
+   * neighbouring visits share part of the same future and the episode count
+   * overstates how much independent evidence there is.
+   */
+  overlappingWindows: boolean;
   measured: boolean;
   /** Why there is no reading. A sentence, not a code. */
   unavailable: string | null;
@@ -172,6 +209,7 @@ const empty = (reason: string, horizonMonths: number): TideBaseRates => ({
   unconditional: null,
   differencePct: null,
   bandSharePct: null,
+  overlappingWindows: false,
   measured: false,
   unavailable: reason,
 });
@@ -237,21 +275,18 @@ export function computeTideBaseRates(inputs: BaseRateInputs): TideBaseRates {
   const unconditional = statsOf(usable.map((i) => changes[i] as number));
 
   const qualifying = usable.filter((i) => inBand(stress[i], band));
-  const groups = clusterEpisodes(qualifying, s.baseRateEpisodeGapMonths);
+  // Draws are spaced by the FORWARD WINDOW, never by the operator's tolerance:
+  // two draws closer than that share part of the same future and are not two
+  // observations. The gap dial can only make the spacing wider, never narrower.
+  const spacing = Math.max(horizon, s.baseRateEpisodeGapMonths);
+  const drawn = independentDraws(qualifying, spacing);
 
-  const list: Episode[] = groups.map((group) => {
-    const vals = group.map((i) => changes[i] as number);
-    return {
-      startMonth: months[group[0]],
-      endMonth: months[group[group.length - 1]],
-      months: group.length,
-      meanChangePct: round2(mean(vals) as number),
-      bestPct: round2(Math.max(...vals)),
-      worstPct: round2(Math.min(...vals)),
-    };
-  });
+  const list: Draw[] = drawn.map((i) => ({
+    month: months[i],
+    changePct: round2(changes[i] as number),
+  }));
 
-  const episodeMeans = list.map((e) => e.meanChangePct);
+  const episodeMeans = list.map((e) => e.changePct);
   const conditional: ConditionalSample = {
     ...statsOf(qualifying.map((i) => changes[i] as number)),
     episodes: list.length,
@@ -281,6 +316,9 @@ export function computeTideBaseRates(inputs: BaseRateInputs): TideBaseRates {
         ? round2(conditional.episodeMeanPct - unconditional.meanPct)
         : null,
     bandSharePct,
+    // Cannot happen with the spacing rule above, and kept as a field so the
+    // page never has to assume it: if the rule ever changes, the flag speaks.
+    overlappingWindows: spacing < horizon,
     measured,
     unavailable: measured
       ? null

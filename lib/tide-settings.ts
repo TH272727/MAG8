@@ -551,7 +551,7 @@ export const TIDE_SETTINGS_SPEC: SettingSpec<TideSettingGroupKey>[] = [
     label: "Visits required before a conditional figure is published",
     group: "baserates",
     envVar: "MAG8_TIDE_BR_MIN_EPISODES",
-    default: 8,
+    default: 5,
     min: 3,
     max: 50,
     step: 1,
@@ -559,8 +559,12 @@ export const TIDE_SETTINGS_SPEC: SettingSpec<TideSettingGroupKey>[] = [
     integer: true,
     blurb:
       "Below this the desk reports NOT MEASURED and publishes nothing rather than a mean of two visits " +
-      "dressed as a base rate. With dozens of readings each searched against its own history, a rule like " +
-      "this is the only thing standing between a desk and finding whatever pattern it went looking for.",
+      "dressed as a base rate. Five rather than a rounder number because of what is arithmetically possible: " +
+      "with independent twelve-month windows, thirty years of history holds at most thirty observations in " +
+      "total, and a band covering a fifth of that history can expect about six. A floor of ten would not be " +
+      "cautious, it would simply mean this reading could never be published at all — and a safeguard that " +
+      "can never be satisfied is not a safeguard. Six visits is a small sample and the desk says so beside " +
+      "the figure rather than letting the month count imply otherwise.",
     cites: ["Sullivan, Timmermann & White 1999"],
   }),
   num({
@@ -568,17 +572,22 @@ export const TIDE_SETTINGS_SPEC: SettingSpec<TideSettingGroupKey>[] = [
     label: "Gap that separates one visit from the next",
     group: "baserates",
     envVar: "MAG8_TIDE_BR_EPISODE_GAP_MONTHS",
-    default: 3,
+    default: 12,
     min: 1,
     max: 24,
     step: 1,
     unit: "months",
     integer: true,
     blurb:
-      "Two qualifying sessions closer together than this belong to the same visit. Without the tolerance a " +
-      "condition that flickers across one stretch of market is counted as many separate visits, which " +
-      "inflates the apparent sample at exactly the moment the real one is shrinking.",
-    cites: [],
+      "Two qualifying months closer together than this belong to the same visit. It defaults to match the " +
+      "forward window above, and that is the whole point rather than a coincidence: two visits three months " +
+      "apart share nine of their twelve forward months, so counting them as two observations counts the " +
+      "same future twice. Only visits at least a full window apart are independent. This dial was measured " +
+      "rather than guessed — on live data the same band returned 49 visits and a +6.2% edge at one month, " +
+      "21 visits and +7.7% at three, and 11 visits with a 100% hit rate at six, which is what an overfitted " +
+      "result looks like from the inside. At a full window it returns six visits, which is the honest " +
+      "answer and is sometimes too few to publish.",
+    cites: ["Boudoukh, Richardson & Whitelaw 2008"],
   }),
 
   /* ------------------------------------------------------------- breadth -- */
