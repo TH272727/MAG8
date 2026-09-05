@@ -2,7 +2,7 @@
 
 **Four research desks over one US-equity universe. One of them asks AI models to agree. Three ask public filings to.**
 
-Mag8 is a Next.js app. A deterministic Stage-0 screen (~7,100 US listings → ~2,000 eligible, ranked on SEC XBRL fundamentals, every threshold owner-tunable from `/admin`) feeds four independent products:
+Mag8 is a Next.js app. A deterministic Stage-0 screen (~7,100 US listings → ~2,000 eligible, ranked on SEC XBRL fundamentals, every threshold owner-tunable from `/admin`) feeds five independent products:
 
 | Product | The question it answers | Cost per run |
 |---|---|---|
@@ -10,8 +10,9 @@ Mag8 is a Next.js app. A deterministic Stage-0 screen (~7,100 US listings → ~2
 | **The Bottleneck Desk** `/bottleneck` | What physical thing is this boom running out of? | **$0** |
 | **The Rotation Board** `/rotation` | What is the market actually rotating into? | **$0** |
 | **The Insider Scanner** `/insider` | Who is buying their own beaten-down stock? | **$0** |
+| **The Tide** `/tide` | How much of the market is worth owning at all? | **$0** |
 
-The three desks keep every model out of the critical path — fetch → parse → arithmetic — so they cost nothing to run, draw no plan window, and every number they publish is reproducible from a primary source. 721 offline tests. 64 academic works cited from one verified registry, including, on every product's own page, the papers that argue *against* it.
+The four desks keep every model out of the critical path — fetch → parse → arithmetic — so they cost nothing to run, draw no plan window, and every number they publish is reproducible from a primary source. 908 offline tests. 75 academic works cited from one verified registry, including, on every product's own page, the papers that argue *against* it.
 
 Under all of it sits a fifth thing that is not a product: **one rule for what counts as evidence**, and a deterministic layer that fetches the primary sources before any research starts — see §6.
 
@@ -52,6 +53,15 @@ Starts at the rare event — a Form 4 **open-market purchase** — then price se
 - **Nothing derived is stored.** No candidates, scores or rankings table — so changing the drawdown band, the discount rate or the required cushion re-derives the whole board *including every rejection reason*, with zero fetches. That is what makes the public conservative / balanced / aggressive picker free to a visitor.
 - **Last full sweep:** 41,110 filings listed → 9,594 read → 197 companies with insider buying → 25 through the strength gate. 24.7 minutes, zero failures, $0.
 - An unmeasured component is not zero: a company is scored on what exists, marked partial, and ranks below every complete one. Banks and REITs have no classified balance sheet, so solvency **refuses** to score them.
+
+## 5. The Tide — `/tide`
+
+The only product here that is about the market rather than a company: whether to be in it at all, and how much. About forty published readings — the shape of the yield curve, what lenders charge for risk, how many companies are actually participating, what the market costs against the economy behind it — each ranked against **its own history** rather than against a fixed threshold, then pointed in the direction that is bad for someone who owns shares.
+
+- **Two figures, never one.** Valuation and cycle answer different questions over different spans. Today the long-horizon reading is at a historic extreme while the near-term one is benign and consumer sentiment contradicts both — averaging them would report something mild and destroy the only information in the picture. The exposure band is driven by the near-term score, because a comprehensive out-of-sample test found valuation ratios would not have helped an investor time the market.
+- **One polarity per gauge.** A reading whose sign depends on circumstances is an argument, not a measurement. Where a variable matters both ways it appears twice: the credit spread's *level* is a long-horizon warning that risk is priced generously, its *change* a near-term warning that lenders have stopped.
+- **The sample is smaller than it looks, and the page says so.** The conditional history counts draws whose forward windows do not overlap, because a forward reading taken in one month and again the next shares almost all of its future with itself. Fifty years of daily data still contains only about seven recessions.
+- Buffett's market-value-to-GDP, Tobin's Q, the Sahm rule and Faber's ten-month rule are all in here, each with the paper it came from and the reason it might be misleading printed beside it.
 
 ## 6. The source standard and the evidence layer — under everything
 
@@ -110,8 +120,8 @@ A real run makes `1 + 3N + 1` agent calls (N=8 → 26 calls, roughly $5–$22 on
 | `MAG8_MAX_CONCURRENT_STOCKS` | no | Candidates in flight at once (default 3 → ≤9 concurrent agent sessions). |
 | `MAG8_DB_PATH` | no | SQLite path (default `./db/mag8.db`). |
 | `MAG8_ALLOW_MOCK` | no | `1` enables zero-spend mock runs on a production/staging deployment (dev always allows them). |
-| `MAG8_DISCOVERY_EFFORT` / `MAG8_LENS_EFFORT` / `MAG8_COMPILER_EFFORT` | no | Reasoning effort per stage (`low…max`). Defaults: high / **medium** / medium — the 2026-07-06 A/B showed a high-effort lens cell blows the $1 per-call budget cap, while medium completes with strong sourcing. Raise `MAG8_LENS_EFFORT` and `MAG8_LENS_MAX_USD` together. |
-| `MAG8_*_MAX_USD` | no | Hard per-call USD caps (runaway protection): discovery 2.0, lens 1.0, compile 1.0. |
+| `MAG8_DISCOVERY_EFFORT` / `MAG8_LENS_EFFORT` / `MAG8_COMPILER_EFFORT` | no | Reasoning effort per stage (`low…max`). Defaults: high / **medium** / medium — the 2026-07-06 A/B showed a high-effort lens cell blew the then-$1 per-call budget cap, while medium completed with strong sourcing. The cap is gone (2026-09-04), so `high` no longer ends a cell early; it still draws harder on the 5-hour usage window. |
+| `MAG8_*_MAX_USD` | no | Optional per-call USD caps. **Unset = uncapped, the default since 2026-09-04**: hitting a cap ends the call with `error_max_budget_usd` and throws away the research already paid for. Set a positive number to arm one (`MAG8_LENS_MAX_USD=1.5`); the per-call timeout, `MAG8_MAX_TURNS_*` and the 90-minute run watchdog are the runaway guards that stop a call *without* discarding its work. |
 | `MAG8_*_THINKING` | no | `adaptive` \| `disabled` thinking override per stage (unset = SDK default). |
 | `MAG8_PRICE_CHECK` | no | `0` disables the independent price cross-check that runs between analysis and compile. |
 | `MAG8_*_TIMEOUT_MS`, `MAG8_MAX_TURNS_*`, `MAG8_MOCK_SPEED` | no | See `.env.example`. |
@@ -142,6 +152,11 @@ npm run rotation -- --board [--indicator ID] # read the board (never hits the ne
 npm run insider -- --refresh [--days N]      # incremental; days already read are skipped
 npm run insider -- --board [--risk conservative|balanced|aggressive]
 npm run insider -- --stock TICKER            # one company's full work-up
+
+npm run tide -- --probe                      # live source smoke; ALL PASS, exit 0
+npm run tide -- --refresh [--dry]            # 39 series + breadth across ~500 companies
+npm run tide -- --board [--baserates]        # the whole desk, no network
+npm run tide -- --gauge ID                   # one reading, in detail
 ```
 
 ## Focus runs & /lab
@@ -179,7 +194,7 @@ section — and each skill's `references/bibliography.md` — render from one ve
 - **Rubric** (`lib/ranking.ts`) — gate multipliers, weights, bonus, and placement rule live as constants; `buildRubricText()` renders the same text into both the compiler prompt and `/methodology`, so the page and the pipeline cannot drift. `finalizeRankings()` recomputes everything and appends any correction to the stock's grounding notes in plain sight.
 - **Cache** — lens analyses double as a cache keyed `(ticker, skill, ISO week)`, matching the scanner's weekly cadence. Cache hits render instantly as "cached" chips and cost $0. Demo/mock rows use a `-demo` suffixed week so fixture data can never leak into a real run's cache. `force` skips lookup.
 - **Progress** — every event is persisted to SQLite *before* it is emitted in-process; the rowid doubles as the SSE event id, so browser reconnects resume via `Last-Event-ID` for free. Mission Control is fully event-sourced; terminal runs render server-side from a snapshot with no stream.
-- **Resilience** — a lens-cell failure becomes an error cell (scored neutral, gap noted), never a run failure. Runs are watchdog-aborted after 45 min. On boot, any `pending/running` row left by a crash is marked `interrupted` with a synthetic terminal event so replaying clients always resolve.
+- **Resilience** — a lens-cell failure becomes an error cell (scored neutral, gap noted), never a run failure. Runs are watchdog-aborted after 90 min (raised from 45 on 2026-09-04, when the lens per-call timeout went 8 → 15 min). On boot, any `pending/running` row left by a crash is marked `interrupted` with a synthetic terminal event so replaying clients always resolve.
 - **Separation contract** — each desk writes only its own tables (`bottleneck_*`, `rotation_*`, `edgar_cache`) and never the pipeline's runs, candidates, analyses or rankings. Enforced structurally: zero foreign keys into pipeline tables, and all SQL still lives in `lib/db.ts`. A desk cannot move the leaderboard.
 - **Skills are versioned in-repo** — the committed `.claude/skills/**` folders are the source of truth and carry improvements the original archives don't have: methodology grounding with verified citations, generated bibliographies, a widened discovery funnel, and honesty framing for the scoring heuristics. `npm run setup:skills` extracts an archive **only when its skill folder is missing**, so it can never clobber the repo versions (a deliberate factory reset = delete the folder, re-run setup, `git restore` to come back). Per-call wrapper prompts + the SDK `skills` filter still scope each agent to exactly one skill.
 
@@ -195,7 +210,7 @@ section — and each skill's `references/bibliography.md` — render from one ve
 
 ## Deploying
 
-This app needs a **single long-lived Node process**: runs execute in-process for up to ~45 minutes, SSE connections stay open, and SQLite lives on local disk.
+This app needs a **single long-lived Node process**: runs execute in-process for up to ~90 minutes, SSE connections stay open, and SQLite lives on local disk.
 
 - **Good fits:** Render, Fly.io, Railway, a VPS, or any Docker host. `npm run build && npm run start`.
 - **Vercel/serverless:** not as-is — verify long-running compute support before relying on it; the detached orchestrator and the in-process event bus assume one persistent instance.
@@ -205,4 +220,4 @@ This app needs a **single long-lived Node process**: runs execute in-process for
 
 ## Disclaimer
 
-Mag8 is a research experiment. **It is not investment advice.** The pipeline's outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The three deterministic desks don't hallucinate, but arithmetic over real filings is still not a forecast: heavy capital spending has historically predicted *worse* returns, insider buying is concentrated in companies smaller than this universe, and 26 ratios across 4 tiers is exactly the setting data-snooping bias was described for. Each page cites the paper that says so. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.
+Mag8 is a research experiment. **It is not investment advice.** The pipeline's outputs come from AI models that can hallucinate figures, misread sources, or be confidently wrong; aggregated analyst targets have a historically poor hit rate; scores are arithmetic over model judgments, not predictions of returns. The four deterministic desks don't hallucinate, but arithmetic over real filings is still not a forecast: heavy capital spending has historically predicted *worse* returns, insider buying is concentrated in companies smaller than this universe, and 26 ratios across 4 tiers is exactly the setting data-snooping bias was described for. Each page cites the paper that says so. The in-app disclaimer (footer of every page + `/methodology`) is a good-faith draft — have a securities attorney review it before operating this anywhere near real users or real money.

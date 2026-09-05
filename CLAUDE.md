@@ -10,8 +10,10 @@ default-off) → S2 `stock-scanner`/`gt-predictor`/
 `institutional-forecast` per candidate, independently (3 candidates in flight, ≤9 sessions) → S3 tool-less compiler
 applies the Trillion-Dollar Confluence rubric; deterministic TS re-verifies gate/confluence/score and re-sorts. Lenses agreeing IS the product (+10 bonus when
 all three bullish). All stages `claude-sonnet-5` (`MAG8_{DISCOVERY,LENS,COMPILER}_MODEL`); effort high/**medium**/medium
-— the 2026-07-06 RKLB A/B killed lens-high (blew the $1/call cap; medium: 97s, ~$0.69, 18 sources, first-try
-handoff; raise `MAG8_LENS_EFFORT` + `MAG8_LENS_MAX_USD` together). WHITE-LABEL: nothing user-visible may name
+— the 2026-07-06 RKLB A/B killed lens-high (blew the then-$1/call cap; medium: 97s, ~$0.69, 18 sources, first-try
+handoff). **Per-call USD caps are now UNCAPPED by default (2026-09-04)** — a cap ENDS the call and bins the
+research already paid for, so the guards are timeout/maxTurns/watchdog; `MAG8_{DISCOVERY,LENS,COMPILE}_MAX_USD`
+arms one only if positive. Lens effort stays medium for the 5-hour WINDOW, not for a dollar ceiling. WHITE-LABEL: nothing user-visible may name
 skills/agents/the AI provider; `/admin` is the ONE exception.
 
 ## Map (single-source & non-obvious only — the rest is discoverable)
@@ -118,7 +120,22 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   See HANDOFF-2026-08-30-rotation-board.md. Ratios of traded funds (RSP/SPY etc): 26 indicators over
   31 instruments, breadth/style/sector/credit/geography + VIX context (reported, NEVER scored).
   `catalog.ts` the ONLY market-specific input (built-ins in code, custom in app_settings
-  `rotation_indicators`); `bars.ts` two INDEPENDENT sources behind one fail-open interface — yahoo
+  `rotation_indicators`); **`baserates.ts` CONDITIONAL HISTORY (2026-09-03)** — pure; what followed
+  the last times a ratio sat in today's decile of its trailing range. Sample counted in **EPISODES not
+  days** (a 63-session forward reading on consecutive sessions shares 62 of 63 days with its neighbour)
+  w/ a merge tolerance (a flickering condition fragments into fake independent visits: 316d/12ep became
+  86d/**20ep** with a slope filter); the PLAIN figure is always published beside the conditional one
+  (only the difference informs); under `baseRateMinEpisodes` → NOT MEASURED, ranks last, never a zero;
+  `bandSharePct` = share of usable history spent in that band (**xlk-spy 49%** — a trending ratio keeps
+  making new extremes inside its own trailing window, so >40% prints BARELY CONDITIONAL). `math.ts`
+  gained `forwardChangeAt` (mirror of `rateOfChangeAt`, the only forward-reading fn); `score.ts`
+  EXPORTS `directionFrom` so board + base rates share ONE deadband rule. **`historyYears` max 10→20
+  (`MAX_HISTORY_YEARS`)** — 5y was statistically empty (439 usable days, RSP/SPY in its own bottom
+  decile on 316 of them = 12 episodes, and the 63d mean **FLIPS SIGN** −1.21%→+0.24% at 20y). NB
+  `loadSeries` had a hard-coded `limit=3000` and `getBars` returns the NEWEST rows → 20y would have
+  silently dropped the oldest 8 years; `barReadLimit()` is sized to MAX_HISTORY_YEARS, deliberately NOT
+  to the current knob (lowering the fetch setting must not appear to rewrite stored history);
+  `bars.ts` two INDEPENDENT sources behind one fail-open interface — yahoo
   v8 (**adjusted** closes) primary, api.nasdaq.com (**RAW** closes, no index symbols) fallback, own
   globalThis queue (NOT edgar's — different hosts); `math.ts` pure stats — **alignOnDate joins on
   DATE, never by position** (^VIX prints Memorial Day 2026-05-25 when funds are shut; a positional
@@ -236,7 +253,7 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 - `lib/reach/` THE EVIDENCE LAYER — not a product, a layer UNDER the pipeline. Deterministic, keyless,
   $0, ZERO plan-window draw. See HANDOFF-2026-09-02-reach-evidence.md + `docs/agent-reach/README.md`
   (why the Agent Reach CLI was rejected: the leak grep bans `\bagents?\b` and `agent-reach` MATCHES
-  it; $1/30-turn/8-min lens cap; CLI text carries no URLs so it would PUSH cells into the <3-link
+  it; the lens cell's own ceilings — then $1/30-turn/8-min, now uncapped/60-turn/15-min; CLI text carries no URLs so it would PUSH cells into the <3-link
   thin-sourcing flag; Railway container; bypassPermissions + a 3rd-party installer).
   `filings.ts` over the existing `getSubmissions` — **~100% coverage**, 1 cached request/candidate,
   form matched by PREFIX not an exact set (424B3/B5/B7, `/A` of anything); **S-8 is NOT an offering**
@@ -264,6 +281,84 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   pinned byte-for-byte; mock/fixture runs return before it. `lib/reach-settings.ts` 8 knobs
   `MAG8_REACH_*` + `MAG8_REACH=0`; optional free `MAG8_GITHUB_TOKEN` (60→5000 req/hr).
 
+- `lib/crossdesk/` THE CROSS-DESK LEDGER (`/crossdesk`, 2026-09-03) — where the desks name the same
+  company. Deterministic, $0, ZERO plan-window draw, and **STORES NOTHING**: no table, no migration,
+  user_version stays 7; every row derived on read from what four desks already hold, so it cannot drift
+  and a visitor's own `?risk=` re-derives the whole page free. See
+  HANDOFF-2026-09-03-crossdesk-baserates.md. NOT `/convergence` — the pipeline owns "Confluence" and
+  `--color-confluence` gold marks its final verdicts, so **no gold on this page**.
+  **Every claim carries its KIND**: `measured` (a desk computed a figure about THIS company — board
+  finalScore, insider composite+dollars) · `curated` (a hand-kept list — bottleneck `owners[].tickers`
+  + `demand.basket` — carrying the MEASURED state of what it's attached to; the page prints both
+  halves) · `context` (the NEIGHBOURHOOD, never the company). **The universe screen is NOT a desk**
+  (eligibility is the price of entry to two desks, not evidence — it would hand every name a free
+  point); it contributes size/price/solvency/dilution CAUTIONS only (`universeScreenFlags` widened to
+  `Pick<UniverseResult,"rows"|"extras"|"settings">` so a stored snapshot needs no live screen).
+  **The rotation board never counts toward agreement** — it trades funds; absent from `DESK_ORDER`,
+  pinned by test. `sectors.ts` bridge = universe snapshot's `s` (exchange scheme, **13 clean values**),
+  NEVER `candidates.sector` (model free text, **88 distinct values across 55 rows**); 10 map, Telecom→XLC
+  labelled approximate, Miscellaneous/Other→nothing; a test asserts every mapped fund has a real board
+  indicator. **SECOND CROSSING AXIS (owner-asked): a company named by ≥`minThemes` BOTTLENECK THEMES
+  crosses too** (CEG = AI-infra power +81.9pp AND nuclear +86.5pp) — `DeskClaim.group` (playbook id) +
+  `.constraint` (category key); ranked BELOW every desk crossing on purpose (one desk's method applied
+  twice ≠ two desks agreeing) and `crossedBy: ("desks"|"themes")[]` says which on every row. **Two themes
+  over the SAME `constraint` = ONE constraint in two industries, not two** (MP/USAR, both `ndpr_kg`) —
+  counted as `sharedConstraint` and stated on the row. 7 companies in 2+ themes: BWXT CEG GEV MP TLN USAR
+  VST. `lib/crossdesk-settings.ts` 5 knobs + `MAG8_CROSSDESK=0`. Live: 13 crossings of 244 named;
+  **board ∩ insider = 0** (structurally disjoint populations — say it, don't hide it), board ∩
+  bottleneck 5, insider ∩ bottleneck 2. NB the canonical board excludes focused/blind runs, so AVAV and
+  RCAT (focused-run only) are correctly absent — a raw `rankings` count says 7 and is wrong.
+
+- `lib/tide/` THE TIDE (`/tide`, 2026-09-05) — fifth product, the only one about the MARKET not a
+  company: how much to own vs cash. Deterministic, $0, keyless, ZERO plan-window draw, user_version 8,
+  two additive tables, 0 FKs. See HANDOFF-2026-09-05-tide.md. **40 gauges / 39 series.**
+  `catalog.ts` the ONLY market-specific input, split SERIES (where a number comes from + a staleness
+  budget) from GAUGE (what it MEANS) so one series feeds two gauges. **ONE POLARITY PER GAUGE** — a
+  gauge whose sign depends on circumstances is an argument, not a gauge; a variable that matters both
+  ways appears TWICE (baa10y level = slow/complacency high-is-good; baa10y change = fast/stress
+  high-is-bad). That rule KILLED "the curve un-inverted" (steepening from normal is good, from inverted
+  is bad) → replaced by `curve-recent-inversion` = depth of worst inversion in 2y, single-signed, same
+  content. **NO ABSOLUTE THRESHOLDS** — every gauge is a percentile of its OWN history (a fixed
+  threshold is where an opinion hides, and it rots as the world moves).
+  `normalize.ts` PURE heart: sampleOnto (a ratio is evaluated on the LOWER-frequency leg's dates —
+  sampling, not carry-forward) + 6 transforms + stress 0-100 (100 = worst) oriented by polarity +
+  **`meaningFor()` picks prose by PERCENTILE never by stress** (a low stress on a high-is-good gauge
+  means a HIGH reading — the build wrote "the index is below its ten-month average" as favourable with
+  the S&P at a record) + `toMonthly` (EVERYTHING incl. today is scored on the monthly grid, so the
+  board number IS the last point of its own chart — one code path, no drift).
+  `score.ts` PURE: `weightFor(family,horizon)` — the PAIR is the key; family aggregates equal-weighted
+  within, family weights across; **an unmeasured gauge is EXCLUDED, never 50** (a family with no
+  measured member contributes no weight and redistributes); good/bad split by TODAY's reading, reported
+  as a share of WEIGHT not count; exposure band = one published line, `base − fastPenalty·(fast−50)/50
+  − slowPenalty·(slow−50)/50`, clamped 20–90 (never 0 or 100), published as a BAND.
+  **TWO COMPOSITES, NEVER AVERAGED** — live: fast 45.9 benign, slow 87.3 extreme, sentiment 55.2
+  contradicting both; one blended number would report "mild" and destroy the only information.
+  Slow is REPORTED not acted on (Goyal-Welch: valuation would not have helped time the market).
+  `baserates.ts` **greedy NON-OVERLAPPING draws, NOT episode clustering** — clustering by proximity
+  produced a single "visit" 2022-02→2025-01 at gap 3 and 2018-03→2025-08 at gap 12; and the result
+  swung 49 visits/+6.2% (gap 1) → 21/+7.7% (3) → 11/+8.0%/**100% positive** (6) → NOT MEASURED (12).
+  Spacing can only be WIDENED, never below the horizon. Live: 19 draws 1996-2025 incl. −14.9% (2007-06)
+  and −9.2% (2022-02), +14.4% vs +9.2% plain. minEpisodes 5 because 30y of independent annual windows
+  holds ≤30 observations total (a floor that can never be met is not a safeguard).
+  `feeds.ts` fail-open connectors fred|cboe|market|manual. **HTTP 200 + HTML for a nonexistent FRED id
+  — a status code validates NOTHING**; **freshness gate: `USSLIND` (the obvious free LEI) answers fine
+  and died 2020-02** (also dead: USALOLITONOSTSAM 2024-01, MVEONWMVBSNNCB 2017-10, WRMFSL 2021-02,
+  DRTSPM 2014-10); **future-dated rows are PROJECTIONS** (`NROU` last obs **2036-10-01**, GDPNOW is a
+  nowcast) and are dropped+counted; FRED wants an HONEST UA (opposite of the price rule — do not
+  cargo-cult). **Staleness budgets are frequency PLUS LAG, not frequency** — Z.1 `equities` sat 247d
+  against a 250d budget, 3 days from declaring the Fed's own accounts dead (Z.1 → 330, GDP/CP/delinq →
+  280). Three freshness states: never-published ≠ stopped-publishing ≠ current.
+  **ICE BofA OAS (BAMLH0A0HYM2) is licence-capped to a rolling ~3y and `cosd` does NOT extend it** → use
+  Moody's `BAA10Y` (1986→); FRED `SP500` capped to 10y → use `^GSPC`; Wilshire gone from FRED → `^W5000`
+  on Yahoo; **CBOE publishes VIX/VIX3M itself keyless and complete** (1990/2009→) where `^VIX3M` is
+  unreliable. `breadth.ts` counted from the universe snapshot **STRICTLY READ-ONLY**
+  (`latestUniverseSnapshot()` + pure `screenUniverse()`, NEVER `getWeeklyUniverse()`) + rotation's
+  `fetchTicker` w/ `assetClass:"stocks"`; 496/500 companies, 604k closes; survivorship-biased (today's
+  largest, read backwards) — bias runs AGAINST the present reading, and is disclosed. `desk.ts`
+  refreshTide (network) / readTide (**NEVER** network, ~120ms). `lib/tide-settings.ts` 33 knobs
+  `MAG8_TIDE_*` + `MAG8_TIDE=0`. **A series no gauge reads is never fetched and looks catalogued while
+  being invisible** — pinned by test (caught `anfci`; `houst`/`drccl` became real gauges).
+
 ## Invariants — do not break
 1. SSE plumbing: `next.config.ts` keeps `compress:false` (gzip would buffer SSE) + `serverExternalPackages`
    `['better-sqlite3','@anthropic-ai/claude-agent-sdk']`. Persist progress events (sync INSERT) BEFORE emit;
@@ -283,7 +378,10 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
    `.structured_output` else `extractJsonLoose()`; exactly ONE corrective retry resumes the session with the actual zod issues.
 4. Fixture/mock lens rows key on `demoWeekKey()` (`YYYY-Www-demo`) — demo can never satisfy a real cache lookup.
 5. A lens-cell failure becomes an error cell (neutral 50 + gap note), NEVER a run failure; all-cells-failed aborts
-   pre-compile; FATAL_AGENT_ERROR (plan limit/auth) fast-aborts; watchdog 45 min; per-call timeout + `maxBudgetUsd` caps in config.
+   pre-compile; FATAL_AGENT_ERROR (plan limit/auth) fast-aborts; watchdog 90 min (was 45; a 15-min lens cell x3
+   batches + discovery + compile = 63 worst case); per-call timeout (lens 15 min) + maxTurns (lens 60) bound a
+   call. `maxBudgetUsd` is OPTIONAL and OFF by default — it is the one guard that destroys what it stops (the SDK
+   ends the query `error_max_budget_usd`, the cell persists as an error with cost 0 and the spend is already gone).
 6. UI: gold (`--color-confluence`) marks FINAL VERDICTS only (`--color-macro` is copper for this reason);
    grids need an explicit `grid-cols-1` base and chip rows need `flex-wrap` (375px no-horizontal-scroll).
 7. Mock runs: dev always, prod needs `MAG8_ALLOW_MOCK=1`. Real runs need `authMode() !== 'none'`: api-key or
@@ -325,6 +423,14 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
 - Headless Edge freezes rAF (framer stuck, recharts blank): add `--virtual-time-budget=12000
   --run-all-compositor-stages-before-draw` (+ `--enable-unsafe-swiftshader` for WebGL). Virtual time
   fast-forwards timers — mid-flight shots need plain `--timeout`; throttled EventSource shows CONNECTING.
+- **The dev server EXHAUSTS ITS V8 HEAP after compiling ~10-15 routes and wedges** (2026-09-03): 100% CPU,
+  ~6.4GB private, answers NOTHING — with 27GB of machine RAM still free, so it is the default ~4GB old-space
+  ceiling, not the box. Symptom is indistinguishable from a hang in whichever page it died on (it blamed
+  /methodology once and /crossdesk once; both render in <2s alone). Fix: run any full-surface sweep with
+  `NODE_OPTIONS=--max-old-space-size=12288`, warm routes ONE at a time, and `Stop-Process` when it spins.
+  Corollary: the leak probe must use **curl, not node's fetch** — `scripts/__leak-curl.sh` (gitignored, like
+  every `scripts/__*`) prints byte sizes and flags anything <20KB, since a mid-recompile reply is a ~3KB
+  Next shell that greps clean.
 - **`next build` while `next dev` is running shares `.next` and CORRUPTS the running dev server.** Symptoms range
   from 404 CSS to a hard 500 on every route with `Cannot find module './611.js'` / `Require stack: .next/server/
   webpack-runtime.js` and NO UI at all (hit 2026-08-30 — the build overwrote chunks the dev server had already
@@ -358,6 +464,11 @@ npm run bottleneck -- --refresh [PLAYBOOK] [--dry] [--reuse-demand]          # d
 npm run rotation -- --probe                             # live price-source smoke; ALL PASS, exit 0
 npm run rotation -- --refresh [--dry] [--ticker T]      # 31 tickers, ~39k closes, ~24s
 npm run rotation -- --board [--indicator ID] | --note [--write] | --coverage
+npm run rotation -- --baserates [--indicator ID]        # what followed, the last times a ratio sat here
+npm run crossdesk -- --board [--risk PROFILE] | --ticker T   # where the desks name the same company ($0, read-only)
+npm run tide -- --probe                                 # live source smoke; ALL PASS, exit 0
+npm run tide -- --refresh [--dry] [--series ID]         # 39 series + breadth over ~500 companies
+npm run tide -- --board [--baserates] | --gauge ID | --baserates | --coverage | --report [--write]
 npm run insider -- --probe                              # live feed smoke; ALL PASS, exit 0
 npm run insider -- --refresh [--dry] [--days N] [--force] [--workup-only]   # incremental; days already read are skipped
 npm run insider -- --board [--risk conservative|balanced|aggressive] | --stock TICKER | --report [--write] | --coverage
@@ -370,7 +481,7 @@ CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×
 ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any public-surface change): render `/`,
 `/rankings`, `/methodology`, `/lab`, `/bottleneck` (+`?playbook=<id>`), `/bottleneck/clone?cik=<n>`,
 `/bottleneck/exposure`, `/rotation`, `/rotation/<id>`, `/insider` (+`?risk=<profile>`), `/insider/<ticker>`,
-`/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
+`/crossdesk` (+`?risk=<profile>`), `/tide`, `/tide/<id>`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
@@ -383,6 +494,7 @@ edge" 2026-08-30; blurbs on /admin are exempt, /methodology is not). Curl a dev 
 a ~3KB Next shell that greps clean — check `wc -c` before trusting a 0.
 
 ## State & open items (deep detail: `HANDOFF-*.md`; video rulebook: `marketing/video/CLAUDE.md`;
+chart-format engine: `marketing/video/CHARTS.md` + `.claude/skills/viral-chart-protocol`;
 video OWNER FORMULA: `marketing/video/FORMULA.md` — every owner video request, compounding:
 consult before any film work, APPEND every new owner note to its changelog)
 W28 live clean: 2026-07-06 count=4 focus run (defense/dual-use autonomy; $8.70 notional, 10 min) + post-reset
@@ -852,4 +964,272 @@ FKs). OPEN: never run live — the ONE plan-window step is the owner's, `npm run
 --lens-probe IONQ` before/after (+376 tokens for a normal lens, +786 for gt-predictor; expect source
 links to go UP); the handle map is 17 names and extending it is research; no prior week yet so trends
 start next week; never seen at 375px.
+2026-09-03 (Code): THE CROSS-DESK LEDGER + ROTATION CONDITIONAL BASE RATES
+(HANDOFF-2026-09-03-crossdesk-baserates.md). Owner asked to brainstorm whether **MiroFish** (open-source
+multi-persona social simulator, OASIS/CAMEL-AI, AGPL-3.0, NO published accuracy validation) could improve
+Mag8, then said to build the two ideas that survived — **neither of which needs MiroFish**. Why it was
+rejected, on file: Mag8's OWN source standard kills it (sentiment is Tier B, a lead never evidence; a
+simulated crowd is SYNTHETIC Tier B and can move no score); it wants an OpenAI-compatible endpoint and the
+Agent SDK is not one, so a shim would put a simulation in competition with the 5-hour window that already
+killed faaa8ffe twice; the box is an RTX 5070/12GB = the offline fork's MINIMUM not its recommended tier;
+"multi-agent swarm" is the agent-reach leak trap verbatim; AGPL network copyleft would arguably oblige
+publishing Mag8's source. Shipped instead: (A) `/crossdesk` + `lib/crossdesk/` + 4 knobs + CLI + /admin
+panel + /methodology section; (B) `lib/rotation/baserates.ts` + 3 knobs + a `baserates` settings group +
+detail-page section + board column + `--baserates` CLI + /methodology prose. **NO new table, user_version
+stays 7, nothing derived is stored in either.** SIX findings, each a confident wrong number: (1) five years
+of closes could not support a base rate AND would have published the WRONG SIGN — 439 usable days, RSP/SPY
+in its own bottom decile on 316 of them = 12 episodes, and the 63-day mean flips −1.21%→+0.24% at 20y;
+(2) **MY OWN plan figure was wrong and the code is stricter than I was** — I predicted 7 board∩bottleneck
+crossings from raw `rankings`; the ledger says 5 and is RIGHT, because the canonical board excludes
+focused runs and AVAV+RCAT appear ONLY in one (verified in the DB); (3) `loadSeries` had a hard-coded
+`limit=3000` while `getBars` returns the NEWEST rows, so 20y would have silently dropped the oldest 8 years
+with every page still describing the full span; (4) episodes need a MERGE TOLERANCE — a flickering
+condition fragments 316d/12ep into 86d/**20ep**, inflating apparent n exactly as the real sample shrinks;
+(5) `bandSharePct`, added only after READING real output: xlk-spy sits in its own "top decile" for **49%**
+of its measurable history, so >40% now prints BARELY CONDITIONAL; (6) two copy bugs from case-folding
+author-written labels ("us-listed", "its the build in land and homes under construction is part of…") —
+labels are now interpolated whole. Live: 20y stored (31 ok/0 failed/0 thin/140,970 closes/20.7s, no basis
+switches); all 25 ratios clear the 8-episode floor, xlu-spy +1.75pp over 32 visits at 72%, xli-spy +1.54pp
+at 80%, flagship rsp-spy **−0.35pp** (low breadth has NOT historically been followed by breadth
+recovering); ledger 7 crossings of 244 named, **board ∩ insider = 0** (disjoint by construction, said on
+the page). readBoard 95ms→279ms at 4× bars. Same session, owner follow-up: **a company in MULTIPLE bottleneck themes now crosses on its own axis**
+(their example, CEG, was exactly right) — 7 → 13 crossings; VST crosses on BOTH axes. The distinction that
+earned its keep: MP and USAR are in two themes over the SAME input (`ndpr_kg`), which is one constraint in
+two industries, so the row says so rather than counting it as two. Gates: tsc, **770 vitest** (was 721),
+seed EXACT, gen:bib no-op, build clean w/ /crossdesk registered, **leak probe 0 HITS across 17 surfaces**,
+curtain 404s /crossdesk WITH a valid admin cookie and the homepage carries no link. NO citation added (nothing verified
+against a primary source this session) → **homepage chip stays 64**. OPEN: `historyYears` still defaults 5
+(20y is stored and read regardless — set the knob on /admin so a future refresh keeps it); the insider
+desk's ledger contribution is thin because only 60 of 136 are worked up per refresh (NVR/VST read "no
+price history fetched", a limit not a finding); never seen at 375px.
+2026-09-04 (Code): PER-CALL USD CAPS OFF BY DEFAULT — owner: "dont cap the budget at all i want these cells
+to finish their work… it reaches the budget and can't continue meaning the credits already put into the cell just
+go to waste." Exactly right, and the DB shows it: run 945fa0e4 (2026-09-04, count=8 force) has VG × all three
+lenses dead on `Reached maximum budget ($1)` and persisted with **cost_usd 0** — the window was drawn on, the
+research was thrown away, and the row does not even record what it cost. The cap was never a spend control here:
+on subscription auth `total_cost_usd` is NOTIONAL, the real ceiling is the 5-hour window, and the tokens are
+charged to that window whether or not the SDK stops the call. It is also the ONLY guard that destroys what it
+stops — a timeout, maxTurns or the watchdog end a call with its work intact. `optionalCapUsd()` in lib/config.ts
+now returns `number | undefined` (positive env value arms a cap; unset/0/junk = uncapped) and all three stage
+defaults are UNSET; agent.ts omits the SDK option unless it is > 0. Prose that asserted a "hard per-call budget"
+(prompts.ts, source-standard.ts, reach/filings.ts, reach-settings blurb) reworded to "turn and time budget",
+which is what actually bounds a cell now. Rotation's optional note keeps its $0.50 cap DELIBERATELY: it is a
+4-turn tool-less call in a model-free product, off by default, and a small budget is part of that design.
+Lens effort stays "medium" — the reason is the 5-hour window, no longer a dollar ceiling. Gates: tsc clean,
+770 vitest pass. (No `next build` — a dev server was up on 3000 and building over it corrupts `.next`; no
+routes or JSX changed.) SECOND HALF, owner-approved in the same breath: the dollar cap was not the only ceiling
+that ends a cell destructively, so lens timeout 8 → **15 min**, lens maxTurns 30 → **60**, and — because they
+would otherwise just relocate the death — the run watchdog 45 → **90 min** (worst case count=8 is discovery 12
++ 3 batches x 15 + compile 6 = 63). A longer watchdog is cheap precisely because resume banks finished cells.
+The 21 unfinished cells of 945fa0e4 (18 session-limit + 3 budget) are still resumable in place, owner deferred
+the resume: `npm run pipeline -- --resume 945fa0e4-811e-465f-a509-1dc1b7f59c59`.
+2026-09-04 (Code): THE VIRAL CHART FORMAT — a fifth content line, in `marketing/video/`, not in the app
+(HANDOFF-2026-09-04-viral-chart-format.md; engine notes `marketing/video/CHARTS.md`; procedure
+`.claude/skills/viral-chart-protocol`). Owner: researched a creator in the animated-money-chart genre and asked
+to replicate and beat the format — expanding x/y axes, time on x, money/percent on y, a big ticking date under
+the plot, several coloured lines, an icon riding each line head — branded MAG8 with the logo, the name and the
+website, runnable on demand as "the viral chart content protocol". RESEARCH VERDICT that shaped the build: the
+genre's most-viewed chart (12M views, reposted at presidential level) was FACT-CHECKED AND LOST — not because a
+number was wrong but because a WINDOW was: one series had 18 months against everyone else's 48, so once the
+animation passed its last observation its line stopped climbing while the rivals kept going, and a line that
+stops climbing while others rise reads to every viewer as the winner. Nothing was mis-rendered. So the honesty
+machinery is the product here, not a footnote: `ChartData` gives every series one slot per SHARED date (a short
+run must be explicit nulls), `chart-fetch` rebases to the first date all series exist AND trims to the last date
+they all report, and `chart-verify` FAILS the render on any leading/trailing null run. Proven by injecting the
+defect — nulling SPY's last 20 months produced the exact FAIL and the restore came back clean. Tooling verdict:
+every no-code tool in this space either needs an enterprise contract to export video (~$5k/yr) or watermarks and
+meters the free tier; Remotion renders unlimited 1080×1920 locally on the house tokens for $0 and can pull its
+own data, which none of them do. Both sources are keyless and already proven in the product's own data layer —
+Yahoo v8 and FRED CSV, which want OPPOSITE User-Agents. SEVEN findings, each a confident wrong number: (1)
+**`range=max` silently changes the interval PER SYMBOL** — asking Yahoo for monthly bars over "max" returned
+QUARTERLY for AAPL/MSFT (listed 1980/1986) and monthly for the rest, no error, no field saying so; aligned on
+date they were each missing 114 of 173 months and drew long straight chords through a field of curves. The
+fetcher now measures the median stamp gap and refuses a mismatch. (2) **FRED marks a gap with "." in some series
+and with NOTHING in others** — `Number(".")` is NaN and gets skipped but **`Number("")` is 0 and passes
+`Number.isFinite`**: CPIAUCSL ships `2025-10-01,` (the index was never published) and it rebased to −100%,
+drawing consumer prices falling off the bottom of the plot. **THE SAME BUG WAS LIVE IN `lib/bottleneck/supply.ts`
+`parseFredCsv`** — on a supply series a phantom zero is a collapse, i.e. a fake TIGHTENING on the desk; fixed +
+pinned (771 tests, was 770). (3) MY OWN `deOverlap` bug: the per-item clamp UNDID the spacing it had just done —
+8 badges needed 588px of a 554px column, the block shifted up to clear the bottom and the top badge was clamped
+back down ONTO its neighbour, so the leader and runner-up printed through each other; it now shrinks the gap
+first and compresses proportionally, and every badge draws a dot at its TRUE point with a dashed connector so a
+nudged label never misstates a value. (4) `overflow:hidden` on a label is a silent lie — "Median home sold"
+printed as "Median home so" and reads as a shorter phrase, not as a bug; head labels are nowrap and unclipped so
+the stills sweep catches it. (5) **`spawnSync('npx.cmd', …)` on Windows returns status 0 having rendered
+NOTHING** — the driver uses `shell: true` and then checks the file exists. (6) the programmatic renderer defaults
+to **port 3000**, which is the app's dev server: it loads the WEBSITE, finds no compositions and reports "not a
+valid Remotion project"; `scripts/stills.ts` pins 3335 (helps every existing film too). (7) a log axis carries a
+LOG SCALE chip or the render is blocked, and the payoff bars use the SAME scale as the plot (linear bars under a
+log chart collapse six real climbers to a dot). NOTHING ON SCREEN IS A TYPED FIGURE: heads, live rail, standings,
+the gold winner's number, the multiple and the date range are all read from the frozen dataset at render time,
+and the verifier warns on any number in copy that is not a final value / multiple / year / principal. Renders
+never fetch — data is frozen into a committed TS module, so a re-render is byte-identical and the on-screen
+"PULLED <date>" is true. **RECUT SAME DAY on owner review** ("remove the intro and the outro... straight into the charts and
+end when the charts are done... more subtle, casual... mostly just a cool fun interesting moving graph
+video for the average scroller"): the film is now the RACE ALONE — 690f / 23s, no question card, no
+endcard, and the 276 frames the two cards used went back INTO the race rather than out of the runtime
+(~4 frames per data point, not ~3). **This SUPERSEDES FORMULA §G for the chart format only** — no
+endcard means no WaitlistCta, the one sanctioned exception to "never drop the CTA". The brand now
+promotes by BEING PRESENT: the header carries mark + MAG8 left and the tagline "The next
+trillion-dollar leaderboard." over themag8.com right, on every frame, muted and with no ask; the
+verifier FAILS a cut that has no endcard AND no address in the header, so it can never silently become
+an unbranded chart. Beats are data — `chartScenes` drops any zero-length beat, so hook/payoff/endcard
+cost nothing while unused and return for any spec that gives them frames. Recut surfaced THREE more
+findings, all from reading stills: (8) with no hook card, **frame 0 IS the cover frame**, and at idx 0
+every series is worth the same, so de-overlap fanned eight identical heads into an 84px-spaced column
+that read as a floating legend of eight different values — head furniture now emerges with the lines;
+(9) **a y window wider than the data crushes the chart** — the log axis opened on a full decade
+regardless of what was revealed, so for the first third of the run every line sat inside ~25px of a
+610px plot; it now opens TIGHT around the revealed data and widens (both bounds monotone, so the axis
+still never rewinds), which is also the move the format is FOR, and a log axis under ~12× spread now
+takes nice round ticks because the decade walk yielded exactly ONE tick; (10) **`yFloor` was a hard
+floor and clipped a real series** — the median-home line dips to −1.27% in 2000 and was drawn below
+the baseline, OUTSIDE the plot box; a preferred floor now yields to real data below it. TWO FILMS
+SHIPPED, both 1080×1920 / 690f / 23.1s: `out/chart-mag7-10k.mp4` (8 lines,
+log, $10,000 from 2012-06 → NVDA $7,281,108 = 728×, SPY $72,148) and `out/chart-wages-vs-everything.mp4` (4
+federal series, linear, since 2000 → home prices +233.1%, median home +148.5%, wages +134.6%, CPI +96.3%).
+FORMULA.md §K added + changelog appended (twice — build, then recut); **the §G "no URL until the domain is
+live" hold is DISCHARGED for charts** — themag8.com is in the brand row of every frame, per the owner's
+branding ask. NEW
+OWNER RULE recorded in §K: real-name safe framing now covers PEOPLE — the "X's net worth vs Y's" shape common in
+this genre is an OWNER DECISION, never a default (MAG8 is a live financial product; badges default to monogram
+discs, no likeness, no licence). Gates: tsc clean (video + app), 771 vitest, `check:leak` 0 hits over 73 files,
+chart-verify 0 FAIL, stills read at every beat, encode-path seq clean, both renders exit 0 w/ ffprobe exact.
+OPEN: portrait only (no landscape variant); the `image` medallion path is built but unused pending the owner's
+likeness call; no chart has been posted to any platform yet.
+2026-09-05 (Code): CHART PROTOCOL — STANDING BRIEF + BATCH FOLDERS. Owner: "whenever i say run the
+'viral fun chart marketing protocol'… automatically brainstorm 3 ideas for what we can chart to compare,
+and that is content that we havent made before, ensure there is no intro/outro but only the interesting
+chart moving… also automatically put the chart marketing videos in a different folder specific for chart
+videos, make multiple chart folders… each folder stores a maximum of 25 videos… this makes things easier
+for posting on youtube where i can drag and drop 25 videos into youtube at once." THREE changes, two of
+them enforced in code rather than written down: (1) the skill's trigger list now carries the owner's own
+wording ("viral fun chart marketing protocol") and an unqualified invocation is a STANDING BRIEF — read
+`npm run chart:made` + `specs/` first so novelty is CHECKED not recalled, brainstorm exactly three
+comparisons that vary the SHAPE (the two shipped films are "$10k invested, log, money" and "since 2000,
+linear, percent"; a third of either shape is a re-tread), probe the series ids, then AskUserQuestion and
+build the pick. (2) NO INTRO/OUTRO IS NOW A GATE, not a default: `chart-verify` FAILS any spec giving the
+hook, payoff or endcard beat frames — the scenes stay in the engine for an owner-asked exception, but a
+spec can no longer quietly reintroduce a card (proved by injecting `beats:{endcard:150}` → 1 FAIL, exit 1,
+reverted). (3) `scripts/chart-out.ts` files chart films into `out/charts/batch-NN/`, **25 per folder = one
+YouTube drag**; `render-charts.ts` resolves the path BEFORE rendering so the log says where the file is
+going. Two rules that are the whole point: **a re-render is not a new film** (an existing `chart-<id>.mp4`
+re-renders in its own folder, else fixing a typo in an old chart burns a slot in the current one and leaves
+two copies to upload) and **nothing is ever re-filed** (a folder already dragged into YouTube must keep
+meaning what it meant that day). `npm run chart:made` prints the state, marks a FULL folder, and is the
+novelty check. The two existing films moved to `out/charts/batch-01/` (out/ is gitignored). Verified:
+rollover probe (re-render → slot 1 of batch-01; 26th film → batch-02), live end-to-end re-render of
+wages-vs-everything landing in batch-01 at 2/25 with no stray file at `out/` root, chart-verify 0 FAIL,
+tsc clean, check:leak 0 hits over 73 files. Docs: FORMULA §K + changelog (the compounding rulebook),
+CHARTS.md (files, the cut, a new "Where the films are filed"), marketing/video/CLAUDE.md gates, SKILL.md.
+2026-09-05 later (Code): CHART PROTOCOL RUN — THREE FILMS. Owner: "execute the viral chart protocol and
+make 3 original videos" — an explicit count means BUILD ALL THREE, not brainstorm three and build one (§K +
+SKILL.md now say so). Novelty checked with `chart:made`, then three deliberately different SHAPES, because
+three subjects on one shape is one film made three times: `chart-cost-of-money` (six US interest rates 1976→,
+FRED `raw` — LEVELS, nothing rebased, lines that fall as often as they rise; prime rate above 20% in 1981),
+`chart-cheaper-or-dearer` (eight CPI categories since 1990, a fan that crosses ZERO — hospital care +613.9%
+against toys −74.7%), `chart-sector-race-10k` ($10k into eight sector funds since 2001, LINEAR because the
+field finishes inside 4.9× — 25 lead changes, energy leading for a decade, technology $236,043 and four of
+seven sectors behind the index). All 690f/23.06s/1080×1920, filed batch-01 (5/25). Series ids were PROBED
+before proposing (FRED publishes no televisions series; the CPI computer series starts 2005 and would have
+eaten fifteen years of the window; the credit-card and mortgage rates could not join the rate film honestly —
+one is weekly and one is quarterly on the Feb/May/Aug/Nov grid, so both would have been a line full of holes).
+SIX findings, each a confident wrong number or a false statement on screen, all in CHARTS.md: (1) **Yahoo
+appends a LIVE bar on top of the current month's bar** — `2026-09-01` AND `2026-09-04`, the month twice, so
+the final segment draws three days of movement across a month of x-axis width; the axis whose whole job is
+time misstates its own last step, silently, with every value real. `oneRowPerMonth()` keeps the freshest
+reading at the month start; the two ALREADY-PUBLISHED films still carry the extra point and were deliberately
+NOT re-fetched (a published film's numbers do not move). (2) the spike check FAILED real data — a rebased
+percent series starts at zero, so early noise is enormous against its own level (toys, 118.4→117.5→118.3 on a
+118-point index); the excursion must now also exceed 5% of the series' OWN range, proven by re-injecting the
+blank-field collapse the check exists for. (3) a cap written in a comment is not a cap: `xAxisYears` promised
+six labels and delivered eleven over fifty years. (4) the live rail assumed ticker-length labels — four fixed
+columns printed "10-yr Treasury" through its neighbour; type floors forbid shrinking text, so the GRID gives
+way (columns only ever reduced, rows compressed to the fixed band above the receipts). (5) the axis chip was a
+guess dressed as a fact — `unit === 'pct' ? 'CUMULATIVE %'` sat over a chart of published levels; it now reads
+the dataset's own method line. (6) **eight lines is the format's ceiling** — at nine the head badges compress
+past the point where a label stops printing through the value beneath it (two funds finishing $157 apart drew
+through each other), so consumer staples was cut and the spec says why. Gates: tsc clean (video), chart:verify
+0 FAIL across all 5 charts, stills read at every beat + encode-path seq on all three, check:leak 0 hits over 79
+files, three renders exit 0 with ffprobe exact.
+2026-09-05 (3rd pass, Code): CHART PROTOCOL RUN AGAIN — THREE MORE FILMS, batch-01 now 8/25. Owner: "run
+the protocol again, create 3 more original videos". Three UNUSED shapes, not three new subjects:
+`chart-work-in-america` (eight payroll counts 1970→, the first chart on the **`index` unit** — raw headcounts,
+nothing rebased; manufacturing peaks and falls while education+health passes everything to 27,945k),
+`chart-grocery-run` (eight BLS average prices 2000→ monthly, **dollars at shelf scale** — ground beef $6.88 to
+bananas $0.65), `chart-world-markets` (eight national markets, **Yahoo `pctChange`** — Brazil led for a DECADE,
+16 lead changes, Taiwan +1037.4% at the wire, and every line is a US-dollar return so the currency is in it).
+FOUR findings: (1) **a spike check that only looks at the two neighbours is a sample of one** — the German
+market fell 13% in Sep 2011 and bounced 16% in Oct (the eurozone crisis, verified against the source closes)
+and was FAILED as a parse artefact; the excursion is now also compared with the series' own TYPICAL step (median
+absolute move), which is what the check's comment always claimed, and the injected blank-as-zero collapse still
+FAILS. (2) **sampling can manufacture the very artefact the gate looks for** — one month in three landed on the
+April 2020 egg peak ($1.53→$2.02→$1.64) and made a real spike look like a lone excursion; the same series
+monthly passes, so a price that moves in weeks is never sampled in quarters. (3) a publisher's gaps are not
+evenly spread — BLS stopped collecting COFFEE for 2008–09 and 2018–19 and RICE for 2000–02, which draws a
+straight chord across two years (a picture of a price that did not move, over exactly the period it moved
+most); both were cut from the basket rather than drawn. (4) money below $100 needs CENTS — `group()` rounds to
+whole units, so every grocery line printed as a flat integer; the threshold sits above every value in every
+earlier film, so nothing published moves. Gates: tsc clean, chart:verify 0 FAIL across all 8 charts, stills
+read + encode-path seq on all three, check:leak 0 hits over 85 files, three renders exit 0, ffprobe exact
+(1080×1920, 690f, 23.06s).
+2026-09-05 (Code): THE TIDE — a FIFTH product, the only one about the market rather than a company
+(HANDOFF-2026-09-05-tide.md). Owner: "exhaustively research all the indicators for when the markets are
+over-extended… and all the indicators for when the markets are undervalued, being panic sold… create an
+aggregate reading of the good and the bad, with more weighting allocated to more meaningful readings…
+mostly just to see how much exposure is recommended to the markets or to cash", explicitly inviting
+famous practitioner indicators (Buffett) alongside micro and macro. Owner decisions at plan stage:
+auto-only sources w/ hand-entry for the rest (no spreadsheet parsers) / sub-scores lead + band under /
+breadth computed from Mag8's own universe / named **The Tide** (checked against the leak grep). 40
+gauges, 39 series, 33 knobs, 130 tests. LIVE: fast 45.9, slow 87.3, **50–60% equities, neutral** —
+`60% base +2.9 cycle −7.5 valuation = 55.4%`. THE DESIGN DECISION, forced by the live data: the slow
+side is at a historic extreme (household equity share 45.8%, equities/GDP ≈214%, profits/GDP 13.2%)
+while the fast side is benign (curve +0.87 un-inverted, Sahm −0.07, claims 207k, credit tight) and
+sentiment 55.2 contradicts both — one blended number would report "mild" and destroy the only
+information, so TWO composites, never averaged, and the band is driven by the FAST one because
+Goyal-Welch says valuation would not have helped time the market. THIRTEEN findings, each a confident
+wrong number: (1) **FRED answers a nonexistent series id with HTTP 200 + an HTML page** — a status code
+validates nothing; (2) **`USSLIND`, the obvious free LEI, answers fine and has published nothing since
+2020-02** (+4 more dead series) → every series carries a staleness budget; (3) **`NROU`'s newest row is
+dated 2036** (CBO projection) and GDPNOW is a nowcast → future-dated rows dropped+counted; (4) ICE BofA
+OAS licence-capped to a rolling 3y and `cosd` does not extend it → Moody's BAA10Y instead; (5)
+**`range=max&interval=1d` on ^GSPC returns 169 MONTHLY points**, interval silently ignored — a base-rate
+engine would compute "63-session" returns that are 63 MONTHS; (6) `range=80y`/`100y` return ZERO points,
+not an error → clamped in the SHARED bars.ts so no future desk rediscovers it; (7) CBOE publishes
+VIX/VIX3M itself, keyless and complete, where ^VIX3M is unreliable; (8) **THE BIG ONE — the conditional
+history swung 49 visits/+6.2% (gap 1) → 21/+7.7% (3) → 11/+8.0%/100% POSITIVE (6) → NOT MEASURED (12) on
+a parameter I had set arbitrarily**, and proximity clustering produced a single "visit" spanning
+2018-03→2025-08; replaced with greedy NON-OVERLAPPING draws (19 real draws incl. −14.9% and −9.2%,
++14.4% vs +9.2% plain), spacing can only widen, minEpisodes 8→5 because 30y of independent annual
+windows holds ≤30 observations and a floor that can never be met is not a safeguard; (9) **a sentence
+true of the arithmetic and false about the market** — with the S&P at a record the write-up called "the
+index is below its ten-month average" favourable, because prose was picked by STRESS and on a
+high-is-good gauge low stress means a HIGH reading → `meaningFor()` picks by percentile; (10) **a
+staleness budget set from FREQUENCY is wrong** — Z.1 `equities` sat 247d against 250d, three days from
+declaring the Fed's own accounts dead, because a quarterly series dated at the quarter START and
+published 10 weeks after it ENDS is routinely older than its own interval; (11) two catalogued series
+were read by NO gauge so were never fetched and looked catalogued while invisible (now a test; it caught
+a third); (12) never-published ≠ stopped-publishing, two states not one; (13) the one-polarity rule
+KILLED "the curve un-inverted" (steepening from normal is good, from inverted is bad) → replaced by the
+depth of the worst 2y inversion. +11 citations, each verified against its primary source this session,
+THREE of them arguing against the desk and built into the arithmetic rather than footnoted (Goyal &
+Welch 2008 + Goyal/Welch/Zafirov 2021 = why the slow score barely moves the band; Boudoukh/Richardson/
+Whitelaw 2008 = why draws are non-overlapping and the slow score gets NO conditional history).
+**Homepage chip auto-counts 64 → 75 ACADEMIC WORKS CITED** (public copy — flagged). Gates: tsc, **908
+vitest** (was 771), seed EXACT, gen:bib no-op, build clean w/ both routes, probe ALL PASS, **leak probe
+ZERO architecture hits across 15 surfaces** (all responses >20KB-verified; only the 2 homepage
+exceptions), curtain 404s /tide and /tide/<id> WITH a valid admin cookie and the homepage carries no
+link, admin gating verified locked+unlocked with a real ADMIN_TOKEN, separation holds (no pipeline
+imports, no SQL outside lib/db.ts, 0 FKs, user_version 8). Also closed a pre-existing gap: the shared
+registry-integrity table covered 3 of 7 registries — all 7 now run, plus a new assertion that every
+settings citation resolves. OPEN: CAPE + margin debt are hand-entry only and **there is no entry form
+yet**, so both currently read NOT MEASURED (Shiller's file is legacy OLE2/BIFF8; FINRA's is a real
+20KB ZIP xlsx, verified live, ~200 lines of zip+XML with no new dependency — the highest-value item
+left); breadth keeps 5y where macro keeps 30, so its percentile is against a shorter record; the
+composite's MEMBERSHIP changes through history (breadth exists only for the last 5y) — handled
+arithmetically by weight redistribution but not yet stated on the page; **the valuation family
+saturates** (5 of 6 slow gauges read 95–100 because those series have TRENDED for 30y rather than
+oscillating — real, not a bug, but the slow composite will sit near 90 for years: owner call whether a
+detrended variant belongs beside it); never seen at 375px (headless returns an empty DOM here — checked
+structurally instead); orphan `anfci` rows left stored deliberately.
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.
