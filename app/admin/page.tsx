@@ -6,6 +6,8 @@ import AdminPanel, { type RunEstimate } from "@/components/admin/AdminPanel";
 import BottleneckSettingsPanel from "@/components/admin/BottleneckSettingsPanel";
 import InsiderSettingsPanel from "@/components/admin/InsiderSettingsPanel";
 import ReachSettingsPanel from "@/components/admin/ReachSettingsPanel";
+import CrossdeskSettingsPanel from "@/components/admin/CrossdeskSettingsPanel";
+import TideSettingsPanel from "@/components/admin/TideSettingsPanel";
 import RotationSettingsPanel from "@/components/admin/RotationSettingsPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
@@ -28,6 +30,12 @@ import {
   BOTTLENECK_SETTINGS_SPEC,
   effectiveBottleneckSettings,
 } from "@/lib/bottleneck-settings";
+import {
+  CROSSDESK_SETTING_GROUPS,
+  CROSSDESK_SETTINGS_SPEC,
+  effectiveCrossdeskSettings,
+} from "@/lib/crossdesk-settings";
+import { effectiveTideSettings, TIDE_SETTING_GROUPS, TIDE_SETTINGS_SPEC } from "@/lib/tide-settings";
 import {
   ROTATION_SETTING_GROUPS,
   ROTATION_SETTINGS_SPEC,
@@ -124,6 +132,10 @@ export default async function AdminPage() {
 
   const bottleneckEff = effectiveBottleneckSettings();
   const bottleneckPanel = toPanelSettings(BOTTLENECK_SETTINGS_SPEC, bottleneckEff);
+  const crossdeskEff = effectiveCrossdeskSettings();
+  const tideEff = effectiveTideSettings();
+  const crossdeskPanel = toPanelSettings(CROSSDESK_SETTINGS_SPEC, crossdeskEff);
+  const tidePanel = toPanelSettings(TIDE_SETTINGS_SPEC, tideEff);
   const rotationEff = effectiveRotationSettings();
   const rotationPanel = toPanelSettings(ROTATION_SETTINGS_SPEC, rotationEff);
   const insiderEff = effectiveInsiderSettings();
@@ -222,6 +234,49 @@ export default async function AdminPage() {
             groups={ROTATION_SETTING_GROUPS}
             settings={rotationPanel}
           />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="crossdesk-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="crossdesk-h" className="eyebrow">
+            Cross-desk ledger
+          </h2>
+          <span className="chip">$0 · NO RESEARCH CAPACITY</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          Where the desks name the same company. It stores nothing of its own — no table, no snapshot, no
+          cached ranking — and fetches nothing, so it can never drift from the desks it reads and there is
+          no refresh to run. These dials govern what counts as a crossing and how much is shown.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <CrossdeskSettingsPanel
+            key={JSON.stringify(crossdeskEff.values)}
+            groups={CROSSDESK_SETTING_GROUPS}
+            settings={crossdeskPanel}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="tide-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="tide-h" className="eyebrow">
+            The Tide
+          </h2>
+          <span className="chip">$0 · NO RESEARCH CAPACITY</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          What the market&rsquo;s own conditions say about how much to own. About forty published readings, each
+          ranked against its own history rather than against a fixed threshold, aggregated into a near-term score
+          and a long-horizon one. The weights below are the only judgement on the desk — everything else is
+          arithmetic over public numbers — so each carries its reasoning and is published at its live value on the
+          methodology page. Like the desks above, it shares this application&rsquo;s database and design and nothing
+          else: it cannot write to a run, a candidate, a score or the board.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <TideSettingsPanel key={JSON.stringify(tideEff.values)} groups={TIDE_SETTING_GROUPS} settings={tidePanel} />
         </div>
       </section>
 

@@ -7,6 +7,7 @@ import { CROSSDESK_SETTING_GROUPS, CROSSDESK_SETTINGS_SPEC } from "../../lib/cro
 import { INSIDER_SETTING_GROUPS, INSIDER_SETTINGS_SPEC } from "../../lib/insider-settings";
 import { REACH_SETTING_GROUPS, REACH_SETTINGS_SPEC } from "../../lib/reach-settings";
 import { boolSetting, formatSettingValue, numSetting, type SettingSpec } from "../../lib/settings-registry";
+import { findCitation } from "../../lib/citations";
 
 /* ============================================================================
  * Registry integrity for EVERY knob registry. Reads only module constants —
@@ -25,6 +26,16 @@ const REGISTRIES: [string, SettingSpec<string>[], { key: string }[]][] = [
 ];
 
 describe.each(REGISTRIES)("%s settings registry", (_name, spec, groups) => {
+  it("cites only works that exist in the registry", () => {
+    // A typo'd short cite vanishes from /admin and /methodology without
+    // erroring, so the reasoning for a dial silently loses its evidence.
+    for (const s of spec) {
+      for (const short of s.cites) {
+        expect(findCitation(short), `"${s.key}" cites unknown work "${short}"`).toBeDefined();
+      }
+    }
+  });
+
   it("has unique keys", () => {
     const keys = spec.map((s) => s.key);
     expect(new Set(keys).size).toBe(keys.length);

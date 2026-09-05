@@ -26,6 +26,12 @@ import {
 } from "@/lib/bottleneck-settings";
 import { allPlaybooks, DEFAULT_PLAYBOOK_ID, getPlaybook, usesPlaceholderFactors } from "@/lib/bottleneck/playbook";
 import {
+  CROSSDESK_SETTING_GROUPS,
+  CROSSDESK_SETTINGS_SPEC,
+  effectiveCrossdeskSettings,
+} from "@/lib/crossdesk-settings";
+import { effectiveTideSettings, TIDE_SETTING_GROUPS, TIDE_SETTINGS_SPEC } from "@/lib/tide-settings";
+import {
   ROTATION_SETTING_GROUPS,
   ROTATION_SETTINGS_SPEC,
   effectiveRotationSettings,
@@ -402,11 +408,255 @@ function RotationSection() {
         )}
       </p>
       <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        Each indicator also publishes a conditional history: what the ratio did over the following{" "}
+        {s.baseRateHorizonDays} sessions, on every past occasion it sat in the same tenth of its trailing
+        range. Three rules keep that from reading as a forecast. The sample is counted in separate visits
+        rather than in days, because a forward reading taken on consecutive sessions shares almost all of
+        its window with the reading beside it — counting days would turn a handful of visits into hundreds
+        of nearly identical observations. Every conditional figure is published beside the plain figure for
+        the same stretch of history, because only the difference between them carries information. And
+        below {s.baseRateMinEpisodes} separate visits nothing is published at all: the indicator reads not
+        measured and ranks last, rather than presenting an average of a few overlapping observations as a
+        base rate. Each indicator also states what share of its measurable history it has spent in the band
+        being conditioned on, since a ratio in a long trend keeps making new extremes inside its own
+        trailing window and can sit in its top tenth for most of its life.
+      </p>
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        Two limits on that reading are worth stating plainly. It describes what followed in the past and
+        forecasts nothing. And this board carries dozens of ratios, each with ten bands and a choice of
+        horizon, which is precisely the setting Sullivan, Timmermann and White describe: search a large
+        enough space of rules and some of them will look striking through chance alone.
+      </p>
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
         A written note is produced only when an indicator actually crosses a tier boundary or flips the
         side it favours, never on a schedule and never per visit. The note is assembled from the computed
         figures at no cost. A model may optionally be allowed to rephrase it — that is off by default, and
         when it is on, any note containing a figure that cannot be traced back to a computed input is
         discarded in favour of the deterministic one.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The Cross-Desk Ledger's disclosure.
+ *
+ * Same live-resolver contract as every section here. What this one has to say
+ * that the others do not is the limit of its own idea: the desks it crosses
+ * are not independent of each other, and most of what it can report is the
+ * shape of the overlap rather than a finding about any company.
+ */
+/**
+ * The Tide's disclosure. Same contract as the sections around it: every
+ * threshold is the LIVE effective value from the desk's own resolver, so the
+ * page and the desk cannot drift apart.
+ *
+ * The weights get more room here than any other desk's dials, deliberately.
+ * Everything else on that desk is arithmetic over public numbers, so the
+ * weights are the only place a judgement is made — and a judgement nobody can
+ * inspect is indistinguishable from an assertion.
+ */
+function TideSection() {
+  const eff = effectiveTideSettings();
+  const s = eff.values;
+  const shown = TIDE_SETTINGS_SPEC.filter((x) => x.group !== "ops");
+  return (
+    <section id="tide" className="mt-12 scroll-mt-24" aria-labelledby="tide-h">
+      <h2 id="tide-h" className="eyebrow">
+        The Tide — a fifth product, about the market rather than a company
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Every other desk here asks which company.{" "}
+        <Link href="/tide" className="underline underline-offset-2 hover:text-ink">
+          The Tide
+        </Link>{" "}
+        asks whether to be in the market at all. It reads about forty published measurements — the shape of the
+        yield curve, what lenders charge for risk, how many companies are actually participating, what the market
+        costs against the economy behind it — and aggregates them into a suggested share of equities against cash.
+        It is deterministic, costs nothing to run, and draws no research capacity.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Nothing is judged against a fixed threshold.</span> Saying a price/earnings ratio
+        above twenty is expensive is an argument; saying it is higher than it has been in ninety per cent of the
+        past twenty years is a measurement. A fixed threshold is where an opinion hides, and it rots quietly as the
+        world moves. Every reading is ranked against its own history and then pointed in the direction that is bad
+        for someone who owns shares.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">A reading has one horizon and one direction.</span> Where a variable genuinely
+        matters both ways it appears twice, with two transforms and two stated meanings: the credit spread&apos;s
+        level is a long-horizon warning that risk is being priced generously, and its change is a near-term warning
+        that lenders have started charging more. A gauge whose sign depends on circumstances is not a gauge, it is
+        an argument. That rule cost a reading during the build — the famous form of the recession signal is
+        &ldquo;the curve un-inverted&rdquo;, but a steepening curve that was never inverted is a good reading, so
+        what survives is the depth of the worst inversion of the past two years, which is unambiguously bad when
+        high and carries the same content.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Two figures, never one.</span> Valuation and cycle answer different questions
+        over different spans, and averaging them would report something mild while hiding the only information in
+        the picture. The exposure band is driven overwhelmingly by the near-term score, because a comprehensive
+        out-of-sample test of the standard predictors found that valuation ratios would not have helped an investor
+        time the market — letting an expensive market drive the allocation would have meant sitting in cash for most
+        of the past thirty years. The long-horizon score is reported as a statement about expected return, not used
+        as a timing lever.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Nothing is filled in.</span> A reading that cannot be measured is excluded from
+        its family&apos;s weight rather than counted as neutral, because a gauge nobody can judge is not the same as
+        a gauge sitting in the middle of its range, and scoring it as fifty would quietly pull every composite
+        toward the middle while looking complete. A family with no measured member contributes no weight, and a
+        composite standing on fewer than {s.minGaugesPerHorizon} readings reports itself partial.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">The exposure band is one published line of arithmetic:</span> the{" "}
+        {s.exposureBase} per cent base, less the near-term penalty scaled by how far that score sits from the middle
+        of its own history, less the long-horizon penalty on the same scaling. At the current settings a near-term
+        score at its worst moves the band by {s.exposureFastPenalty} points and a long-horizon score at its worst by{" "}
+        {s.exposureSlowPenalty}. The result is published as a band {s.exposureBandWidth} points wide rather than as a
+        figure, and it never leaves the {s.exposureFloor}–{s.exposureCeiling} per cent range: an instrument this
+        uncertain should not be able to tell anybody to leave the market entirely, and the worst readings in the
+        record have still been followed by good years.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">The sample is smaller than the row count suggests, and the desk says so.</span>{" "}
+        The conditional history counts draws whose forward windows do not overlap — take the earliest qualifying
+        month, skip everything inside its {s.baseRateHorizonMonths}-month window, take the next — because a forward
+        reading taken in one month and again the next shares almost all of its future with itself. Below{" "}
+        {s.baseRateMinEpisodes} such draws nothing is published at all. And however the arithmetic is dressed, fifty
+        years of daily data still contains only about seven recessions, so the effective sample for anything
+        cycle-shaped is single digits.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Two limits worth stating plainly. The macroeconomic series are <span className="text-ink">revised</span>{" "}
+        after publication and the desk reads today&apos;s vintage rather than the one a reader would have seen at
+        the time, which flatters any historical comparison; market prices are not revised, which is one reason the
+        near-term score leans on them. And breadth is counted over this platform&apos;s own screened universe using
+        the companies that are largest today, so reading their prices backwards flatters the past — a bias that runs
+        against the present reading rather than for it, but a bias.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Like the desks above, it shares this application&apos;s database and design and nothing else. It cannot
+        write to a run, a candidate, a score, or the board; no reading it takes can move a ranking.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {TIDE_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((x) => x.group === g.key)
+                .map((x) => (
+                  <div key={x.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">{x.label}</dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(x, eff.values[x.key as keyof typeof eff.values])}
+                      {eff.sources[x.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 max-w-2xl text-[13px] text-dim">
+        Not financial advice. The desk measures conditions that already exist; it does not forecast.
+      </p>
+    </section>
+  );
+}
+
+function CrossDeskSection() {
+  const eff = effectiveCrossdeskSettings();
+  const s = eff.values;
+  return (
+    <section id="crossdesk" className="mt-12 scroll-mt-24" aria-labelledby="crossdesk-h">
+      <h2 id="crossdesk-h" className="eyebrow">
+        The Cross-Desk Ledger — where the desks name the same company
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Four products on this platform look for different things in different data.{" "}
+        <Link href="/crossdesk" className="underline underline-offset-2 hover:text-ink">
+          The Cross-Desk Ledger
+        </Link>{" "}
+        reports where they land on the same company. It stores nothing of its own — no table, no snapshot,
+        no cached ranking — and fetches nothing: every row is derived on read from what those desks already
+        hold, which is why it cannot drift from them and why a visitor&apos;s own risk tolerance can change
+        the whole page for free.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        The idea it is built on is that the desks do not mean the same thing when they name a company, so
+        every claim carries its kind. A <span className="text-ink">measured</span> claim is a desk that
+        computed a figure about that specific company. A <span className="text-ink">curated</span> claim is
+        a company appearing on a list somebody maintains by hand — the bottleneck desk&apos;s baskets and
+        supplier maps are exactly this, so the claim carries the measured state of the constraint it is
+        attached to and the page prints both halves. A <span className="text-ink">context</span> reading is
+        about the neighbourhood and never about the company: the rotation board trades funds, so it can
+        have no opinion on a single name and is never counted as a desk agreeing.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        There is a second, weaker way to cross. A company can be named by more than one of the bottleneck
+        desk&apos;s industries — a power producer that is both a grid supplier and a nuclear operator, or a
+        rare-earth miner that both drones and robotics depend on. That is a real observation and it is
+        listed, but it is one desk&apos;s method applied twice over lists the same person maintains, not two
+        methods arriving independently at the same company, so those rows always rank below a desk crossing
+        and the page says which kind of crossing each row is. Where the two industries lean on the{" "}
+        <span className="text-ink">same</span> constrained input, that is one constraint appearing in two
+        places rather than two constraints, and the row says that too.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Simply passing the weekly screen is not counted either. Eligibility is the price of entry to two of
+        these desks rather than evidence about a company, and counting it would hand every name a free
+        point. The screen instead contributes what it actually measured — cautions about size, price,
+        solvency or dilution — which are shown against a company and never as agreement with it.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {CROSSDESK_SETTING_GROUPS.map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {CROSSDESK_SETTINGS_SPEC.filter((x) => x.group === g.key).map((x) => (
+                <div key={x.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <dt className="text-[13px] text-muted">{x.label}</dt>
+                  <dd className="font-mono text-[13px] text-ink">
+                    {formatSettingValue(x, eff.values[x.key as keyof typeof eff.values])}
+                    {eff.sources[x.key as keyof typeof eff.sources] === "custom" && (
+                      <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        Three desks can name a company here, so the current setting of {s.minDesks} is
+        {s.minDesks >= 3 ? " a demand for unanimity and will usually return nothing at all" : " the smallest crossing this page can honestly report"}.
+        Two limits are published on the page itself and belong here too. These desks are{" "}
+        <span className="text-muted">not independent</span>: two of them draw their candidates from the same
+        weekly screen, so part of any agreement between them is shared plumbing rather than two separate
+        opinions. And they were built to search different parts of the market, so most of the time they
+        cannot agree even in principle — the page prints how many companies each pair of desks has in
+        common, including the pairs whose answer is zero, because that number is the honest ceiling on
+        everything below it.
+      </p>
+      <p className="mt-3 max-w-2xl text-[13px] text-dim">
+        The neighbourhood reading needs one hop, from company to sector to sector fund. The sector comes
+        from the weekly screen, which carries the exchange&apos;s own classification, and deliberately not
+        from the discovery scout&apos;s sector field — that is free text written per candidate, and the
+        stored runs hold eighty-eight distinct values across fifty-five companies, which nothing can be
+        joined on. The exchange&apos;s classification is not the one the sector funds are built from, so a
+        fund is a neighbourhood rather than the company: one company in the current snapshot builds drones
+        and is filed under prepackaged software. Two of the thirteen classifications are residual buckets
+        and map to nothing, which is what gets shown.
       </p>
     </section>
   );
@@ -681,6 +931,9 @@ export default function MethodologyPage() {
       <RotationSection />
 
       <InsiderSection />
+
+      <CrossDeskSection />
+      <TideSection />
 
       <EvidenceLayerSection />
 

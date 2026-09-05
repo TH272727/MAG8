@@ -37,7 +37,8 @@ export interface CitationGroup {
     | "rubric"
     | "bottleneck"
     | "rotation"
-    | "insider";
+    | "insider"
+    | "tide";
   title: string;
   intro: string;
   works: Citation[];
@@ -851,6 +852,146 @@ export const CITATION_GROUPS: CitationGroup[] = [
           "Defines owner earnings as reported earnings, plus depreciation, depletion, amortisation and certain other non-cash charges, less the average annual capitalised spending on plant and equipment that the business requires to fully maintain its long-term competitive position and unit volume — and states plainly that this last term \"must be a guess — and one sometimes very difficult to make\".",
         usedFor:
           "The valuation method, and the reason it publishes two answers rather than one: the maintenance-spending term cannot be read off a filing, so both bounds are computed and the distance between them is reported.",
+      },
+    ],
+  },
+  {
+    key: "tide",
+    title: "The Tide",
+    intro:
+      "A fifth research product, and the only one that asks about the market as a whole rather than about a company: it ranks about forty published readings against their own histories, points each one according to which direction is bad, and aggregates them into two figures — what conditions say about the coming year, and what prices say about the coming decade. The works below ground why each family is weighted as it is, and — deliberately included, and weighted into the design rather than merely footnoted — the three results that argue hardest against believing any of it.",
+    works: [
+      {
+        short: "Estrella & Mishkin 1998",
+        authors: "Estrella, A., & Mishkin, F. S.",
+        year: "1998",
+        title: "Predicting U.S. Recessions: Financial Variables as Leading Indicators",
+        source: "The Review of Economics and Statistics, 80(1), 45–61",
+        url: "https://doi.org/10.1162/003465398557320",
+        finding:
+          "Tested interest rates, spreads, stock prices and monetary aggregates individually and in combination as out-of-sample recession predictors. Beyond one quarter ahead the term spread dominated every alternative, and adding other variables to it rarely improved the forecast.",
+        usedFor:
+          "Why the yield curve is the most heavily weighted single reading in the near-term score, and why the curve is read twice — once as its level today and once as the depth of its worst inversion in the past two years, because the signal arrives a year or more before the event.",
+      },
+      {
+        short: "Sahm 2019",
+        authors: "Sahm, C.",
+        year: "2019",
+        title: "Direct Stimulus Payments to Individuals",
+        source: "Recession Ready: Fiscal Policies to Stabilize the American Economy, Brookings Institution",
+        url: "https://www.brookings.edu/articles/direct-stimulus-payments-to-individuals/",
+        finding:
+          "Proposed a trigger for automatic stabilisers: a recession is underway when the three-month average unemployment rate rises half a percentage point or more above its lowest three-month average of the previous twelve months. On historical data the rule identified every post-war recession with few false signals.",
+        usedFor:
+          "The labour-market reading, and the reason that family is weighted just below the curve rather than above it — the rule was designed to identify a downturn that has already started, not to see one coming, and the desk says so where it is reported.",
+      },
+      {
+        short: "Campbell & Shiller 1998",
+        authors: "Campbell, J. Y., & Shiller, R. J.",
+        year: "1998",
+        title: "Valuation Ratios and the Long-Run Stock Market Outlook",
+        source: "The Journal of Portfolio Management, 24(2), 11–26",
+        url: "https://doi.org/10.3905/jpm.24.2.11",
+        finding:
+          "Dividend-price and smoothed earnings-price ratios have historically had almost no power to forecast dividend or earnings growth, but substantial power to forecast the PRICE change that returns the ratio toward its own mean — and that power appears at long horizons rather than short ones.",
+        usedFor:
+          "The whole basis for splitting this desk into two horizons: the valuation readings are reported as a statement about the next decade and are deliberately given almost no influence over the near-term exposure band.",
+      },
+      {
+        short: "Faber 2007",
+        authors: "Faber, M. T.",
+        year: "2007",
+        title: "A Quantitative Approach to Tactical Asset Allocation",
+        source: "The Journal of Wealth Management, 9(4), 69–79",
+        url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=962461",
+        finding:
+          "A rule holding an asset only while its price sits above its own ten-month moving average, tested on US equities from 1972 and then out of sample across more than twenty other markets, produced equity-like returns with materially lower volatility and drawdown across thirty consecutive years.",
+        usedFor:
+          "The trend reading, and why it is weighted alongside the economic families rather than treated as chart-reading. The falsification printed beside it is the paper's own cost: the rule trades a smaller decline for many false alarms and always sells after a fall has begun.",
+      },
+      {
+        short: "Neely, Rapach, Tu & Zhou 2014",
+        authors: "Neely, C. J., Rapach, D. E., Tu, J., & Zhou, G.",
+        year: "2014",
+        title: "Forecasting the Equity Risk Premium: The Role of Technical Indicators",
+        source: "Management Science, 60(7), 1772–1791",
+        url: "https://doi.org/10.1287/mnsc.2013.1838",
+        finding:
+          "Technical indicators matched or exceeded the standard macroeconomic variables at forecasting the equity risk premium out of sample, and the two sets carried largely complementary information — the macro variables leading at business-cycle peaks and the technical ones at troughs.",
+        usedFor:
+          "Why price behaviour is scored beside the economic series rather than instead of them, and part of why the two are kept in separate families rather than blended into one activity reading.",
+      },
+      {
+        short: "Gilchrist & Zakrajšek 2012",
+        authors: "Gilchrist, S., & Zakrajšek, E.",
+        year: "2012",
+        title: "Credit Spreads and Business Cycle Fluctuations",
+        source: "American Economic Review, 102(4), 1692–1720",
+        url: "https://doi.org/10.1257/aer.102.4.1692",
+        finding:
+          "Built a credit spread index from individual corporate bonds and decomposed it into expected default risk and a residual excess bond premium. The residual — movements in the price of bearing credit risk not explained by default risk — carried most of the predictive power for output and employment.",
+        usedFor:
+          "Why credit is read on both horizons and weighted meaningfully on each: as a level, because a thin spread means risk is being priced generously by the people whose job is pricing it, and as a change, because credit has repriced ahead of equities often enough to be worth watching separately.",
+      },
+      {
+        short: "Rapach, Strauss & Zhou 2010",
+        authors: "Rapach, D. E., Strauss, J. K., & Zhou, G.",
+        year: "2010",
+        title: "Out-of-Sample Equity Premium Prediction: Combination Forecasts and Links to the Real Economy",
+        source: "The Review of Financial Studies, 23(2), 821–862",
+        url: "https://doi.org/10.1093/rfs/hhp063",
+        finding:
+          "Individual predictive models are undermined by model uncertainty and instability, but combining their forecasts delivered statistically and economically significant out-of-sample gains over the historical average, consistently through time, with the gains linked to the real economy.",
+        usedFor:
+          "The justification for aggregating at all rather than publishing forty separate readings, and the reason a composite standing on too few surviving gauges reports itself as partial instead of pretending to describe its whole horizon.",
+      },
+      {
+        short: "Goyal & Welch 2008",
+        authors: "Goyal, A., & Welch, I.",
+        year: "2008",
+        title: "A Comprehensive Look at The Empirical Performance of Equity Premium Prediction",
+        source: "The Review of Financial Studies, 21(4), 1455–1508",
+        url: "https://doi.org/10.1093/rfs/hhm014",
+        finding:
+          "Re-examined the standard predictors — valuation ratios, interest rates, spreads, issuing activity and more — and found they performed poorly both in sample and out of sample, were unstable, and would not have helped an investor with access only to information available at the time to profitably time the market.",
+        usedFor:
+          "The most inconvenient result here, and it is built into the arithmetic rather than merely noted: it is why the long-horizon score is reported as an expected return and given only a small fraction of the exposure band's movement, because letting an expensive market drive the allocation would have meant sitting in cash for most of the past thirty years.",
+      },
+      {
+        short: "Goyal, Welch & Zafirov 2021",
+        authors: "Goyal, A., Welch, I., & Zafirov, A.",
+        year: "2021",
+        title: "A Comprehensive Look at the Empirical Performance of Equity Premium Prediction II",
+        source: "Swiss Finance Institute Research Paper No. 21-85",
+        url: "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3929119",
+        finding:
+          "Revisited twenty-nine further variables proposed after the 2008 paper, plus the original seventeen, with samples running to 2020. Most had already lost their empirical support; a handful still performed reasonably; the overall predictive performance remained disappointing.",
+        usedFor:
+          "The follow-up that stops the result above from being dismissed as dated. It is the reason this desk publishes conditional history beside every claim rather than asserting that a reading works.",
+      },
+      {
+        short: "Boudoukh, Richardson & Whitelaw 2008",
+        authors: "Boudoukh, J., Richardson, M., & Whitelaw, R. F.",
+        year: "2008",
+        title: "The Myth of Long-Horizon Predictability",
+        source: "The Review of Financial Studies, 21(4), 1577–1605",
+        url: "https://doi.org/10.1093/rfs/hhl042",
+        finding:
+          "For the persistent regressors used throughout this literature, estimators at different horizons are almost perfectly correlated under the null of no predictability — analytically 99% between the one- and two-year horizons and 94% between one and five years. Apparently stronger long-horizon evidence is largely an artefact of overlapping observations rather than additional information.",
+        usedFor:
+          "Why the conditional history counts non-overlapping draws rather than qualifying months, and why the long-horizon score gets no conditional history at all — a ten-year claim measured over thirty years of data is three independent observations, and dressing that in overlapping windows is precisely the error described here.",
+      },
+      {
+        short: "Ang & Bekaert 2007",
+        authors: "Ang, A., & Bekaert, G.",
+        year: "2007",
+        title: "Stock Return Predictability: Is it There?",
+        source: "The Review of Financial Studies, 20(3), 651–707",
+        url: "https://doi.org/10.1093/rfs/hhl021",
+        finding:
+          "The dividend yield predicted excess returns only in combination with the short rate and only at short horizons, with no evidence of the long-horizon predictability usually claimed for it; the short rate itself was the more robust predictor, and the results held across four countries.",
+        usedFor:
+          "Why the level of short and real rates is scored on its own rather than folded into the valuation family, and further support for treating long-horizon valuation claims cautiously.",
       },
     ],
   },
