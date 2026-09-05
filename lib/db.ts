@@ -314,6 +314,39 @@ CREATE TABLE IF NOT EXISTS insider_scans (
   taken_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   payload_json TEXT NOT NULL
 );
+
+/* ---------------------------------------------------------------------------
+ * The Tide — a fifth research product sharing this database file. Same rule as
+ * every desk above: NO foreign key into runs/candidates/lens_analyses/
+ * rankings, so it can never write to, or cascade from, the pipeline.
+ *
+ * It stores only what a publisher published: dated observations of public
+ * series, and daily closes for the companies breadth is counted over. Every
+ * percentile, stress score, family aggregate, composite, exposure band and
+ * base rate is recomputed on READ, so retuning a weight re-derives the whole
+ * desk and its history without refetching anything, and there is no stored
+ * derived state that could drift from the dials that produced it.
+ * ------------------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS tide_observations (
+  series_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  value REAL NOT NULL,
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (series_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_tide_obs ON tide_observations (series_id, date DESC);
+
+CREATE TABLE IF NOT EXISTS tide_bars (
+  ticker TEXT NOT NULL,
+  date TEXT NOT NULL,
+  close REAL NOT NULL,
+  adjusted INTEGER NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('yahoo','nasdaq')),
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (ticker, date)
+);
+CREATE INDEX IF NOT EXISTS idx_tide_bars ON tide_bars (ticker, date DESC);
 `;
 
 type GlobalWithDb = typeof globalThis & { __mag8_db?: Database.Database };
@@ -380,6 +413,12 @@ function migrate(db: Database.Database): void {
     // existing files for the same reason as steps 4-6 — no column to patch,
     // only the version to record. Nothing here touches a pipeline table.
     db.pragma("user_version = 7");
+  }
+  if (v < 8) {
+    // The Tide: two additive tables, created by SCHEMA_SQL on fresh AND
+    // existing files for the same reason as steps 4-7 — no column to patch,
+    // only the version to record. Nothing here touches a pipeline table.
+    db.pragma("user_version = 8");
   }
 }
 
@@ -2126,4 +2165,128 @@ export function latestInsiderScan<T = unknown>(): InsiderScanRow<T> | null {
     .get() as { id: number; taken_at: string; payload_json: string } | undefined;
   if (!r) return null;
   return { id: r.id, takenAt: r.taken_at, payload: parseJson<T>(r.payload_json) as T };
+}
+
+/* ---------------------------------------------------------------------------
+ * The Tide.
+ *
+ * Two shapes only: a dated observation of a public series, and a daily close
+ * for a company breadth is counted over. Nothing derived is stored — no score,
+ * no composite, no exposure band, no ranking — so changing a weight re-derives
+ * the entire desk on the next read, including its whole history, and there is
+ * no stored verdict that could survive the reasoning that produced it.
+ * ------------------------------------------------------------------------- */
+
+export interface TideObservation {
+  seriesId: string;
+  /** YYYY-MM-DD, as published. */
+  date: string;
+  value: number;
+}
+
+/**
+ * Upsert observations. A refresh re-sends the full history because statistical
+ * agencies revise: the newer value for a date that already exists is the
+ * current official one, and quietly keeping the first value ever fetched would
+ * leave the desk describing a vintage nobody else can see.
+ */
+export function saveTideObservations(rows: TideObservation[]): number {
+  if (rows.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO tide_observations (series_id, date, value, fetched_at)
+     VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(series_id, date) DO UPDATE SET value=excluded.value, fetched_at=excluded.fetched_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const r of rows) stmt.run(r.seriesId, r.date, r.value);
+  });
+  tx();
+  return rows.length;
+}
+
+/** One series, oldest first — every rolling statistic wants chronological order. */
+export function getTideObservations(seriesId: string, limit = 20000): TideObservation[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT series_id, date, value FROM tide_observations
+       WHERE series_id=? ORDER BY date DESC LIMIT ?`,
+    )
+    .all(seriesId, limit) as { series_id: string; date: string; value: number }[];
+  return rows.map((r) => ({ seriesId: r.series_id, date: r.date, value: r.value })).reverse();
+}
+
+export interface TideSeriesCoverage {
+  seriesId: string;
+  observations: number;
+  first: string;
+  latest: string;
+  fetchedAt: string;
+}
+
+/** One row per stored series — what the desk and the CLI report without loading any values. */
+export function tideCoverage(): TideSeriesCoverage[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT series_id, COUNT(*) AS n, MIN(date) AS first, MAX(date) AS latest, MAX(fetched_at) AS fetched
+       FROM tide_observations GROUP BY series_id ORDER BY series_id`,
+    )
+    .all() as { series_id: string; n: number; first: string; latest: string; fetched: string }[];
+  return rows.map((r) => ({
+    seriesId: r.series_id,
+    observations: r.n,
+    first: r.first,
+    latest: r.latest,
+    fetchedAt: r.fetched,
+  }));
+}
+
+export function deleteTideObservations(seriesId: string): number {
+  return getDb().prepare(`DELETE FROM tide_observations WHERE series_id=?`).run(seriesId).changes;
+}
+
+/* --- Breadth constituents. Same bar shape as the board, its own table. ----- */
+
+export function saveTideBars(bars: PriceBar[]): number {
+  if (bars.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO tide_bars (ticker, date, close, adjusted, source, fetched_at)
+     VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(ticker, date) DO UPDATE SET close=excluded.close, adjusted=excluded.adjusted,
+       source=excluded.source, fetched_at=excluded.fetched_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const b of bars) stmt.run(b.ticker, b.date, b.close, b.adjusted ? 1 : 0, b.source);
+  });
+  tx();
+  return bars.length;
+}
+
+export function getTideBars(ticker: string, limit = 3000): PriceBar[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ticker, date, close, adjusted, source FROM tide_bars
+       WHERE ticker=? ORDER BY date DESC LIMIT ?`,
+    )
+    .all(ticker, limit) as { ticker: string; date: string; close: number; adjusted: number; source: PriceBar["source"] }[];
+  return rows
+    .map((r) => ({ ticker: r.ticker, date: r.date, close: r.close, adjusted: r.adjusted === 1, source: r.source }))
+    .reverse();
+}
+
+export function deleteTideBars(ticker: string): number {
+  return getDb().prepare(`DELETE FROM tide_bars WHERE ticker=?`).run(ticker).changes;
+}
+
+/**
+ * Every stored breadth ticker with its latest close and enough trailing history
+ * to judge it, in ONE query. Breadth counts hundreds of companies, and asking
+ * for each series separately turns a page render into hundreds of round trips.
+ */
+export function tideBarTickers(): string[] {
+  const rows = getDb()
+    .prepare(`SELECT DISTINCT ticker FROM tide_bars ORDER BY ticker`)
+    .all() as { ticker: string }[];
+  return rows.map((r) => r.ticker);
 }

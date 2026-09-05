@@ -162,6 +162,23 @@ interface YahooChart {
   };
 }
 
+/**
+ * The most history this source will actually serve, in years.
+ *
+ * Asked for eighty or a hundred years of daily bars it answers with an empty
+ * timestamp array: not an error, not a shorter series, nothing — which a
+ * caller reads as "this ticker has no history" rather than "you asked for more
+ * than is on offer". Fifty is the largest span that returns data, and it
+ * returns it in full (the S&P 500 comes back with about 12,600 daily closes
+ * from 1976). The request is clamped here rather than at each caller so no
+ * future desk can rediscover this the hard way.
+ *
+ * Related trap, deliberately not used anywhere: `range=max` silently changes
+ * the INTERVAL, returning monthly bars for a daily request with no field
+ * saying so. A named span is the only safe way to ask this source for history.
+ */
+const YAHOO_MAX_RANGE_YEARS = 50;
+
 function makeYahoo(gapMs: number): PriceSource {
   return {
     id: "yahoo",
@@ -173,7 +190,7 @@ function makeYahoo(gapMs: number): PriceSource {
       const symbol = ticker.toUpperCase().replace(/\./g, "-");
       const url =
         `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
-        `?range=${years}y&interval=1d`;
+        `?range=${Math.min(years, YAHOO_MAX_RANGE_YEARS)}y&interval=1d`;
       try {
         const body = await paced(url, timeoutMs, gapMs);
         const parsed = JSON.parse(body) as YahooChart;
