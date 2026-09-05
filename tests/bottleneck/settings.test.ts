@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { BOTTLENECK_SETTING_GROUPS, BOTTLENECK_SETTINGS_SPEC } from "../../lib/bottleneck-settings";
 import { UNIVERSE_SETTINGS_SPEC, UNIVERSE_SETTING_GROUPS } from "../../lib/universe-settings";
 import { ROTATION_SETTING_GROUPS, ROTATION_SETTINGS_SPEC } from "../../lib/rotation-settings";
+import { TIDE_SETTING_GROUPS, TIDE_SETTINGS_SPEC } from "../../lib/tide-settings";
+import { CROSSDESK_SETTING_GROUPS, CROSSDESK_SETTINGS_SPEC } from "../../lib/crossdesk-settings";
+import { INSIDER_SETTING_GROUPS, INSIDER_SETTINGS_SPEC } from "../../lib/insider-settings";
+import { REACH_SETTING_GROUPS, REACH_SETTINGS_SPEC } from "../../lib/reach-settings";
 import { boolSetting, formatSettingValue, numSetting, type SettingSpec } from "../../lib/settings-registry";
 
 /* ============================================================================
@@ -14,6 +18,10 @@ const REGISTRIES: [string, SettingSpec<string>[], { key: string }[]][] = [
   ["universe", UNIVERSE_SETTINGS_SPEC, UNIVERSE_SETTING_GROUPS],
   ["bottleneck", BOTTLENECK_SETTINGS_SPEC, BOTTLENECK_SETTING_GROUPS],
   ["rotation", ROTATION_SETTINGS_SPEC, ROTATION_SETTING_GROUPS],
+  ["insider", INSIDER_SETTINGS_SPEC, INSIDER_SETTING_GROUPS],
+  ["reach", REACH_SETTINGS_SPEC, REACH_SETTING_GROUPS],
+  ["crossdesk", CROSSDESK_SETTINGS_SPEC, CROSSDESK_SETTING_GROUPS],
+  ["tide", TIDE_SETTINGS_SPEC, TIDE_SETTING_GROUPS],
 ];
 
 describe.each(REGISTRIES)("%s settings registry", (_name, spec, groups) => {

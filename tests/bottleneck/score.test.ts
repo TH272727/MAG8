@@ -246,6 +246,19 @@ describe("supply parsing", () => {
     expect(obs[0].sourceUrl).toBe("https://example.test");
   });
 
+  it("treats an EMPTY value field as a missing month, not as zero", () => {
+    // FRED marks a gap with "." in some series and with nothing at all in
+    // others — CPIAUCSL ships `2025-10-01,` for the index that was never
+    // published. `Number("")` is 0 and passes Number.isFinite, so the naive
+    // read stores a real observation of zero: on a supply series that is a
+    // collapse, and the desk would report a constraint tightening that never
+    // happened.
+    const csv = "observation_date,CPIAUCSL\n2025-09-01,324.245\n2025-10-01,\n2025-11-01,325.063\n";
+    const obs = parseFredCsv(csv, "index", null);
+    expect(obs.map((o) => o.date)).toEqual(["2025-09-01", "2025-11-01"]);
+    expect(obs.some((o) => o.value === 0)).toBe(false);
+  });
+
   it("rejects a payload that is not a FRED csv", () => {
     expect(parseFredCsv("<!DOCTYPE html><html></html>", "index", null)).toEqual([]);
     expect(parseFredCsv("", "index", null)).toEqual([]);

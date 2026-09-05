@@ -159,7 +159,6 @@ const BUILT_IN_SERIES: TideSeries[] = [
 
   /* ---- Financial conditions and liquidity ---- */
   FRED("nfci", "NFCI", "Chicago Fed national financial conditions index", "index", "weekly", 21),
-  FRED("anfci", "ANFCI", "Chicago Fed adjusted financial conditions index", "index", "weekly", 21),
   FRED("stlfsi4", "STLFSI4", "St. Louis Fed financial stress index", "index", "weekly", 21),
   FRED("m2real", "M2REAL", "Real M2 money stock", "billions of 1982-84 dollars", "monthly", 90),
   FRED("totll", "TOTLL", "Bank credit, all commercial banks", "billions of dollars", "weekly", 21),
