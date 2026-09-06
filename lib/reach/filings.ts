@@ -17,7 +17,7 @@ import {
  * Every US-listed name in the universe has a filing history, it is free and
  * keyless, and each entry resolves to a permanent public URL. The point is not
  * that a lens COULD find these: it is that finding them costs turns out of a
- * hard per-call budget, and the same six links can be fetched once a week,
+ * hard per-call turn and time budget, and the same six links can be fetched once a week,
  * deterministically, for every candidate at once.
  *
  * This module lists filings. It never opens, summarises, or interprets one —

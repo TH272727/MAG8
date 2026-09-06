@@ -12,6 +12,24 @@ function num(v: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/**
+ * An OPTIONAL per-call USD cap: a positive number arms it, anything else
+ * (unset, 0, "off", junk) leaves it disarmed — and `undefined` is what the SDK
+ * needs to run a call without a ceiling at all.
+ *
+ * Uncapped is the default on purpose. The cap is not a spend control on
+ * subscription auth (where `total_cost_usd` is notional and the real constraint
+ * is the plan's 5-hour window); what it actually did was END a call mid-research
+ * — the tokens already spent are billed to the window either way, and the cell
+ * comes back an error with nothing to show for them. Runaway protection is the
+ * per-call timeout, `maxTurns`, and the run watchdog, all of which stop a call
+ * without throwing away the work it had already done.
+ */
+function optionalCapUsd(v: string | undefined): number | undefined {
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
 /** Reasoning-effort levels the SDK accepts (its own default is "high"). */
 export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
 const EFFORT_LEVELS: ReadonlySet<string> = new Set(["low", "medium", "high", "xhigh", "max"]);
@@ -71,16 +89,31 @@ export const CONFIG = {
 
   candidates: { min: 4, max: 12, default: 8 },
 
+  /**
+   * Per-call and run-level time ceilings. Widened 2026-09-04 alongside the
+   * removal of the USD caps: every one of these ends a call the same
+   * destructive way (no result, an error cell, the research already paid for
+   * discarded), so a cell that used to die at $1 must not simply die at 8
+   * minutes instead.
+   *
+   * The run watchdog moved with them and had to. Worst case for the default
+   * count=8 is discovery (12) + three batches of maxConcurrentStocks lenses
+   * (3 x 15) + compile (6) = 63 minutes, so the old 45-minute watchdog would
+   * have become the new wall — killing the whole run rather than one cell.
+   * A resume banks every finished cell, which is what makes a longer watchdog
+   * cheap: the downside of waiting on a wedged run is bounded.
+   */
   timeoutsMs: {
     discovery: int(process.env.MAG8_DISCOVERY_TIMEOUT_MS, 12 * 60_000),
-    lens: int(process.env.MAG8_LENS_TIMEOUT_MS, 8 * 60_000),
+    lens: int(process.env.MAG8_LENS_TIMEOUT_MS, 15 * 60_000),
     compile: int(process.env.MAG8_COMPILE_TIMEOUT_MS, 6 * 60_000),
-    run: int(process.env.MAG8_RUN_TIMEOUT_MS, 45 * 60_000),
+    run: int(process.env.MAG8_RUN_TIMEOUT_MS, 90 * 60_000),
   },
 
+  /** Turn ceilings — same destructive shape as a timeout; lens raised 30 → 60 (2026-09-04). */
   maxTurns: {
     discovery: int(process.env.MAG8_MAX_TURNS_DISCOVERY, 40),
-    lens: int(process.env.MAG8_MAX_TURNS_LENS, 30),
+    lens: int(process.env.MAG8_MAX_TURNS_LENS, 60),
     compile: int(process.env.MAG8_MAX_TURNS_COMPILE, 8),
   },
 
@@ -89,11 +122,12 @@ export const CONFIG = {
    * subscription auth is the plan's 5-hour usage window, so effort cuts buy
    * survivability directly. Compiler runs "medium": it has no tools and its
    * arithmetic is re-verified deterministically in TS. Lens defaults "medium"
-   * per the 2026-07-06 A/B (RKLB probe): at "high" a cell exceeded the $1
+   * per the 2026-07-06 A/B (RKLB probe): at "high" a cell exceeded the then-$1
    * per-call budget cap and died mid-research; at "medium" it completed
    * first-attempt in 97s / ~$0.69 with 18 source links and full scenario
-   * extras. Raise MAG8_LENS_EFFORT and MAG8_LENS_MAX_USD together if you want
-   * high back.
+   * extras. That cap is gone (2026-09-04) so "high" no longer ends a cell
+   * early — but it still draws proportionally harder on the 5-hour window,
+   * which is the reason "medium" remains the default.
    */
   effort: {
     discovery: effortLevel(process.env.MAG8_DISCOVERY_EFFORT, "high"),
@@ -108,11 +142,19 @@ export const CONFIG = {
     compiler: thinkingMode(process.env.MAG8_COMPILER_THINKING),
   },
 
-  /** Hard per-call USD caps — runaway protection (SDK stops at error_max_budget_usd). */
+  /**
+   * Per-call USD caps — UNCAPPED by default (2026-09-04, owner call). Set
+   * MAG8_{DISCOVERY,LENS,COMPILE}_MAX_USD to a positive number to arm one.
+   *
+   * They were $2 / $1 / $1, and the $1 lens cap is what killed all three VG
+   * cells of run 945fa0e4: the SDK ends the query with error_max_budget_usd, so
+   * the research already paid for is discarded and the cell persists as an
+   * error with cost 0. Nothing is saved by stopping there — see optionalCapUsd.
+   */
   maxBudgetUsd: {
-    discovery: num(process.env.MAG8_DISCOVERY_MAX_USD, 2.0),
-    lens: num(process.env.MAG8_LENS_MAX_USD, 1.0),
-    compile: num(process.env.MAG8_COMPILE_MAX_USD, 1.0),
+    discovery: optionalCapUsd(process.env.MAG8_DISCOVERY_MAX_USD),
+    lens: optionalCapUsd(process.env.MAG8_LENS_MAX_USD),
+    compile: optionalCapUsd(process.env.MAG8_COMPILE_MAX_USD),
   },
 
   /**

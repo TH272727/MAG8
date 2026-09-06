@@ -66,7 +66,12 @@ export interface AgentCallOptions {
   effort?: "low" | "medium" | "high" | "xhigh" | "max";
   /** Thinking override; unset → SDK default. */
   thinking?: "adaptive" | "disabled";
-  /** Hard USD cap for this call; breach ends the query with error_max_budget_usd. */
+  /**
+   * OPTIONAL hard USD cap for this call; a breach ends the query with
+   * error_max_budget_usd and the research done so far is lost. Undefined or
+   * non-positive = uncapped, which is the pipeline default: the timeout,
+   * maxTurns and the run watchdog bound a call without discarding its work.
+   */
   maxBudgetUsd?: number;
   /** Run-level watchdog signal. */
   signal?: AbortSignal;
@@ -163,7 +168,7 @@ export async function runAgentWithContract<S extends z.ZodType>(
           maxTurns: opts.maxTurns,
           ...(opts.effort ? { effort: opts.effort } : {}),
           ...(opts.thinking ? { thinking: { type: opts.thinking } } : {}),
-          ...(opts.maxBudgetUsd ? { maxBudgetUsd: opts.maxBudgetUsd } : {}),
+          ...(opts.maxBudgetUsd && opts.maxBudgetUsd > 0 ? { maxBudgetUsd: opts.maxBudgetUsd } : {}),
           abortController: ac,
           outputFormat: { type: "json_schema", schema: jsonSchema },
           ...(resume ? { resume } : {}),

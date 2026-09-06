@@ -250,7 +250,7 @@ ${discoveryOutputContract(count)}`;
  * itself filed, what official bodies have published, and what its public
  * developer activity looks like. Every entry carries a real URL, which is the
  * point — the lens is handed its primary sources instead of spending turns
- * from a hard per-call budget hunting for them, and the links it cites are
+ * from a hard per-call turn and time budget hunting for them, and the links it cites are
  * ones that resolve.
  *
  * Nothing here is interpreted. A filing is listed, never summarised: a gloss

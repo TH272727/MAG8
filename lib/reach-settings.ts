@@ -95,8 +95,8 @@ export const REACH_SETTINGS_SPEC: SettingSpec<ReachSettingGroupKey>[] = [
     unit: "filings",
     integer: true,
     blurb:
-      "A cap on the list, newest first. This block is spent from the same per-call budget as the analysis " +
-      "itself, so length is a real cost: six recent filings orient the research without displacing it.",
+      "A cap on the list, newest first. This block is spent from the same per-call turn and context budget as " +
+      "the analysis itself, so length is a real cost: six recent filings orient the research without displacing it.",
     cites: [],
   }),
   bool({

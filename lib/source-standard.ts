@@ -70,8 +70,8 @@ export function sourceStandardCitations(): Citation[] {
 /**
  * Compact form, injected into every research-stage prompt. This is what
  * actually binds: a playbook file can go unread, a prompt cannot. Kept short on
- * purpose — a lens cell runs against a hard per-call budget, so every token
- * here is one the analysis does not get.
+ * purpose — a lens cell runs against a hard per-call turn and time budget, so
+ * every token here is one the analysis does not get.
  */
 export function buildSourceStandardText(): string {
   const tier = (t: SourceTier) => `- TIER ${t.key} — ${t.verdict}. ${t.clauses.join(" ")}`;
