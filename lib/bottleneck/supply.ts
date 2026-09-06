@@ -51,7 +51,18 @@ export interface SupplyDataSource {
  * FRED — keyless CSV, monthly
  * -------------------------------------------------------------------------- */
 
-/** `observation_date,SERIES\n2026-07-01,160.2637` — the "." placeholder marks a gap. */
+/**
+ * `observation_date,SERIES\n2026-07-01,160.2637` — a gap is marked EITHER by a
+ * "." placeholder OR by an empty field, and the two are not interchangeable to
+ * a parser: `Number(".")` is NaN and gets skipped, but **`Number("")` is 0**,
+ * which passes `Number.isFinite` and is stored as a real observation of zero.
+ *
+ * FRED does ship empty fields. CPIAUCSL carries `2025-10-01,` — the October
+ * 2025 index was never published — and a supply series reading a genuine 0 is
+ * not a missing month, it is a collapse: it would drag a rate downward and show
+ * up on the desk as a constraint TIGHTENING that never happened. So the field
+ * must look like a number before it is read as one.
+ */
 export function parseFredCsv(csv: string, unit: string, sourceUrl: string | null): SupplyObservation[] {
   const lines = csv.trim().split(/\r?\n/);
   if (lines.length < 2 || !/^observation_date,/i.test(lines[0])) return [];
@@ -59,8 +70,9 @@ export function parseFredCsv(csv: string, unit: string, sourceUrl: string | null
   for (const line of lines.slice(1)) {
     const [date, raw] = line.split(",");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) continue;
+    if (!/^-?\d+(\.\d+)?$/.test((raw ?? "").trim())) continue; // "." or "" = no observation
     const value = Number(raw);
-    if (!Number.isFinite(value)) continue; // "." = no observation that month
+    if (!Number.isFinite(value)) continue;
     out.push({ date, value, unit, sourceUrl });
   }
   return out;

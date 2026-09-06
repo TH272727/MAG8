@@ -1,6 +1,9 @@
 # marketing/video — agent process rules (README.md = human-facing overview)
 
 Standalone Remotion project (own package.json / node_modules; NOT part of the Next app build).
+**Three product lines live here:** the launch film + lens shorts + fun campaign (hand-authored
+scenes), and the DATA-DRIVEN CHART FORMAT (`src/charts/`) — see `CHARTS.md` for its engine, its
+honesty gate and the traps already paid for, and the `viral-chart-protocol` for the procedure.
 Everything here is white-label: film sources speak public lens vocabulary only.
 **FORMULA.md (this dir) is the compounding owner rulebook** — every request the owner has made
 about the videos (hooks, copy canon, read time, type size, contrast, fit, endcard contract),
@@ -65,6 +68,12 @@ its changelog the day it lands. This file = the physics; FORMULA.md = the taste.
   few frames apart rather than landing them simultaneously.
 - Restraint: cap simultaneous movers at ~2–3 per beat. The usual failure mode is too much at once,
   not too little. Text-heavy beats hold ~0.5–0.7s longer than your first instinct (v1 viewer feedback).
+- CHART FILMS are the exception to hand-authored timing: `src/charts/spec.ts` `DEFAULT_BEATS`
+  drives the composition AND `scripts/gen-score-chart.ts`, and every figure on screen is READ
+  from the frozen dataset rather than written into a scene. Their numbers come from
+  `scripts/chart-fetch.ts` (the only thing in this project that touches the network) and must
+  clear `scripts/chart-verify.ts` before a render — `scripts/render-charts.ts` enforces that
+  order. Full rationale in `CHARTS.md`; do not add a chart without reading it.
 - Timing single-source: `src/timeline.ts` (film), `src/shorts/timeline.ts`, `src/fun/timeline.ts` drive
   the compositions AND `scripts/gen-score*.ts`. Any re-cut ⇒ regenerate the matching score.
   `gen-score-fun.ts` accepts episode-id args to regenerate a subset (`node scripts/gen-score-fun.ts
@@ -81,8 +90,20 @@ its changelog the day it lands. This file = the physics; FORMULA.md = the taste.
 3. Encode-path check for DOM-reuse bugs: `npm run stills -- <CompId> seq 100-160`
    (sequential frames, one DOM, concurrency 1).
 4. Leak gate: `npm run check:leak` — zero hits required over `src/` before rendering or publishing.
-5. Full render (`npm run render` / `render:shorts` / `render:fun`). A 30s@30fps short is 900
-   screenshots — don't iterate at this stage.
+5. Full render (`npm run render` / `render:shorts` / `render:fun` / `render:charts`). A 30s@30fps
+   short is 900 screenshots — don't iterate at this stage.
+
+Chart films insert one gate BEFORE stills: `npm run chart:verify` (0 FAIL required). It blocks
+the window defect that gets charts in this genre fact-checked — a series that runs out of data
+and stops climbing while its rivals keep going. `render:charts` re-runs it and refuses to render
+on a FAIL. The same gate FAILS a chart spec that gives the hook, payoff or endcard beat any
+frames: chart films are the race alone (owner rule, 2026-09-05). And they are filed apart from
+the hand-authored films, into `out/charts/batch-NN/`, 25 per folder — one YouTube drag each;
+`scripts/chart-out.ts` picks the folder, `npm run chart:made` prints the state.
+
+`scripts/stills.ts` pins renderer port 3335: the programmatic API defaults to :3000, which is the
+app's own dev server, and the renderer then loads the WEBSITE and reports "not a valid Remotion
+project".
 
 Node prints a MODULE_TYPELESS_PACKAGE_JSON warning running `scripts/*.ts` — harmless, ignore.
 

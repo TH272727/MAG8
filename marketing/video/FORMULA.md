@@ -11,7 +11,8 @@ Provenance tags: `[07-07 film]` launch film · `[07-08 pace]` lens shorts + paci
 `[07-08 fun]` intro rework + fun wave 1 (incl. hooks + text-size passes) · `[07-08 w2]`
 fun wave 2 + waitlist CTA · `[07-08 gt]` Game Theory rename · `[07-09 dna]` trillion-DNA +
 fit/contrast pass · `[07-09 engines]` engine specials (scout + Game Theory features) ·
-`[07-11 thumbs]` YouTube packaging (thumbnails + titles).
+`[07-11 thumbs]` YouTube packaging (thumbnails + titles) ·
+`[09-04 charts]` the viral chart format (data-driven chart shorts).
 Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 
 ---
@@ -165,6 +166,85 @@ Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
   hook inside ~60 chars (display truncation) and live in the platform metadata pack next to the
   video's entry. Set lives in `marketing/youtube-thumbs/`. `[07-11 thumbs]`
 
+## K. The chart format — data films
+
+- The owner asked for the racing-line chart short seen from creators in that genre
+  (expanding x/y axes, time on x, money or percent on y, an enlarged date under the plot
+  that counts as the animation runs, a title, several coloured lines, a badge at the head
+  of each line), **branded MAG8 throughout — mark, name and the website**. Built as
+  `marketing/video/src/charts/` + the `viral-chart-protocol`; `CHARTS.md` holds the
+  engineering notes. `[09-04 charts]`
+- **NO HOOK CARD AND NO ENDCARD.** The chart film opens ON the chart, already drawing, and
+  ends ~1.5s after the last point lands. The owner cut both for retention: this format is
+  "mostly a cool fun interesting moving graph video for the average scroller", and a question
+  card in front and a brand card behind are two places to swipe away. The time the two cards
+  used went back INTO the race (18s → 23s), so the chart draws more slowly and the date is
+  followable. The final held frame is also the loop point. `[09-04 charts]`
+- **This SUPERSEDES §G for the chart format only.** No endcard means no WaitlistCta on these
+  films — the one exception to "never drop the CTA", made explicitly by the owner. Every
+  other film keeps the §G contract in full. `[09-04 charts]`
+- **The brand promotes by being PRESENT, not by interrupting.** With the endcard gone, the
+  header carries all of it on every single frame: mark + MAG8 top-left, and top-right the
+  tagline "The next trillion-dollar leaderboard." over `themag8.com`. Deliberately quiet —
+  muted weight, no gold, no ask. The film is a chart; that block is the byline on it. The
+  verifier FAILS a cut that has no endcard AND no address in the header, so this can never
+  silently become an unbranded chart. `[09-04 charts]`
+- **The title stays.** The owner keeps the question inside the chart frame ("as the charts
+  are playing out I still like how the question is in there") — it is the headline over the
+  plot, not a card in front of it. `[09-04 charts]`
+- This discharges the §G hold ("no URL on endcards until the public domain is live") — the
+  domain is live, and the owner asked for it on screen. `[09-04 charts]`
+- **Nothing on screen is a typed figure.** Head values, the live rail, the standings, the
+  gold winner's number, the growth multiple and the date range are all read from the frozen
+  dataset at render time. `payoff.lines` is qualitative copy only, and the verifier warns on
+  any number in copy that is not a final value, a multiple, a year or the principal.
+  `[09-04 charts]`
+- **The receipts are part of the frame.** Every chart carries the arithmetic in one line
+  ("Value of $10,000 invested on 2012-06-01, held, distributions reinvested."), the source,
+  and the date the numbers were pulled. A log axis carries a LOG SCALE chip or the render is
+  blocked. `[09-04 charts]`
+- **The window is the thing that gets these charts fact-checked, not the numbers.** The
+  best-known chart in this genre lost a public fact-check because one series had fewer
+  periods than the others and simply stopped climbing while its rivals kept going. Every
+  MAG8 chart rebases to the first date all series exist and stops at the last date they all
+  report, and the gate refuses to render otherwise. `[09-04 charts]`
+- **Real names stay in safe framings, and that now covers PEOPLE.** §A already bars scoring,
+  vetoing or attaching a negative claim to a real company. A chart about a named
+  individual's money or conduct — the "X's net worth vs Y's" shape common in this genre —
+  is an **owner decision, never a default**: MAG8 is a real financial product with a live
+  waitlist, and that is a different risk class from a chart of tickers. Line-head badges
+  default to monogram discs (no likeness, no licence). `[09-04 charts]`
+- Chart beats, default cut: **race only, 690 frames, 23s portrait**. The hook, payoff and
+  endcard beats still exist in the engine and come back for any chart that gives them frames
+  — a beat set to zero is dropped from the sequence rather than rendered empty. `[09-04 charts]`
+- The chart must FILL its plot from the first seconds. A y window that opens wider than the
+  data (a whole decade on a log axis) leaves every line flat in a sliver of the frame and
+  fans the head badges into what reads as a floating legend. The window opens tight around
+  what has been revealed and widens from there — which is also the move the format is FOR:
+  the axis visibly expands and its units climb as time passes. `[09-04 charts]`
+- A line must never leave the plot box. A preferred floor (`yFloor`) yields to real data
+  below it — a chart whose line runs off the bottom edge is hiding something. `[09-04 charts]`
+- **"Run the viral fun chart marketing protocol" is a standing brief, not a blank one.**
+  Asked for the protocol with no subject, the answer is **three brainstormed comparisons**,
+  each a story none of the already-made charts has told — read `npm run chart:made` and the
+  spec folder before proposing, so "new" is checked and not remembered. Put the three to the
+  owner and build the one they pick. `[09-05 charts]`
+- **No intro, no outro — now a GATE, not a default.** The owner has called this twice, so
+  `chart-verify` FAILS any spec that gives the hook, payoff or endcard beat frames. The
+  reference is the first two films: the chart moving, and nothing else. A card comes back
+  only if the owner asks for one on a specific film. `[09-05 charts]`
+- **"Make N original videos" means build all N, not brainstorm N and build one.** The
+  standing brief's default is three ideas → owner picks one; an explicit count is an
+  instruction to ship that many. The brainstorm still happens and novelty is still checked
+  against `npm run chart:made` first — what changes is that every idea is built, so they have
+  to be three genuinely different SHAPES rather than three subjects on one shape. `[09-05 charts]`
+- **Chart films are filed apart, 25 to a folder.** `out/charts/batch-01/`, `batch-02/`, …
+  Twenty-five is YouTube's one-drag upload limit, so a full folder is exactly one drag and
+  nothing has to be counted out by hand. The driver picks the folder; a re-render of an
+  existing film goes back to its own folder rather than taking a slot in the current one,
+  and a folder that has already been dragged is never re-filed. `npm run chart:made` prints
+  the state. `[09-05 charts]`
+
 ## Changelog (append here — this is the compounding)
 
 | Date | Owner note | Landed as |
@@ -182,3 +262,8 @@ Full stories: `HANDOFF-2026-07-0{7,8,9}-*.md`.
 | 2026-07-09 | All text fits its box; no overlap; no dark-on-dark / light-on-light | §E + §F, S13/S14/S17/VF4/VM2/VC3/redflags fixes |
 | 2026-07-09 | 4 films on the two engines (scout trillion-DNA + Game Theory — "the most interesting, original, unique features"); get creative, any free/open tools, no need to keep the same colors/designs/visuals | §B engine specials; §H per-episode identity freedom + vendored accent fonts; fun-{dnatest,yearbook,poker,forecast} |
 | 2026-07-11 | 3 thumbnails for the-signal + 3 more titles (third requested for thumb C) | §J packaging contract; `marketing/youtube-thumbs/` a-4pct / b-one-signal / c-next-one + alt titles 1–3 in the upload plan |
+| 2026-09-04 | Replicate the animated-chart shorts format (expanding axes, ticking date, coloured lines, badge on each line head) — and make it better; branded MAG8 with the logo, the name and the website; runnable on demand as the "viral chart content protocol" | §K chart format; `src/charts/` engine + `chart-fetch`/`chart-verify`/`gen-score-chart`/`render-charts`; `viral-chart-protocol`; two films shipped (`chart-mag7-10k`, `chart-wages-vs-everything`); §G URL hold discharged for charts |
+| 2026-09-04 | Cut the intro question card and the outro from the chart films — go straight into the chart, end when the chart is done; fit "the next trillion dollar leaderboard" up near the logo and the website; keep it a subtle, casual promo — mostly just a cool moving graph for the average scroller | §K rewritten: race-only 23s cut, §G superseded for charts (no endcard, no CTA), tagline added to the persistent header, verifier FAILS an unbranded cut; y-window opens tight so the chart fills the frame from the start |
+| 2026-09-05 | Whenever I say "run the viral fun chart marketing protocol": automatically brainstorm 3 things we could chart and compare that we haven't made before; no intro/outro, only the interesting chart moving (the first two chart videos are ideal); and put chart videos in their own folders, 25 max per folder, new folder after that, so I can drag 25 into YouTube at once | §K standing brief: 3 novel ideas on every unqualified invocation + `npm run chart:made` as the novelty check; no-cards is now a `chart-verify` FAIL not a default; `out/charts/batch-NN/` 25-film batch folders via `scripts/chart-out.ts`, re-renders return to their own folder |
+| 2026-09-05 | "Execute the viral chart protocol and make 3 original videos" | §K explicit-count rule; three films shipped (`chart-cost-of-money`, `chart-cheaper-or-dearer`, `chart-sector-race-10k`) on three shapes — published levels / a fan that crosses zero / a linear dollar race with 25 lead changes; six engine findings in CHARTS.md incl. Yahoo's duplicate live month bar |
+| 2026-09-05 | "Run the protocol again, create 3 more original videos" | Three more films (`chart-work-in-america`, `chart-grocery-run`, `chart-world-markets`) on three unused shapes — raw headcounts on the `index` unit / dollars at shelf scale / a percent race of national markets; batch-01 now 8/25; four more engine findings in CHARTS.md incl. a spike check that failed a real market crash |

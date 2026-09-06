@@ -14,7 +14,12 @@
     "check:leak": "node scripts/check-leak.ts",
     "gen:score": "node scripts/gen-score.ts",
     "gen:score:shorts": "node scripts/gen-score-shorts.ts",
-    "gen:score:fun": "node scripts/gen-score-fun.ts"
+    "gen:score:fun": "node scripts/gen-score-fun.ts",
+    "chart:fetch": "node scripts/chart-fetch.ts",
+    "chart:verify": "node scripts/chart-verify.ts",
+    "chart:made": "node scripts/chart-out.ts",
+    "gen:score:chart": "node scripts/gen-score-chart.ts",
+    "render:charts": "node scripts/render-charts.ts"
   },
   "dependencies": {
     "@remotion/animation-utils": "^4.0.486",

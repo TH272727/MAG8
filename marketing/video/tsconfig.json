@@ -9,6 +9,10 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    // src/charts modules are imported BOTH by the bundler and by Node scripts
+    // (chart-fetch/chart-verify run before any bundle exists), and Node ESM
+    // needs the extension spelled out.
+    "allowImportingTsExtensions": true,
     "lib": ["DOM", "ES2022"]
   },
   "include": ["src", "remotion.config.ts"]

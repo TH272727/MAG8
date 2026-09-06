@@ -26,6 +26,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BROWSER = {
   browserExecutable: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   chromeMode: 'chrome-for-testing',
+  // The programmatic API does NOT read remotion.config.ts, so its render server
+  // falls back to :3000 — which is the app's own dev server. With that up, the
+  // renderer loads the WEBSITE, finds no compositions, and reports "not a valid
+  // Remotion project". Pin the port beside the other settings this path cannot
+  // inherit.
+  port: 3335,
 } as const;
 
 const [compId, mode, range] = process.argv.slice(2);

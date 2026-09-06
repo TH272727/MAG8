@@ -8,6 +8,9 @@ import type {ShortId} from './shorts/timeline';
 import {ShortCtx} from './shorts/vlib';
 import {FUN_IDS, funScenes, funTotal} from './fun/timeline';
 import type {FunId} from './fun/timeline';
+import {CHARTS, chartScenes, compIdOf} from './charts/registry';
+import {CHART_SCENE_REGISTRY, ChartCtx} from './charts/scenes';
+import {VH as CVH, VW as CVW} from './charts/clib';
 
 import {E1_Ask, E2_Shake, E3_Toys, E4_Desk, E5_End} from './fun/scenes/eightball';
 import {G1_Chat, G2_Cut, G3_Line, G4_Desk, G5_End} from './fun/scenes/groupchat';
@@ -267,6 +270,34 @@ const FUN_COMPS = FUN_IDS.map((id) => ({
   Comp: makeFun(id),
 }));
 
+/* ---------------------------- the chart format --------------------------- */
+
+/**
+ * One composition per chart. The spec and its frozen dataset ride a context so
+ * every scene reads the same numbers, and the duration comes from the spec's
+ * own frame budget rather than a hand-kept table.
+ */
+const CHART_COMPS = CHARTS.map((chart) => {
+  const TheChart: React.FC = () => (
+    <WithFonts>
+      <ChartCtx.Provider value={chart}>
+        <Series>
+          {chartScenes(chart).map((s) => {
+            const Scene = CHART_SCENE_REGISTRY[s.id];
+            return (
+              <Series.Sequence key={s.id} durationInFrames={s.frames} name={s.id}>
+                <Scene />
+              </Series.Sequence>
+            );
+          })}
+        </Series>
+        <Audio src={staticFile(`audio/score-chart-${chart.id}.wav`)} />
+      </ChartCtx.Provider>
+    </WithFonts>
+  );
+  return {compId: compIdOf(chart.id), frames: chart.frames, Comp: TheChart};
+});
+
 export const RemotionRoot: React.FC = () => (
   <>
     <Composition
@@ -286,6 +317,17 @@ export const RemotionRoot: React.FC = () => (
         fps={FPS}
         width={VW}
         height={VH}
+      />
+    ))}
+    {CHART_COMPS.map(({compId, frames, Comp}) => (
+      <Composition
+        key={compId}
+        id={compId}
+        component={Comp}
+        durationInFrames={frames}
+        fps={FPS}
+        width={CVW}
+        height={CVH}
       />
     ))}
     {FUN_COMPS.map(({id, compId, Comp}) => (
