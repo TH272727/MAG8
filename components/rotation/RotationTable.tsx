@@ -40,14 +40,24 @@ export interface TableRow {
   scoreLabel: string;
   mixedBasis: boolean;
   stale: boolean;
+  /**
+   * Conditional history: how the ratio behaved after past sessions in the same
+   * band. `difference` is null when the sample was too thin to publish, which
+   * is a state of its own and not a zero.
+   */
+  difference: number | null;
+  differenceLabel: string;
+  episodes: number;
+  bandLabel: string;
 }
 
-type SortKey = "score" | "label" | "category" | "since";
+type SortKey = "score" | "label" | "category" | "since" | "difference";
 
 const HEADERS: { key: SortKey; label: string; numeric: boolean }[] = [
   { key: "label", label: "Indicator", numeric: false },
   { key: "category", label: "Category", numeric: false },
   { key: "score", label: "Score", numeric: true },
+  { key: "difference", label: "After readings like this", numeric: true },
   { key: "since", label: "Last change", numeric: true },
 ];
 
@@ -83,6 +93,14 @@ export default function RotationTable({ rows }: { rows: TableRow[] }) {
         if (aNull !== bNull) return aNull ? 1 : -1;
         if (aNull) return a.label.localeCompare(b.label);
         return (a.daysSince! - b.daysSince!) * dir;
+      }
+      if (sort === "difference") {
+        // Unmeasured never competes for a rank; it sinks either way.
+        const aNull = a.difference === null;
+        const bNull = b.difference === null;
+        if (aNull !== bNull) return aNull ? 1 : -1;
+        if (aNull) return a.label.localeCompare(b.label);
+        return (a.difference! - b.difference!) * dir;
       }
       if (sort === "category") return a.categoryTitle.localeCompare(b.categoryTitle) * dir;
       return a.label.localeCompare(b.label) * dir;
@@ -135,9 +153,15 @@ export default function RotationTable({ rows }: { rows: TableRow[] }) {
         The marker beside it names the side that move favours, so a high score can mean a strong move in
         either direction — including against the asset the row is named for.
       </p>
+      <p className="mt-1.5 max-w-3xl text-[12px] leading-relaxed text-dim">
+        <span className="text-muted">After readings like this</span> is history, not a forecast: how much this
+        ratio&rsquo;s later move differed from its ordinary move, across the separate past visits to the same
+        tenth of its range. Counted in visits rather than days, and left unmeasured when there have been too
+        few. Open a row for the visits behind the figure.
+      </p>
 
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[880px] text-left text-sm">
           <caption className="sr-only">
             Every rotation indicator with its score, tier, direction and time since its last state change.
           </caption>
@@ -191,6 +215,14 @@ export default function RotationTable({ rows }: { rows: TableRow[] }) {
                   </div>
                   <div className="mt-1 flex justify-end">
                     <span className={`chip ${r.tierChip}`}>{r.tierLabel}</span>
+                  </div>
+                </td>
+                <td className="py-2.5 pr-3 text-right">
+                  <div className="tabular font-mono text-[13px] text-ink">{r.differenceLabel}</div>
+                  <div className="mt-0.5 text-[11px] text-dim">
+                    {r.difference === null
+                      ? `${r.bandLabel} · too few visits`
+                      : `${r.bandLabel} · ${r.episodes} visits`}
                   </div>
                 </td>
                 <td className="tabular py-2.5 text-right font-mono text-[13px] text-muted">{r.sinceLabel}</td>

@@ -37,7 +37,7 @@ export default async function RotationPage() {
   // Pre-launch curtain: the page stays in the tree but 404s until launch.
   if (launchMode()) notFound();
 
-  const board = readBoard();
+  const board = readBoard({ withBaseRates: true });
   // Server-decided: a visitor's payload never carries the operating controls,
   // and every action behind them re-checks the token anyway.
   const unlocked = tokenMatches((await cookies()).get(ADMIN_COOKIE)?.value ?? null);
@@ -50,6 +50,9 @@ export default async function RotationPage() {
     const r = e.result.reading;
     if (!r || r.kind !== "ratio") return [];
     const mark = directionMark(r);
+    const br = e.baseRates;
+    // Unmeasured is a state, not a zero: the label says so and the sort sinks it.
+    const measured = br?.measured === true;
     return [
       {
         id: r.id,
@@ -72,6 +75,10 @@ export default async function RotationPage() {
         scoreLabel: fmtScore(r.score),
         mixedBasis: r.basis.mixed,
         stale: r.stale,
+        difference: measured ? (br!.differencePct ?? null) : null,
+        differenceLabel: measured ? fmtPct(br!.differencePct, 2) : "NOT MEASURED",
+        episodes: br?.conditional.episodes ?? 0,
+        bandLabel: br?.band ? `${br.band.lo}-${br.band.hi}th` : "—",
       },
     ];
   });

@@ -1,8 +1,9 @@
 import { barCoverage, deleteBars, getBars, saveBars, type PriceBar } from "../db";
-import { rotationEnabled, rotationSettings } from "../rotation-settings";
+import { MAX_HISTORY_YEARS, rotationEnabled, rotationSettings } from "../rotation-settings";
 import { allIndicators, catalogTickers, CYCLE_PHASES, type Indicator } from "./catalog";
 import { fetchTicker, toPriceBars } from "./bars";
-import { rankReadings, scoreIndicator, type Reading, type ScoreResult } from "./score";
+import { rankReadings, scoreIndicator, type Reading, type ScoreResult, type SeriesPoint } from "./score";
+import { computeBaseRates, type BaseRateResult, type BaseRateSettings } from "./baserates";
 import { changesOn, daysSinceChange, detectChanges, type StateChange } from "./state";
 
 /* ============================================================================
@@ -145,8 +146,21 @@ export interface StoredSeries {
   adjusted: boolean | null;
 }
 
+/**
+ * How many stored sessions to read back for one ticker.
+ *
+ * Sized to the MOST history the board can ever hold, not to the operator's
+ * current setting. `getBars` returns the NEWEST rows, so a limit below what is
+ * stored would silently drop the oldest years — and lowering the fetch setting
+ * would then appear to rewrite history that is still on file. Roughly 252
+ * sessions a year, plus a year of headroom.
+ */
+export function barReadLimit(): number {
+  return MAX_HISTORY_YEARS * 252 + 252;
+}
+
 /** Load one ticker. An absent or empty series comes back with null metadata, never a guess. */
-export function loadSeries(ticker: string, limit = 3000): StoredSeries {
+export function loadSeries(ticker: string, limit: number = barReadLimit()): StoredSeries {
   const bars = getBars(ticker, limit);
   if (bars.length === 0) return { ticker, bars, source: null, adjusted: null };
   const last = bars[bars.length - 1];
@@ -155,9 +169,61 @@ export function loadSeries(ticker: string, limit = 3000): StoredSeries {
 
 /** Every ticker an indicator set needs, loaded once and shared across ratios. */
 export function loadSeriesFor(indicators: Indicator[] = allIndicators()): Map<string, StoredSeries> {
+  const limit = barReadLimit();
   const out = new Map<string, StoredSeries>();
-  for (const ticker of catalogTickers(indicators)) out.set(ticker, loadSeries(ticker));
+  for (const ticker of catalogTickers(indicators)) out.set(ticker, loadSeries(ticker, limit));
   return out;
+}
+
+/* ----------------------------------------------------------------------------
+ * Conditional history for one indicator.
+ *
+ * Kept out of readBoard on purpose. The percentile history it needs is the
+ * expensive reading on the board — quadratic in its window — and the board
+ * does not otherwise compute it. Charging every visitor to the board for a
+ * figure that only the indicator's own page publishes would be the wrong
+ * trade, so this is asked for by name.
+ * -------------------------------------------------------------------------- */
+
+export interface IndicatorBaseRates {
+  indicator: Indicator;
+  result: BaseRateResult;
+}
+
+/** No network. Scores the indicator, then reads what followed each past session like today's. */
+export function readBaseRates(
+  indicatorOrId: Indicator | string,
+  opts: { settings?: ReturnType<typeof rotationSettings> } = {},
+): IndicatorBaseRates | null {
+  const indicator =
+    typeof indicatorOrId === "string"
+      ? (allIndicators().find((i) => i.id === indicatorOrId) ?? null)
+      : indicatorOrId;
+  if (!indicator) return null;
+
+  const settings = opts.settings ?? rotationSettings();
+  const scored = scoreIndicator({
+    indicator,
+    base: loadSeries(indicator.base),
+    quote: indicator.quote ? loadSeries(indicator.quote) : null,
+    settings,
+    withSeries: true,
+  });
+  return { indicator, result: baseRatesFromSeries(scored.series, settings) };
+}
+
+/** The pure seam: a scored series in, a conditional history out. */
+export function baseRatesFromSeries(
+  series: SeriesPoint[],
+  settings: BaseRateSettings,
+): BaseRateResult {
+  return computeBaseRates({
+    dates: series.map((p) => p.date),
+    values: series.map((p) => p.value),
+    fast: series.map((p) => p.fast),
+    slow: series.map((p) => p.slow),
+    settings,
+  });
 }
 
 /* ----------------------------------------------------------------------------
@@ -173,6 +239,8 @@ export interface BoardEntry {
   changes: StateChange[];
   /** Calendar days since the last state change; null when it has never changed. */
   daysSince: number | null;
+  /** Present only when the caller asked for it — see readBoard's withBaseRates. */
+  baseRates?: BaseRateResult;
 }
 
 export interface SectorRow {
@@ -218,7 +286,16 @@ export interface Board {
 
 const SECTOR_LEADERS_CONSIDERED = 4;
 
-export function readBoard(opts: { now?: Date; indicators?: Indicator[] } = {}): Board {
+/**
+ * @param withBaseRates also compute each ratio's conditional history.
+ *   Off by default because it roughly doubles the work: the plottable series
+ *   has to be built and the percentile history is quadratic in its window.
+ *   Computing it here rather than in a second pass is still much cheaper than
+ *   scoring every indicator twice.
+ */
+export function readBoard(
+  opts: { now?: Date; indicators?: Indicator[]; withBaseRates?: boolean } = {},
+): Board {
   const now = opts.now ?? new Date();
   const empty: Board = {
     asOf: null,
@@ -247,12 +324,18 @@ export function readBoard(opts: { now?: Date; indicators?: Indicator[] } = {}): 
       quote: indicator.quote ? (series.get(indicator.quote) ?? null) : null,
       settings: s,
       now,
+      withSeries: opts.withBaseRates === true,
     });
     const changes = detectChanges(indicator.id, result.history);
     entries.push({
       result,
       changes,
       daysSince: result.reading ? daysSinceChange(changes, result.reading.asOf) : null,
+      // Context gauges are reported, never scored, and a conditional history is
+      // a reading about a scored ratio — so they do not get one.
+      ...(opts.withBaseRates && indicator.kind === "ratio"
+        ? { baseRates: baseRatesFromSeries(result.series, s) }
+        : {}),
     });
   }
 

@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import RotationChart, { type ChartMarker } from "@/components/rotation/RotationChart";
 import ScoreWithDirection from "@/components/rotation/ScoreWithDirection";
 import { launchMode } from "@/lib/config";
-import { loadSeries } from "@/lib/rotation/board";
-import { CATEGORY_META, getIndicator } from "@/lib/rotation/catalog";
+import { baseRatesFromSeries, loadSeries } from "@/lib/rotation/board";
+import { allIndicators, CATEGORY_META, getIndicator } from "@/lib/rotation/catalog";
 import {
   directionMark,
   fmtDay,
@@ -55,6 +55,11 @@ export default async function IndicatorPage({ params }: { params: Promise<{ id: 
     settings,
     withSeries: true,
   });
+
+  const baseRates = baseRatesFromSeries(result.series, settings);
+  // Stated rather than hard-coded: the count is part of the data-snooping
+  // disclosure below, and a catalog addition must move it.
+  const indicatorCount = allIndicators().filter((i) => i.kind === "ratio").length;
 
   const r = result.reading;
   const changes = detectChanges(indicator.id, result.history);
@@ -240,6 +245,126 @@ export default async function IndicatorPage({ params }: { params: Promise<{ id: 
               {stat("THREE MONTHS", fmtPct(r.roc3m), "text-muted")}
               {stat("SIX MONTHS", fmtPct(r.roc6m), "text-muted")}
             </div>
+          </section>
+
+          {/* -- What followed, the last times it sat here. --------------------- */}
+          <section className="mt-8" aria-labelledby="history-h">
+            <h2 id="history-h" className="eyebrow">
+              What followed, the last times it sat here
+            </h2>
+            <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-muted">
+              Every past session where this ratio sat in the same tenth of its own trailing range, and what the
+              ratio did over the {baseRates.horizonSessions} sessions after each one. The sample is counted in{" "}
+              <span className="text-ink">separate visits</span>, not in days: a forward reading taken on
+              consecutive sessions shares almost all of its window with the reading beside it, so a run of
+              qualifying days is one observation rather than many.
+            </p>
+
+            {!baseRates.measured ? (
+              <div className="panel mt-4 p-5">
+                <span className="chip">NOT MEASURED</span>
+                <p className="mt-3 text-[13px] leading-relaxed text-muted">{baseRates.unavailable}</p>
+                <p className="mt-2 text-[12px] text-dim">
+                  Nothing is estimated in its place. An average of a handful of overlapping observations is not a
+                  base rate, and publishing one as though it were is the failure this refusal exists to prevent.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
+                  {stat("SEPARATE VISITS", String(baseRates.conditional.episodes))}
+                  {stat("AFTER A READING LIKE TODAY", fmtPct(baseRates.conditional.meanPct, 2))}
+                  {stat("OVER THE WHOLE SPAN", fmtPct(baseRates.unconditional.meanPct, 2), "text-muted")}
+                  {stat("DIFFERENCE", fmtPct(baseRates.differencePct, 2))}
+                </div>
+
+                <p className="mt-4 max-w-2xl text-[13px] leading-relaxed text-muted">
+                  This ratio sits in the{" "}
+                  <span className="text-ink">{baseRates.band?.label ?? "—"}</span> of its{" "}
+                  {baseRates.percentileWindowDays}-session range. Across{" "}
+                  {baseRates.usableSessions.toLocaleString("en-US")} sessions with a finished forward window
+                  ({fmtDay(baseRates.spanStart ?? "")} — {fmtDay(baseRates.spanEnd ?? "")}), it has been there on{" "}
+                  {baseRates.conditional.sessions.toLocaleString("en-US")} of them, over{" "}
+                  {baseRates.conditional.episodes} separate visits, of which{" "}
+                  {baseRates.conditional.episodeHitRatePct === null
+                    ? "—"
+                    : `${Math.round(baseRates.conditional.episodeHitRatePct)}%`}{" "}
+                  were followed by a rise. Only the difference between the two figures above carries information:
+                  the first alone would look like a forecast and is not one.
+                </p>
+
+                {baseRates.bandSharePct !== null && baseRates.bandSharePct >= 40 && (
+                  <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-muted">
+                    <span className="chip gate-caution">BARELY CONDITIONAL</span>{" "}
+                    <span className="ml-1">
+                      This ratio has spent {Math.round(baseRates.bandSharePct)}% of its measurable history in this
+                      same band. A ratio in a long trend keeps making new extremes inside its own trailing window,
+                      so a figure conditioned on most of the sample is close to the plain figure by construction.
+                    </span>
+                  </p>
+                )}
+
+                {baseRates.directionMatched && (
+                  <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-muted">
+                    Narrowed further to visits that also favoured the same side as today:{" "}
+                    <span className="tabular font-mono text-ink">
+                      {fmtPct(baseRates.directionMatched.meanPct, 2)}
+                    </span>{" "}
+                    over {baseRates.directionMatched.episodes} visits. The narrower cut is shown only when it
+                    clears the same minimum on its own.
+                  </p>
+                )}
+
+                {baseRates.conditional.list.length > 0 && (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-hairline font-mono text-[11px] tracking-[0.1em] text-dim">
+                          <th scope="col" className="pb-2 font-normal">VISIT</th>
+                          <th scope="col" className="pb-2 text-right font-normal">SESSIONS</th>
+                          <th scope="col" className="pb-2 text-right font-normal">MEAN</th>
+                          <th scope="col" className="pb-2 text-right font-normal">WORST</th>
+                          <th scope="col" className="pb-2 text-right font-normal">BEST</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {baseRates.conditional.list.slice(0, 12).map((e) => (
+                          <tr key={e.startDate} className="border-b border-hairline">
+                            <td className="tabular py-2 font-mono text-[12px] text-muted">
+                              {e.startDate} → {e.endDate}
+                            </td>
+                            <td className="tabular py-2 text-right font-mono text-[13px] text-muted">
+                              {e.sessions}
+                            </td>
+                            <td className="tabular py-2 text-right font-mono text-[13px] text-ink">
+                              {fmtPct(e.meanChangePct, 2)}
+                            </td>
+                            <td className="tabular py-2 text-right font-mono text-[13px] text-muted">
+                              {fmtPct(e.worstPct, 2)}
+                            </td>
+                            <td className="tabular py-2 text-right font-mono text-[13px] text-muted">
+                              {fmtPct(e.bestPct, 2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {baseRates.conditional.list.length > 12 && (
+                      <p className="mt-2 text-[12px] text-dim">
+                        Showing the 12 most recent of {baseRates.conditional.list.length} visits.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <p className="mt-4 max-w-3xl text-[12px] text-dim">
+                  A visit can be a single session or an entire year, and the table says which — a long residency
+                  and a two-day touch are not the same evidence. This board carries {indicatorCount} ratios, each
+                  with ten bands and a choice of horizon, which is a setting in which some combination will look
+                  striking by chance alone. This describes what followed in the past. It does not forecast.
+                </p>
+              </>
+            )}
           </section>
 
           {/* -- Falsification and disclosure. -------------------------------- */}

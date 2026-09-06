@@ -685,7 +685,9 @@ export function describeScreen(pool: UniversePool): string {
  */
 export function universeScreenFlags(
   candidates: readonly { ticker: string }[],
-  universe: UniverseResult,
+  // Only the three fields it actually reads, so a caller holding a stored
+  // snapshot can ask for flags without running — or faking — a live screen.
+  universe: Pick<UniverseResult, "rows" | "extras" | "settings">,
 ): string[] {
   const u = universe.settings;
   const slack = u.bandSlackPct / 100;

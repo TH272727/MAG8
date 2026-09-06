@@ -4,6 +4,7 @@
  *   npm run rotation -- --probe                 live price-source smoke test
  *   npm run rotation -- --refresh [--dry]       fetch every catalog ticker, store the closes
  *   npm run rotation -- --coverage              what is stored, without fetching anything
+ *   npm run rotation -- --baserates             what followed, the last times a ratio sat here
  *
  * Deterministic and free: everything here is HTTP plus arithmetic, so it never
  * touches the research plan's usage window.
@@ -359,7 +360,114 @@ async function note(write: boolean): Promise<number> {
  * while fetch keep-alive sockets are still open trips a libuv assertion and
  * returns 127 even on success, which would make the exit code useless as a gate.
  */
+/**
+ * What followed, the last times each indicator sat where it sits now.
+ *
+ * Prints the plain figure beside every conditional one, and the number of
+ * separate EPISODES rather than the number of overlapping days, because those
+ * are the two ways this reading is most easily misread.
+ */
+async function baserates(): Promise<number> {
+  const { readBaseRates } = await import("../lib/rotation/board");
+  const { allIndicators } = await import("../lib/rotation/catalog");
+  const { rotationSettings } = await import("../lib/rotation-settings");
+
+  const s = rotationSettings();
+  const wanted = argValue("--indicator");
+  const indicators = allIndicators().filter(
+    (i) => i.kind === "ratio" && (!wanted || i.id === wanted),
+  );
+  if (indicators.length === 0) {
+    console.log(` no ratio indicator matched ${wanted ?? "(any)"}`);
+    return 1;
+  }
+
+  banner(
+    `CONDITIONAL HISTORY — ${s.baseRateHorizonDays} sessions forward, ` +
+      `${s.percentileWindowDays}-session position window, ` +
+      `${s.baseRateMinEpisodes}-episode minimum`,
+  );
+
+  const t0 = Date.now();
+  const rows = indicators.map((i) => readBaseRates(i, { settings: s })).filter((x) => x !== null);
+  const ms = Date.now() - t0;
+
+  const pct = (n: number | null) => (n === null ? "     —" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`);
+  const share = (n: number | null) => (n === null ? "—" : `${Math.round(n)}%`);
+  // Deciles read fine as "0-10" in a table; the legend below spells them out.
+  const band = (r: { band: { lo: number; hi: number } | null }) =>
+    r.band ? `${r.band.lo}-${r.band.hi}` : "—";
+
+  console.log(
+    `\n ${"indicator".padEnd(12)}${"band".padEnd(9)}${"episodes".padStart(9)}` +
+      `${"of window".padStart(10)}${"conditional".padStart(12)}${"plain".padStart(9)}` +
+      `${"difference".padStart(11)}${"hit".padStart(6)}  usable span`,
+  );
+
+  let measured = 0;
+  for (const row of rows) {
+    const r = row.result;
+    if (!r.measured) {
+      console.log(
+        ` ${row.indicator.id.padEnd(12)}${band(r).padEnd(9)}` +
+          `${String(r.conditional.episodes).padStart(9)}${share(r.bandSharePct).padStart(10)}` +
+          `${"NOT MEASURED".padStart(12)}`,
+      );
+      continue;
+    }
+    measured++;
+    console.log(
+      ` ${row.indicator.id.padEnd(12)}${band(r).padEnd(9)}` +
+        `${String(r.conditional.episodes).padStart(9)}${share(r.bandSharePct).padStart(10)}` +
+        `${pct(r.conditional.meanPct).padStart(12)}${pct(r.unconditional.meanPct).padStart(9)}` +
+        `${pct(r.differencePct).padStart(11)}` +
+        `${(r.conditional.episodeHitRatePct === null ? "—" : `${Math.round(r.conditional.episodeHitRatePct)}%`).padStart(6)}` +
+        `  ${r.spanStart ?? "?"} → ${r.spanEnd ?? "?"}`,
+    );
+  }
+
+  console.log(
+    `\n ${measured} of ${rows.length} indicators cleared the ${s.baseRateMinEpisodes}-episode minimum · ${ms}ms`,
+  );
+  console.log(
+    " band       the decile of its own trailing range the ratio sits in TODAY\n" +
+      " episodes   separate visits to that band — consecutive qualifying sessions are ONE visit\n" +
+      " of window  share of the usable history spent there; near 100% is barely conditional at all\n" +
+      " plain      the same forward figure over EVERY usable session — the yardstick\n" +
+      " hit        share of episodes whose mean was positive\n" +
+      "\n Only the distance between the conditional figure and the plain one carries information.\n" +
+      " This describes what followed in the past. It does not forecast.",
+  );
+
+  if (wanted && rows.length === 1) {
+    const r = rows[0]!.result;
+    console.log(`\n ${rows[0]!.indicator.label}`);
+    if (r.unavailable) console.log(` ${r.unavailable}`);
+    if (r.directionMatched) {
+      console.log(
+        ` narrowed to sessions favouring the same side: ${r.directionMatched.episodes} episodes, ` +
+          `${pct(r.directionMatched.meanPct)}`,
+      );
+    }
+    if (r.conditional.list.length > 0) {
+      console.log(`\n ${"visit".padEnd(24)}${"sessions".padStart(9)}${"mean".padStart(10)}${"worst".padStart(10)}${"best".padStart(10)}`);
+      for (const e of r.conditional.list.slice(0, 12)) {
+        console.log(
+          ` ${`${e.startDate} → ${e.endDate}`.padEnd(24)}${String(e.sessions).padStart(9)}` +
+            `${pct(e.meanChangePct).padStart(10)}${pct(e.worstPct).padStart(10)}${pct(e.bestPct).padStart(10)}`,
+        );
+      }
+    }
+  }
+
+  return 0;
+}
+
 async function main() {
+  if (has("--baserates")) {
+    process.exitCode = await baserates();
+    return;
+  }
   if (has("--board")) {
     process.exitCode = await board();
     return;

@@ -24,7 +24,7 @@ import {
  * rather than per operator preference. These knobs are the operator's dials.
  * ========================================================================== */
 
-export type RotationSettingGroupKey = "data" | "scoring" | "signals" | "brief" | "ops";
+export type RotationSettingGroupKey = "data" | "scoring" | "signals" | "baserates" | "brief" | "ops";
 
 export const ROTATION_SETTING_GROUPS: { key: RotationSettingGroupKey; title: string; note: string }[] = [
   {
@@ -53,6 +53,17 @@ export const ROTATION_SETTING_GROUPS: { key: RotationSettingGroupKey; title: str
       "direction worth reporting, and saying otherwise manufactures a signal out of rounding.",
   },
   {
+    key: "baserates",
+    title: "Conditional history",
+    note:
+      "What happened next, the last times an indicator sat where it sits now. The sample is counted in " +
+      "EPISODES, never in days: a sixty-three-day forward reading taken on consecutive sessions shares " +
+      "sixty-two of those days with the reading beside it, so consecutive qualifying days are one " +
+      "observation and not sixty. Below the minimum the board says so and reports nothing, and every " +
+      "conditional figure is published beside the plain figure for the same stretch, because only the " +
+      "difference between the two carries information.",
+  },
+  {
     key: "brief",
     title: "Written note",
     note:
@@ -69,6 +80,16 @@ export const ROTATION_SETTING_GROUPS: { key: RotationSettingGroupKey; title: str
   },
 ];
 
+/**
+ * The most history the board will ever fetch or keep, in years.
+ *
+ * Exported because reading bars back must never be capped BELOW what could
+ * have been stored: `getBars` returns the newest rows, so a read limit under
+ * the stored span would silently drop the oldest years while every page
+ * carried on describing the full history.
+ */
+export const MAX_HISTORY_YEARS = 20;
+
 const num = numSetting<RotationSettingGroupKey>;
 const bool = boolSetting<RotationSettingGroupKey>;
 
@@ -81,14 +102,16 @@ export const ROTATION_SETTINGS_SPEC: SettingSpec<RotationSettingGroupKey>[] = [
     envVar: "MAG8_ROT_HISTORY_YEARS",
     default: 5,
     min: 3,
-    max: 10,
+    max: MAX_HISTORY_YEARS,
     step: 1,
     unit: "years",
     integer: true,
     blurb:
       "How far back each price series is pulled and kept. Three years is the floor because the historical " +
       "position reading is defined against a three-year window; five is the default so that window is fully " +
-      "populated from the first day rather than filling in over the following two years.",
+      "populated from the first day rather than filling in over the following two years. The conditional " +
+      "history below is the reason the ceiling is twenty: at five years a trending ratio spends most of the " +
+      "measurable window inside its own bottom decile, which leaves too few separate episodes to describe.",
     cites: [],
   }),
   num({
@@ -360,6 +383,60 @@ export const ROTATION_SETTINGS_SPEC: SettingSpec<RotationSettingGroupKey>[] = [
     cites: [],
   }),
 
+  /* ---- Conditional history ---- */
+  num({
+    key: "baseRateHorizonDays",
+    label: "Forward window measured after a reading",
+    group: "baserates",
+    envVar: "MAG8_ROT_BASE_RATE_HORIZON",
+    default: 63,
+    min: 21,
+    max: 252,
+    step: 21,
+    unit: "sessions",
+    integer: true,
+    blurb:
+      "How far ahead the board looks from each past session that matched today's reading. Sixty-three " +
+      "sessions is the three-month change the board already reports beside every ratio, so the conditional " +
+      "history speaks in the same unit as the rest of the page rather than inventing a horizon of its own.",
+    cites: [],
+  }),
+  num({
+    key: "baseRateMinEpisodes",
+    label: "Separate episodes required before a figure is published",
+    group: "baserates",
+    envVar: "MAG8_ROT_BASE_RATE_MIN_EPISODES",
+    default: 8,
+    min: 3,
+    max: 40,
+    step: 1,
+    unit: "episodes",
+    integer: true,
+    blurb:
+      "Below this the indicator reports NOT MEASURED and ranks last, rather than publishing an average of " +
+      "three overlapping observations as though it were a base rate. Raising it makes the board honest about " +
+      "more indicators and silent about more of them; lowering it does the reverse, and the number of " +
+      "episodes is printed either way so the reader can disagree with the setting.",
+    cites: ["Sullivan, Timmermann & White 1999"],
+  }),
+  num({
+    key: "baseRateEpisodeGapDays",
+    label: "Gap that separates one episode from the next",
+    group: "baserates",
+    envVar: "MAG8_ROT_BASE_RATE_EPISODE_GAP",
+    default: 5,
+    min: 1,
+    max: 63,
+    step: 1,
+    unit: "sessions",
+    integer: true,
+    blurb:
+      "Qualifying sessions closer together than this belong to the same episode. Without a tolerance a " +
+      "condition that flickers on and off across a single stretch of market would be counted as many " +
+      "separate visits, which inflates the apparent sample at the exact moment the real one is shrinking.",
+    cites: [],
+  }),
+
   /* ---- Written note ---- */
   bool({
     key: "briefModelEnabled",
@@ -448,6 +525,9 @@ export interface RotationSettings {
   strongTierMin: number;
   buildingTierMin: number;
   neutralTierMin: number;
+  baseRateHorizonDays: number;
+  baseRateMinEpisodes: number;
+  baseRateEpisodeGapDays: number;
   briefModelEnabled: boolean;
   briefMaxIndicators: number;
   fetchTimeoutMs: number;

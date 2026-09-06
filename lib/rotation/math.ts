@@ -221,6 +221,22 @@ export function rateOfChangeAt(values: (number | null)[], lookback: number, inde
   return 100 * (now / then - 1);
 }
 
+/**
+ * Percentage change over the `horizon` sessions FOLLOWING `index`.
+ *
+ * The mirror of `rateOfChangeAt`, and the only function in this file that reads
+ * forward. It is null once the window runs past the end of the series, which is
+ * what keeps a conditional history from quietly measuring a stretch of the
+ * future that has not happened yet.
+ */
+export function forwardChangeAt(values: (number | null)[], horizon: number, index: number): number | null {
+  if (horizon < 1) return null;
+  const now = values[index];
+  const later = values[index + horizon];
+  if (now === null || now === undefined || later === null || later === undefined || now === 0) return null;
+  return 100 * (later / now - 1);
+}
+
 /** Index of the last non-null entry, or -1. */
 export function lastDefinedIndex(values: (number | null)[]): number {
   for (let i = values.length - 1; i >= 0; i--) if (values[i] !== null) return i;

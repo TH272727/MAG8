@@ -175,6 +175,24 @@ export interface ScoreInputs {
 
 const clamp10 = (n: number): number => Math.min(10, Math.max(0, n));
 
+/**
+ * Which side a ratio favours, from its two averages and the deadband.
+ *
+ * Exported because the conditional history has to ask the same question of
+ * five thousand past sessions, and a second implementation of a deadband is a
+ * second chance to disagree with the board about what a flat ratio means.
+ */
+export function directionFrom(
+  fast: number | null,
+  slow: number | null,
+  deadbandPct: number,
+): DirectionKey {
+  if (fast === null || slow === null || slow === 0) return "balanced";
+  const sepPct = (Math.abs(fast - slow) / slow) * 100;
+  if (sepPct < deadbandPct) return "balanced";
+  return fast > slow ? "favors-base" : "favors-quote";
+}
+
 export function tierFor(score: number | null, s: ScoreSettings): Tier {
   if (score === null) return "none";
   // Inclusive from below at every boundary, so no score falls between two tiers.
@@ -363,14 +381,7 @@ export function scoreIndicator(inputs: ScoreInputs): ScoreResult {
     return round1(sum / totalWeight);
   };
 
-  const directionAt = (k: number): DirectionKey => {
-    const f = fast[k];
-    const sl = slow[k];
-    if (f === null || sl === null || sl === 0) return "balanced";
-    const sepPct = (Math.abs(f - sl) / sl) * 100;
-    if (sepPct < s.directionDeadbandPct) return "balanced";
-    return f > sl ? "favors-base" : "favors-quote";
-  };
+  const directionAt = (k: number): DirectionKey => directionFrom(fast[k], slow[k], s.directionDeadbandPct);
 
   for (let k = 0; k < dates.length; k++) {
     if (values[k] === null) continue;
