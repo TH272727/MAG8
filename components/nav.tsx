@@ -56,6 +56,11 @@ export default async function Nav() {
             </Link>
           )}
           {!launch && (
+            <Link href="/risk" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
+              Risk
+            </Link>
+          )}
+          {!launch && (
             <Link href="/lab" className="shrink-0 rounded px-2 py-1.5 text-[13px] text-muted transition-colors hover:text-ink sm:px-2.5 sm:text-sm">
               Lab
             </Link>

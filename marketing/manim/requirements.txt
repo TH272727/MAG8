@@ -1,0 +1,9 @@
+# ManimCE, pinned. NOT 3b1b/manim (ManimGL): the community edition is the
+# maintained fork with real documentation, and its own README warns that older
+# ManimGL code may not render on a newer version — a film that cannot be
+# re-rendered next year is a liability in a project whose rule is that a
+# re-render is not a new film.
+#
+# Installs clean on Python 3.13 with wheels for everything; LaTeX is NOT needed
+# because these scenes use Text() (Pango), not Tex()/MathTex().
+manim==0.19.0

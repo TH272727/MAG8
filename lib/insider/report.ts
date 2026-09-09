@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { InsiderSettings } from "../insider-settings";
+import { verifyNumbers, type VerifyResult } from "../number-verify";
 import { computeOwnerEarnings } from "./dcf";
 import type { Candidate, ScanView } from "./scanner";
 
@@ -487,42 +488,23 @@ export function renderReport(view: ScanView): string {
  * Traceability
  * -------------------------------------------------------------------------- */
 
-const NUMERAL = /-?\d[\d,]*(?:\.\d+)?/g;
-
-function writtenPrecision(raw: string): number {
-  const dot = raw.indexOf(".");
-  return dot < 0 ? 0 : raw.length - dot - 1;
-}
-
-export interface VerifyResult {
-  ok: boolean;
-  offenders: string[];
-}
-
 /**
  * Reject any numeral in a piece of text that cannot be traced to an input.
  *
- * Carried over from the rotation board, including the tolerance rule learned
- * there: matching is to half a unit of the LAST PLACE WRITTEN, because exact
- * comparison rejects a figure printed as 0.2869 against a computed 0.28685 that
- * binary arithmetic holds a hair low.
+ * The rule itself lives in lib/number-verify.ts, shared with the three other
+ * deterministic writers here. This desk reads SIGNED: a drawdown written with
+ * the wrong sign is a different claim about the company, not a rounding, and
+ * the allowed list carries the negatives to match.
  *
  * Nothing in this module can currently fail it — every sentence is assembled
  * from computed values. It exists so that stays true: the moment a template
  * gains a figure of its own, this catches it.
  */
 export function verifyReportNumbers(text: string, allowed: number[]): VerifyResult {
-  const offenders: string[] = [];
-  for (const raw of text.match(NUMERAL) ?? []) {
-    const written = Number(raw.replace(/,/g, ""));
-    if (!Number.isFinite(written)) continue;
-    const tolerance = 0.5 * 10 ** -writtenPrecision(raw) + 1e-9;
-    if (!allowed.some((a) => Math.abs(written - a) <= tolerance) && !offenders.includes(raw)) {
-      offenders.push(raw);
-    }
-  }
-  return { ok: offenders.length === 0, offenders };
+  return verifyNumbers(text, allowed, { signed: true });
 }
+
+export type { VerifyResult };
 
 /* ----------------------------------------------------------------------------
  * Saving

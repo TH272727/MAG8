@@ -1,3 +1,4 @@
+import { numeralsIn as sharedNumeralsIn, verifyNumbers, type VerifyResult } from "../number-verify";
 import { TIER_META, type Reading } from "./score";
 import { describeChange, type StateChange } from "./state";
 import { fmtNum, fmtPct, fmtPercentile, fmtScore } from "./format";
@@ -127,13 +128,7 @@ const STRUCTURAL_NUMBERS = [
   "1", "2", "3", "4", "5", "6", "8", "9", "12",
 ];
 
-const numeralsIn = (text: string): string[] => text.match(/\d[\d,]*(?:\.\d+)?/g) ?? [];
-
-/** Decimal places a numeral was actually written to. */
-const writtenPrecision = (raw: string): number => {
-  const dot = raw.indexOf(".");
-  return dot < 0 ? 0 : raw.length - dot - 1;
-};
+const numeralsIn = (text: string): string[] => sharedNumeralsIn(text, false);
 
 /**
  * Every magnitude the writer is allowed to use.
@@ -178,12 +173,6 @@ export function allowedNumbers(items: BriefChange[], asOf: string): number[] {
   return [...out].filter((n) => Number.isFinite(n));
 }
 
-export interface VerifyResult {
-  ok: boolean;
-  /** Numerals in the text that trace back to nothing computed. */
-  offenders: string[];
-}
-
 /**
  * Re-read a written note and refuse any figure that was not an input.
  *
@@ -192,27 +181,15 @@ export interface VerifyResult {
  * markets is exactly the failure that matters here. This is the deterministic
  * half of that promise.
  *
- * A numeral is accepted when it sits within half a unit of the last place it
- * was WRITTEN to of some allowed magnitude — so 0.2869 and 0.287 both trace
- * back to a ratio of 0.28685, and 412.60 traces back to nothing.
- *
- * Half a unit rather than an exact match after rounding, because an exactly
- * half-way figure has no single correct rendering: 0.28685 is held in binary as
- * a hair BELOW itself, so rounding it to four places gives 0.2868 while any
- * writer working from the decimal would put 0.2869. Insisting on one of those
- * would throw away good notes over a representation detail.
+ * The tolerance rule lives in lib/number-verify.ts. This reader is SIGN-BLIND:
+ * a leading minus is not treated as part of the number, so the allowed list
+ * below carries magnitudes and a change of "-1.21%" traces to a computed 1.21.
  */
 export function verifyBriefNumbers(text: string, allowed: number[]): VerifyResult {
-  const offenders: string[] = [];
-  for (const raw of numeralsIn(text)) {
-    const written = Number(raw.replace(/,/g, ""));
-    if (!Number.isFinite(written)) continue;
-    const tolerance = 0.5 * 10 ** -writtenPrecision(raw) + 1e-9;
-    const traced = allowed.some((a) => Math.abs(written - a) <= tolerance);
-    if (!traced && !offenders.includes(raw)) offenders.push(raw);
-  }
-  return { ok: offenders.length === 0, offenders };
+  return verifyNumbers(text, allowed, { signed: false });
 }
+
+export type { VerifyResult };
 
 /* ----------------------------------------------------------------------------
  * The optional model writer.

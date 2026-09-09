@@ -31,6 +31,7 @@ import {
   effectiveCrossdeskSettings,
 } from "@/lib/crossdesk-settings";
 import { effectiveTideSettings, TIDE_SETTING_GROUPS, TIDE_SETTINGS_SPEC } from "@/lib/tide-settings";
+import { benchmarkTicker, effectiveRiskSettings, RISK_SETTING_GROUPS, RISK_SETTINGS_SPEC } from "@/lib/risk-settings";
 import {
   ROTATION_SETTING_GROUPS,
   ROTATION_SETTINGS_SPEC,
@@ -320,6 +321,31 @@ function BottleneckSection() {
           )}
         </p>
       )}
+
+      <p className="mt-3 max-w-2xl text-[13px] text-muted">
+        <span className="text-ink">Where the buyer is the government, the desk reads its records too.</span> For
+        a theme whose customer is federal &mdash; currently one of the {allThemes.length} &mdash; the published
+        award data shows what was actually obligated under a product code, and to whom. That block sits BESIDE the
+        gap and deliberately never enters it: an obligation is a demand-side quantity, so putting it in the supply
+        half would compare the government&apos;s spending against the suppliers&apos; and print the difference as a
+        physical constraint, with every figure real and the conclusion meaningless.
+      </p>
+      <p className="mt-3 max-w-2xl text-[13px] text-muted">
+        It answers the one thing the rest of the desk cannot: whether the hand-kept list of who supplies an input
+        is right. A code is only wired after its recipient list has been read, never on the strength of its title
+        &mdash; the code named &ldquo;Nuclear reactors&rdquo; turns out to be naval propulsion rather than civil
+        power, and &ldquo;R&amp;D general science&rdquo; is overwhelmingly biomedical. And a company is linked to
+        an award only through a name checked by hand against the record, because the government contracts with
+        operating subsidiaries: a listed parent&apos;s own name frequently appears nowhere in these files, so
+        guessing at the match would report a real contractor as having no awards at all.
+      </p>
+      <p className="mt-3 max-w-2xl text-[13px] text-muted">
+        The more useful half is usually the second one. Most of the money under a federal product code goes to
+        prime contractors and to private companies, so the share reaching a listed specialist is the honest size
+        of what a reader can actually buy &mdash; not a flaw in the list. Absence is stated precisely too: a
+        company missing from the largest recipients has no LARGE award under those codes, which is not the same
+        as having none.
+      </p>
     </section>
   );
 }
@@ -565,6 +591,120 @@ function TideSection() {
       </div>
       <p className="mt-4 max-w-2xl text-[13px] text-dim">
         Not financial advice. The desk measures conditions that already exist; it does not forecast.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The Risk Desk.
+ *
+ * Every knob on it is a window, and a window is a choice. The two results this
+ * desk is built around both argue AGAINST reading its output as advice, so they
+ * are stated here in the same breath as the method rather than in a footnote.
+ */
+function RiskSection() {
+  const eff = effectiveRiskSettings();
+  const s = eff.values;
+  const shown = RISK_SETTINGS_SPEC.filter((x) => x.group !== "ops");
+  return (
+    <section id="risk" className="mt-12 scroll-mt-24" aria-labelledby="risk-h">
+      <h2 id="risk-h" className="eyebrow">
+        The Risk Desk &mdash; how much these move, and how much of it is the same move
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Every other desk here answers what is interesting.{" "}
+        <Link href="/risk" className="underline underline-offset-2 hover:text-ink">
+          The Risk Desk
+        </Link>{" "}
+        asks a different question about the same companies: how much do they move, and how much of that movement
+        is the same movement. Twelve names is not twelve positions if six of them are the same trade, and the
+        number of rows is the one figure on a watchlist that always looks reassuring. It is deterministic, costs
+        nothing to run, and draws no research capacity.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">It reports and it flags.</span> There is nothing on this desk that proposes a
+        trade, suggests a weight, sizes anything against a balance, or connects to a broker &mdash; and that is a
+        design decision rather than an unfinished feature. An instrument that starts recommending stops being an
+        instrument.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">The basket is equal-weighted, and the desk declines to optimise it.</span>{" "}
+        Fourteen optimising allocation rules were tested against a plain equal-weight rule across seven datasets
+        and none of them was consistently better out of sample, because the error in estimating the inputs cost
+        more than the optimisation gained. Publishing optimised weights would claim a precision that result says
+        the inputs cannot support, so the finding is built into the arithmetic instead of being cited beside it.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Effective positions is the reading that matters.</span> It is the members&apos;
+        average volatility divided by the basket&apos;s own, squared: companies that moved independently give the
+        number of companies held, and companies that moved as one give one however many there are. When it comes
+        out ABOVE the number held &mdash; which happens when members have moved against each other rather than
+        merely apart &mdash; that is real and is not capped, it is explained.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">The diversification measured here is a fair-weather figure.</span> Correlation
+        between holdings was found to rise specifically in the falling tail and not in the rising one, so
+        companies that look independent in ordinary conditions have historically moved together in exactly the
+        falls diversification is held for. Every co-movement number on the page describes a past average rather
+        than a worst day, and the page says so where the numbers are.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Nothing that cannot be measured is filled in.</span> A company with too little
+        price history is marked not measured, with the reason, and ranks below every company that was &mdash;
+        never at a volatility of zero, because zero volatility is a real reading that means something else
+        entirely. And a company with too little history SHARED with the others is left out of the basket and
+        named, rather than quietly shortening everyone else&apos;s window down to its own.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Each pair is measured on its own overlap.</span> Two companies that have both
+        traded for a decade should not have their correlation measured over the eleven months since an unrelated
+        recent listing elsewhere in the table, so every pair carries the number of sessions it was actually
+        computed from. Prices come from two independent sources that differ in one way that matters: one adjusts
+        closes for dividends and the other does not, so an unadjusted series carries each payment as a real
+        one-day fall. A pair whose two sides disagree on that is shown with the disagreement named and is never
+        allowed to raise a co-movement warning.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        <span className="text-ink">Volatility is not a forecast.</span> It is what these prices did over the
+        window below, and a different window is a different number about the same company &mdash; which is why
+        every figure is published with the window it came from. Companies are measured against{" "}
+        {benchmarkTicker()}, over the sessions the two genuinely share; where the benchmark&apos;s stored history
+        is shorter, the page says how many sessions the comparison actually used.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted">
+        Like the desks above, it shares this application&apos;s database and design and nothing else. It cannot
+        write to a run, a candidate, a score, or the board; no figure it computes can move a ranking. No figure
+        it computes is stored either &mdash; only closes are &mdash; so every dial below re-derives the whole
+        board on the next read, including every reason a company went unmeasured.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {RISK_SETTING_GROUPS.filter((g) => g.key !== "ops").map((g) => (
+          <div key={g.key} className="panel p-5">
+            <h3 className="font-display text-base font-semibold">{g.title}</h3>
+            <p className="mt-1 text-[13px] text-muted">{g.note}</p>
+            <dl className="mt-3 space-y-2">
+              {shown
+                .filter((x) => x.group === g.key)
+                .map((x) => (
+                  <div key={x.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt className="text-[13px] text-muted">{x.label}</dt>
+                    <dd className="font-mono text-[13px] text-ink">
+                      {formatSettingValue(x, eff.values[x.key as keyof typeof eff.values])}
+                      {eff.sources[x.key as keyof typeof eff.sources] === "custom" && (
+                        <span className="ml-1.5 text-[11px] text-dim">(tuned)</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 max-w-2xl text-[13px] text-dim">
+        Not financial advice. The desk measures what prices have already done; it does not forecast, and it
+        recommends nothing. Currently measuring over the trailing {s.volWindowDays} sessions.
       </p>
     </section>
   );
@@ -934,6 +1074,7 @@ export default function MethodologyPage() {
 
       <CrossDeskSection />
       <TideSection />
+      <RiskSection />
 
       <EvidenceLayerSection />
 

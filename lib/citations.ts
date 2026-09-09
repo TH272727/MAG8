@@ -38,7 +38,8 @@ export interface CitationGroup {
     | "bottleneck"
     | "rotation"
     | "insider"
-    | "tide";
+    | "tide"
+    | "risk";
   title: string;
   intro: string;
   works: Citation[];
@@ -992,6 +993,38 @@ export const CITATION_GROUPS: CitationGroup[] = [
           "The dividend yield predicted excess returns only in combination with the short rate and only at short horizons, with no evidence of the long-horizon predictability usually claimed for it; the short rate itself was the more robust predictor, and the results held across four countries.",
         usedFor:
           "Why the level of short and real rates is scored on its own rather than folded into the valuation family, and further support for treating long-horizon valuation claims cautiously.",
+      },
+    ],
+  },
+  {
+    key: "risk",
+    title: "The Risk Desk",
+    intro:
+      "The other desks answer what is interesting. This one answers a different question about the same names: how much do they move, and how much of that movement is the same movement. Both works below argue against reading its output as more than it is — the first is why the desk publishes an equal-weight basket and declines to optimise one, and the second is why the diversification it measures is a fair-weather figure.",
+    works: [
+      {
+        short: "DeMiguel, Garlappi & Uppal 2009",
+        authors: "DeMiguel, V., Garlappi, L., & Uppal, R.",
+        year: "2009",
+        title: "Optimal Versus Naive Diversification: How Inefficient is the 1/N Portfolio Strategy?",
+        source: "The Review of Financial Studies, 22(5), 1915–1953",
+        url: "https://doi.org/10.1093/rfs/hhm075",
+        finding:
+          "Tested fourteen optimising allocation models against a simple equal-weight rule across seven datasets. None of the fourteen was consistently better than equal weight on return per unit of risk, on certainty-equivalent return, or on turnover: out of sample, the error in estimating the inputs cost more than the optimisation gained.",
+        usedFor:
+          "Why the basket shown here is equal-weighted and the desk does not propose weights. Publishing an optimised allocation would claim a precision this result says the inputs cannot support.",
+      },
+      {
+        short: "Longin & Solnik 2001",
+        authors: "Longin, F., & Solnik, B.",
+        year: "2001",
+        title: "Extreme Correlation of International Equity Markets",
+        source: "The Journal of Finance, 56(2), 649–676",
+        url: "https://doi.org/10.1111/0022-1082.00340",
+        finding:
+          "Modelled the tails of the joint return distribution directly rather than assuming normality. Correlation between markets did not simply rise with volatility — it rose specifically in the falling tail and not in the rising one, so the usual assumption was rejected for large losses and retained for large gains.",
+        usedFor:
+          "Why the measured co-movement on this page is stated as a calm-weather reading. Holdings that look independent in ordinary conditions have historically moved together in exactly the falls that diversification is held for, so the figures here describe the past average rather than the worst day.",
       },
     ],
   },

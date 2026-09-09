@@ -347,6 +347,28 @@ CREATE TABLE IF NOT EXISTS tide_bars (
   PRIMARY KEY (ticker, date)
 );
 CREATE INDEX IF NOT EXISTS idx_tide_bars ON tide_bars (ticker, date DESC);
+
+/* ---------------------------------------------------------------------------
+ * The Risk Desk. ONE additive table, the same bar shape as the three above.
+ *
+ * A fourth table holding daily closes is duplication, and it is deliberate.
+ * Consolidating all four behind one shared table would mean migrating three
+ * live desks' storage at once, which is a far larger and riskier change than
+ * adding one table — and the desks genuinely differ in what they keep and for
+ * how long. The desk READS the other three before it fetches anything, so the
+ * duplication is in the schema and not in the network traffic. Zero foreign
+ * keys, as with every desk table: nothing here can reach a pipeline row.
+ * ------------------------------------------------------------------------- */
+CREATE TABLE IF NOT EXISTS risk_bars (
+  ticker TEXT NOT NULL,
+  date TEXT NOT NULL,
+  close REAL NOT NULL,
+  adjusted INTEGER NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('yahoo','nasdaq')),
+  fetched_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (ticker, date)
+);
+CREATE INDEX IF NOT EXISTS idx_risk_bars ON risk_bars (ticker, date DESC);
 `;
 
 type GlobalWithDb = typeof globalThis & { __mag8_db?: Database.Database };
@@ -419,6 +441,12 @@ function migrate(db: Database.Database): void {
     // existing files for the same reason as steps 4-7 — no column to patch,
     // only the version to record. Nothing here touches a pipeline table.
     db.pragma("user_version = 8");
+  }
+  if (v < 9) {
+    // The Risk Desk: one additive table, created by SCHEMA_SQL on fresh AND
+    // existing files for the same reason as steps 4-8 — no column to patch,
+    // only the version to record. Nothing here touches a pipeline table.
+    db.pragma("user_version = 9");
   }
 }
 
@@ -2289,4 +2317,100 @@ export function tideBarTickers(): string[] {
     .prepare(`SELECT DISTINCT ticker FROM tide_bars ORDER BY ticker`)
     .all() as { ticker: string }[];
   return rows.map((r) => r.ticker);
+}
+
+/* ---------------------------------------------------------------------------
+ * The Risk Desk. Its own store, plus read-only access to the other three.
+ *
+ * Four tables now hold daily closes in an identical shape, and the risk desk is
+ * the first thing to want prices for a company any of them might already have.
+ * It therefore looks in all four before fetching, which is the difference
+ * between adding a company to this desk for free and paying five years of
+ * requests for it.
+ *
+ * The rule that makes that safe: one store per ticker, never a merge. The two
+ * price sources disagree about dividends, so a series stitched from an adjusted
+ * store and an unadjusted one would carry a step change on the join date that
+ * no reader could see and no test would catch. The store with the longest
+ * history wins, and the desk is told which one answered.
+ * ------------------------------------------------------------------------- */
+
+export type BarStore = "risk" | "tide" | "insider" | "rotation";
+
+const BAR_TABLES: Record<BarStore, string> = {
+  risk: "risk_bars",
+  tide: "tide_bars",
+  insider: "insider_prices",
+  rotation: "rotation_bars",
+};
+
+/** Search order on a tie: the desk's own store first, then longest history. */
+const BAR_STORE_ORDER: BarStore[] = ["risk", "tide", "insider", "rotation"];
+
+export function saveRiskBars(bars: PriceBar[]): number {
+  if (bars.length === 0) return 0;
+  const db = getDb();
+  const stmt = db.prepare(
+    `INSERT INTO risk_bars (ticker, date, close, adjusted, source, fetched_at)
+     VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+     ON CONFLICT(ticker, date) DO UPDATE SET close=excluded.close, adjusted=excluded.adjusted,
+       source=excluded.source, fetched_at=excluded.fetched_at`,
+  );
+  const tx = db.transaction(() => {
+    for (const b of bars) stmt.run(b.ticker.toUpperCase(), b.date, b.close, b.adjusted ? 1 : 0, b.source);
+  });
+  tx();
+  return bars.length;
+}
+
+export function getRiskBars(ticker: string, limit = 6000): PriceBar[] {
+  return getStoredBars("risk", ticker, limit);
+}
+
+export function deleteRiskBars(ticker: string): number {
+  return getDb().prepare(`DELETE FROM risk_bars WHERE ticker=?`).run(ticker.toUpperCase()).changes;
+}
+
+/** Read one store's bars for one ticker, oldest first. Never merges stores. */
+export function getStoredBars(store: BarStore, ticker: string, limit = 6000): PriceBar[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT ticker, date, close, adjusted, source FROM ${BAR_TABLES[store]}
+       WHERE ticker=? ORDER BY date DESC LIMIT ?`,
+    )
+    .all(ticker.toUpperCase(), limit) as RawPriceBar[];
+  return rows
+    .map((r) => ({ ticker: r.ticker, date: r.date, close: r.close, adjusted: r.adjusted === 1, source: r.source }))
+    .reverse();
+}
+
+export interface StoredBarSummary {
+  store: BarStore;
+  rows: number;
+  newest: string;
+  oldest: string;
+}
+
+/**
+ * What every store holds for one ticker, longest history first.
+ *
+ * Returns an entry per store that has any rows at all, so a caller can both
+ * choose the best and report honestly that two stores disagree about how much
+ * history exists — which is a real thing that happens when one desk keeps five
+ * years and another keeps twenty.
+ */
+export function storedBarSummary(ticker: string): StoredBarSummary[] {
+  const t = ticker.toUpperCase();
+  const out: StoredBarSummary[] = [];
+  for (const store of BAR_STORE_ORDER) {
+    const row = getDb()
+      .prepare(
+        `SELECT COUNT(*) AS n, MAX(date) AS newest, MIN(date) AS oldest
+         FROM ${BAR_TABLES[store]} WHERE ticker=?`,
+      )
+      .get(t) as { n: number; newest: string | null; oldest: string | null };
+    if (!row || row.n === 0 || !row.newest || !row.oldest) continue;
+    out.push({ store, rows: row.n, newest: row.newest, oldest: row.oldest });
+  }
+  return out.sort((a, b) => b.rows - a.rows);
 }

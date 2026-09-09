@@ -8,6 +8,7 @@ import InsiderSettingsPanel from "@/components/admin/InsiderSettingsPanel";
 import ReachSettingsPanel from "@/components/admin/ReachSettingsPanel";
 import CrossdeskSettingsPanel from "@/components/admin/CrossdeskSettingsPanel";
 import TideSettingsPanel from "@/components/admin/TideSettingsPanel";
+import RiskSettingsPanel from "@/components/admin/RiskSettingsPanel";
 import RotationSettingsPanel from "@/components/admin/RotationSettingsPanel";
 import LoginForm from "@/components/admin/LoginForm";
 import LogoMark from "@/components/logo";
@@ -36,6 +37,7 @@ import {
   effectiveCrossdeskSettings,
 } from "@/lib/crossdesk-settings";
 import { effectiveTideSettings, TIDE_SETTING_GROUPS, TIDE_SETTINGS_SPEC } from "@/lib/tide-settings";
+import { effectiveRiskSettings, RISK_SETTING_GROUPS, RISK_SETTINGS_SPEC } from "@/lib/risk-settings";
 import {
   ROTATION_SETTING_GROUPS,
   ROTATION_SETTINGS_SPEC,
@@ -136,6 +138,8 @@ export default async function AdminPage() {
   const tideEff = effectiveTideSettings();
   const crossdeskPanel = toPanelSettings(CROSSDESK_SETTINGS_SPEC, crossdeskEff);
   const tidePanel = toPanelSettings(TIDE_SETTINGS_SPEC, tideEff);
+  const riskEff = effectiveRiskSettings();
+  const riskPanel = toPanelSettings(RISK_SETTINGS_SPEC, riskEff);
   const rotationEff = effectiveRotationSettings();
   const rotationPanel = toPanelSettings(ROTATION_SETTINGS_SPEC, rotationEff);
   const insiderEff = effectiveInsiderSettings();
@@ -277,6 +281,27 @@ export default async function AdminPage() {
         <div className="mt-3">
           {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
           <TideSettingsPanel key={JSON.stringify(tideEff.values)} groups={TIDE_SETTING_GROUPS} settings={tidePanel} />
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="risk-h">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="risk-h" className="eyebrow">
+            The Risk Desk
+          </h2>
+          <span className="chip">$0 &middot; NO RESEARCH CAPACITY</span>
+        </div>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">
+          The other desks answer what is interesting; this one asks how much those companies move and how much
+          of that movement is the same movement. Almost every dial below is a WINDOW, and a window is a choice
+          rather than a fact &mdash; volatility over three months and volatility over three years are both true
+          and are different numbers &mdash; so each figure published carries the window it came from. No figure
+          on this desk is stored, only closes, so a dial re-derives the entire board on the next read. It
+          reports and it flags: there is no action here that proposes a trade, sizes one, or reaches a broker.
+        </p>
+        <div className="mt-3">
+          {/* Keyed on the effective values so a save/reset remounts with fresh server truth. */}
+          <RiskSettingsPanel key={JSON.stringify(riskEff.values)} groups={RISK_SETTING_GROUPS} settings={riskPanel} />
         </div>
       </section>
 
