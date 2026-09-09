@@ -88,6 +88,51 @@ export const OwnerGroupSchema = z.object({
 });
 export type OwnerGroup = z.infer<typeof OwnerGroupSchema>;
 
+/**
+ * Federal procurement, for a theme whose buyer is the government.
+ *
+ * OPTIONAL, and absent from most themes on purpose. A product code is only
+ * worth wiring when the money under it is actually this theme's market, and
+ * that has to be read off the recipient list rather than inferred from the
+ * code's title. Two codes were rejected this way after being probed live:
+ * "Nuclear reactors" is naval propulsion — Fluor Marine, Electric Boat,
+ * Bechtel Plant Machinery — and not civil power at all, and "R&D general
+ * science" is overwhelmingly biomedical, led by Leidos Biomedical, Charles
+ * River and vaccine developers. Either would have printed real dollars under
+ * a heading that meant something else entirely.
+ */
+export const ProcurementCodeSchema = z.object({
+  /** Tier path the award API filters on, coarsest first: ["Product","15","1550"]. */
+  path: z.array(z.string().min(1)).min(1).max(4),
+  /** What the code covers, in the government's own words. */
+  label: z.string().min(1),
+});
+
+/**
+ * A listed company and the names its awards are actually recorded under.
+ *
+ * CURATED, never guessed, and every entry read off a live award record. The
+ * government contracts with operating subsidiaries: Kratos Defense & Security
+ * Solutions appears only as "KRATOS UNMANNED AERIAL SYSTEMS, INC", so a
+ * normalised match on the parent's listed name finds nothing and would report
+ * no federal awards for a company holding tens of millions of them.
+ */
+export const RecipientAliasSchema = z.object({
+  ticker: z.string().min(1),
+  awardNames: z.array(z.string().min(1)).min(1),
+});
+
+export const ProcurementSchema = z.object({
+  /** Which conversion-factor `key` these codes correspond to. */
+  category: z.string().min(1),
+  /** What the codes measure and, as importantly, what they do not. */
+  note: z.string().min(1),
+  sourceUrl: z.string().min(1),
+  codes: z.array(ProcurementCodeSchema).min(1),
+  aliases: z.array(RecipientAliasSchema).default([]),
+});
+export type Procurement = z.infer<typeof ProcurementSchema>;
+
 export const PlaybookSchema = z.object({
   id: z.string().min(1).regex(/^[a-z0-9-]+$/, "lowercase, digits and dashes only"),
   label: z.string().min(1),
@@ -111,6 +156,14 @@ export const PlaybookSchema = z.object({
   conversions: ConversionTableSchema,
   supply: z.array(SupplySeriesSchema).default([]),
   owners: z.array(OwnerGroupSchema).default([]),
+  /**
+   * Federal award records for this theme, where the government is genuinely
+   * the buyer. Read as its own evidence block BESIDE the gap and never into
+   * it: an obligation is a demand-side quantity, and putting it in a supply
+   * slot would compare the government's spending against the suppliers' and
+   * print the difference as a physical constraint.
+   */
+  procurement: ProcurementSchema.optional(),
   /** False for owner-defined playbooks loaded from the database. */
   builtIn: z.boolean().default(false),
 });
@@ -670,6 +723,26 @@ const DRONES: Playbook = {
       stub: true,
     },
   ],
+  // Verified live 2026-09-07. PSC 1550 is the one code among nine probed whose
+  // recipient list IS this theme's market: General Atomics, Northrop, Kratos
+  // UAS, AeroVironment, Anduril. The obvious neighbours were rejected on the
+  // same evidence — PSC 1560 is Boeing airframes, and the nuclear and general
+  // science codes belong to other industries entirely.
+  procurement: {
+    category: "uas_system",
+    note:
+      "Federal obligations recorded under the unmanned-aircraft product code. This is what one buyer " +
+      "committed, not what the industry produced: it excludes commercial and export sales, excludes " +
+      "uncrewed work booked under services or components codes, and excludes classified programs. " +
+      "Federal years run October to September and are named for the year they end in.",
+    sourceUrl: "https://www.usaspending.gov/",
+    codes: [{ path: ["Product", "15", "1550"], label: "PSC 1550 — Aircraft, Unmanned" }],
+    aliases: [
+      { ticker: "AVAV", awardNames: ["AEROVIRONMENT, INC"] },
+      // The parent's listed name appears nowhere in these records.
+      { ticker: "KTOS", awardNames: ["KRATOS UNMANNED AERIAL SYSTEMS, INC"] },
+    ],
+  },
   owners: [
     {
       category: "uas_system",

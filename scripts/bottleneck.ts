@@ -339,7 +339,7 @@ async function refresh(playbookId: string, dry: boolean, reuseDemand: boolean): 
   console.log(` conversions: v${pb.conversions.version} (${pb.conversions.asOf})\n`);
 
   const t0 = Date.now();
-  const { demand: snap, supply, bottleneck } = await refreshDesk(pb, { dryRun: dry, reuseDemand });
+  const { demand: snap, supply, bottleneck, procurement } = await refreshDesk(pb, { dryRun: dry, reuseDemand });
   console.log(` read ${snap.companies.length} companies in ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
 
   console.log(` ${pb.demand.measure.toUpperCase()} (per company)`);
@@ -410,6 +410,26 @@ async function refresh(playbookId: string, dry: boolean, reuseDemand: boolean): 
 
   const lead = bottleneck.categories.find((c) => c.gapPct !== null);
   if (lead) console.log(`\n READOUT\n  ${lead.readout}`);
+
+  // Beside the gap, never inside it: an obligation is a demand-side quantity.
+  if (procurement) {
+    const { describeCoverage, describeProcurement, formatObligation } = await import(
+      "../lib/bottleneck/procurement"
+    );
+    console.log(`\n WHAT THE BUYER ACTUALLY COMMITTED - ${procurement.codeLabels.join(" | ")}`);
+    console.log(`  ${describeProcurement(procurement)}`);
+    for (const y of procurement.obligations.years) {
+      console.log(`   FY${y.fiscalYear}${y.partial ? "*" : " "} ${formatObligation(y.amountUsd).padStart(9)}`);
+    }
+    const linked = procurement.recipients.filter((r) => r.ticker !== null);
+    if (linked.length > 0) {
+      console.log(`\n  matched to a listing (FY${procurement.recipientYear}):`);
+      for (const r of linked) {
+        console.log(`   ${(r.ticker ?? "").padEnd(6)} ${formatObligation(r.amountUsd).padStart(9)}  ${r.name}`);
+      }
+    }
+    for (const line of describeCoverage(procurement)) console.log(`\n  ${line}`);
+  }
 
   if (snap.flags.length > 0 || bottleneck.flags.length > 0) {
     console.log("\n DISCLOSED GAPS");

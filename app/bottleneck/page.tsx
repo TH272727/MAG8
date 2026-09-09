@@ -7,6 +7,13 @@ import { ADMIN_COOKIE, tokenMatches } from "@/lib/auth";
 import { launchMode } from "@/lib/config";
 import { latestDemand } from "@/lib/bottleneck/demand";
 import { scoreFromStored } from "@/lib/bottleneck/desk";
+import {
+  describeCoverage,
+  describeProcurement,
+  formatObligation,
+  readProcurement,
+  type ProcurementSnapshot,
+} from "@/lib/bottleneck/procurement";
 import { fmtAge, fmtDay, fmtPct, fmtUnits, fmtUsd } from "@/lib/bottleneck/format";
 import type { CategoryScore, ConstraintStatus } from "@/lib/bottleneck/score";
 import { allPlaybooks, DEFAULT_PLAYBOOK_ID, getPlaybook } from "@/lib/bottleneck/playbook";
@@ -41,6 +48,8 @@ export default async function BottleneckPage({
   const playbook = getPlaybook(playbookId);
   const demand = playbook ? latestDemand(playbook.id) : null;
   const scored = playbook ? scoreFromStored(playbook) : null;
+  // Stored, never fetched here: this page must not reach the network.
+  const procurement = playbook ? readProcurement(playbook.id) : null;
   // Server-decided: a visitor's payload never carries the operating controls,
   // and every action behind them re-checks the token anyway.
   const unlocked = tokenMatches((await cookies()).get(ADMIN_COOKIE)?.value ?? null);
@@ -104,6 +113,7 @@ export default async function BottleneckPage({
             themeLabel={playbook.label}
           />
           <DemandDetail demand={demand.snapshot} fallbackMeasure={playbook.demand.measure} />
+          {procurement && <ProcurementDetail snapshot={procurement} />}
           <Disclosures flags={[...scored.snapshot.flags, ...demand.snapshot.flags]} snapshot={demand.snapshot} />
         </>
       )}
@@ -295,6 +305,118 @@ function Ranking({
           against. The desk says so rather than presenting an unmeasured input as an unconstrained one.
         </p>
       )}
+    </section>
+  );
+}
+
+/* ---- What the government actually committed ---- */
+
+/**
+ * Federal award records, beside the gap and never inside it.
+ *
+ * An obligation is a demand-side quantity. Feeding it into the supply half of
+ * the desk's arithmetic would compare the government's spending against the
+ * suppliers' and print the difference as a physical constraint tightening —
+ * every number real, the conclusion meaningless. So this is its own block, and
+ * it answers a question the rest of the desk cannot: whether the hand-kept list
+ * of who supplies this input is actually right.
+ */
+function ProcurementDetail({ snapshot }: { snapshot: ProcurementSnapshot }) {
+  const lines = describeCoverage(snapshot);
+  const linked = snapshot.recipients.filter((r) => r.ticker !== null);
+  return (
+    <section className="mt-12" aria-labelledby="procurement-h">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="procurement-h" className="eyebrow">
+          What the buyer actually committed
+        </h2>
+        {snapshot.codeLabels.map((c) => (
+          <span key={c} className="chip">
+            {c.toUpperCase()}
+          </span>
+        ))}
+      </div>
+
+      <p className="mt-2 max-w-2xl text-[13px] text-muted">{describeProcurement(snapshot)}</p>
+      <p className="mt-2 max-w-2xl text-[12px] text-dim">{snapshot.note}</p>
+
+      {snapshot.obligations.years.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-[11px] uppercase tracking-wider text-dim">
+                <th className="py-2 pr-3 font-medium">Fiscal year</th>
+                <th className="py-2 font-medium">Obligated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.obligations.years.map((y) => (
+                <tr key={y.fiscalYear} className="border-b border-line/60">
+                  <td className="py-2 pr-3 font-mono text-[13px]">
+                    FY{y.fiscalYear}
+                    {y.partial && (
+                      <span className="ml-2 text-[11px] uppercase tracking-wider text-caution">still running</span>
+                    )}
+                  </td>
+                  <td className="py-2 tabular-nums">{formatObligation(y.amountUsd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {lines.length > 0 && (
+        <div className="mt-5 max-w-2xl space-y-3">
+          {lines.map((l) => (
+            <p key={l} className="text-[13px] leading-relaxed text-muted">
+              {l}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {linked.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-[11px] uppercase tracking-wider text-dim">
+                <th className="py-2 pr-3 font-medium">Company</th>
+                <th className="py-2 pr-3 font-medium">Recorded as</th>
+                <th className="py-2 font-medium">FY{snapshot.recipientYear}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linked.map((r) => (
+                <tr key={r.name} className="border-b border-line/60">
+                  <td className="py-2 pr-3 font-mono text-[13px]">{r.ticker}</td>
+                  <td className="py-2 pr-3 text-[12px] text-dim">{r.name}</td>
+                  <td className="py-2 tabular-nums">{formatObligation(r.amountUsd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 max-w-2xl text-[12px] text-dim">
+            A company is matched to an award only through a name checked against the record by hand. The
+            government contracts with operating subsidiaries, so a company&rsquo;s listed name frequently appears
+            nowhere in these files &mdash; guessing at the match would report a real contractor as having none.
+          </p>
+        </div>
+      )}
+
+      <p className="mt-4 text-[12px] text-dim">
+        Source:{" "}
+        <a
+          href={snapshot.sourceUrl}
+          className="underline decoration-dotted underline-offset-2 hover:text-ink"
+          rel="noreferrer"
+          target="_blank"
+        >
+          {snapshot.sourceUrl}
+        </a>
+        . This sits beside the gap above and is deliberately not part of it: it measures what one buyer committed,
+        not what the constraint can produce.
+      </p>
     </section>
   );
 }

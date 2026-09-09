@@ -7,6 +7,7 @@ import {
   type SupplyPoint,
 } from "../db";
 import { buildDemandSnapshot, latestDemand, readNothing, type DemandSnapshot } from "./demand";
+import { refreshProcurement, type ProcurementSnapshot } from "./procurement";
 import type { Playbook } from "./playbook";
 import { scoreBottlenecks, type BottleneckSnapshot } from "./score";
 import { refreshSupply, type SeriesRefresh } from "./supply";
@@ -25,6 +26,12 @@ export interface DeskRefreshResult {
   bottleneck: BottleneckSnapshot;
   /** False when the refresh read nothing and was withheld rather than stored. */
   published: boolean;
+  /**
+   * Federal award records, for the themes that declare procurement codes. Null
+   * for the rest, which is most of them — a product code is only wired when its
+   * recipient list IS the theme's market.
+   */
+  procurement: ProcurementSnapshot | null;
 }
 
 export interface DeskRefreshOptions {
@@ -68,7 +75,18 @@ export async function refreshDesk(pb: Playbook, opts: DeskRefreshOptions = {}): 
   // withheld its own, and storing the score alone would leave the two snapshot
   // series describing different worlds.
   if (!opts.dryRun && !readNothing(demand)) saveBottleneckSnapshot("bottleneck", pb.id, bottleneck);
-  return { demand, supply, bottleneck, published: !readNothing(demand) };
+
+  // Read BESIDE the gap and never into it. An obligation is a demand-side
+  // quantity; feeding it into the supply half would compare the government's
+  // spending against the suppliers' and print the difference as a physical
+  // constraint. It is also fail-open, so an outage here cannot fail a refresh
+  // whose real work is already done and stored.
+  let procurement: ProcurementSnapshot | null = null;
+  if (pb.procurement) {
+    procurement = await refreshProcurement(pb, { timeoutMs, dryRun: opts.dryRun });
+  }
+
+  return { demand, supply, bottleneck, published: !readNothing(demand), procurement };
 }
 
 /** Stored observations for every series a playbook declares. */

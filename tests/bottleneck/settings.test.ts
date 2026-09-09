@@ -6,6 +6,7 @@ import { TIDE_SETTING_GROUPS, TIDE_SETTINGS_SPEC } from "../../lib/tide-settings
 import { CROSSDESK_SETTING_GROUPS, CROSSDESK_SETTINGS_SPEC } from "../../lib/crossdesk-settings";
 import { INSIDER_SETTING_GROUPS, INSIDER_SETTINGS_SPEC } from "../../lib/insider-settings";
 import { REACH_SETTING_GROUPS, REACH_SETTINGS_SPEC } from "../../lib/reach-settings";
+import { RISK_SETTING_GROUPS, RISK_SETTINGS_SPEC } from "../../lib/risk-settings";
 import { boolSetting, formatSettingValue, numSetting, type SettingSpec } from "../../lib/settings-registry";
 import { findCitation } from "../../lib/citations";
 
@@ -23,6 +24,7 @@ const REGISTRIES: [string, SettingSpec<string>[], { key: string }[]][] = [
   ["reach", REACH_SETTINGS_SPEC, REACH_SETTING_GROUPS],
   ["crossdesk", CROSSDESK_SETTINGS_SPEC, CROSSDESK_SETTING_GROUPS],
   ["tide", TIDE_SETTINGS_SPEC, TIDE_SETTING_GROUPS],
+  ["risk", RISK_SETTINGS_SPEC, RISK_SETTING_GROUPS],
 ];
 
 describe.each(REGISTRIES)("%s settings registry", (_name, spec, groups) => {
