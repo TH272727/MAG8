@@ -291,7 +291,16 @@ const CHART_COMPS = CHARTS.map((chart) => {
             );
           })}
         </Series>
-        <Audio src={staticFile(`audio/score-chart-${chart.id}.wav`)} />
+        {/* NO SCORE HERE, DELIBERATELY (owner, 2026-09-07). Chart films used to
+            carry the procedural score from `gen-score-chart.ts` like every other
+            film in this project; they now carry licensed music instead, muxed on
+            after the render by `scripts/chart-music.ts`. Leaving the synthetic
+            bed in would mean every render embedded a score that the very next
+            step threw away, and a `remotion render` run by hand would ship a
+            film that sounded nothing like the twenty-six in the batch folders.
+            The composition is silent so that there is exactly one source of
+            sound. gen-score-chart.ts is kept, unwired, for a film that wants
+            the synthetic bed back. */}
       </ChartCtx.Provider>
     </WithFonts>
   );

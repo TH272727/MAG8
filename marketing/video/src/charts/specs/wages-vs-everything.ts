@@ -26,8 +26,9 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'wages-vs-everything',
+  subject: 'wages against house prices and inflation',
   title: 'Did wages keep up\nwith houses?',
-  subtitle: 'Cumulative change since January 2000.',
+  subtitle: 'How much each has risen since January 2000.',
   hook: {question: 'Did wages keep up?', kicker: 'Twenty-six years of federal data.'},
   unit: 'pct',
   scale: 'linear',

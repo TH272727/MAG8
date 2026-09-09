@@ -45,8 +45,9 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'world-markets',
+  subject: 'national stock markets, total return in dollars',
   title: "Which country's stock\nmarket won?",
-  subtitle: 'Total return in US dollars, from one shared month.',
+  subtitle: 'Dividends included, in US dollars, from the same starting month.',
   hook: {question: "Which country's stock market won?", kicker: 'Eight markets, one currency, one start date.'},
   unit: 'pct',
   scale: 'linear',

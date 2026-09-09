@@ -13,7 +13,7 @@ import {AbsoluteFill, Img, staticFile, useCurrentFrame} from 'remotion';
 import {C, F, SAFE} from '../theme';
 import {Chip, Grain, Void, WaitlistCta} from '../lib/ui';
 import {lerp, pop, pulse01, easeOut} from '../lib/anim';
-import {BigDate, BrandRow, ChartHead, LiveRail, Plot, SourceBlock, Standings, VW, revealIndex} from './clib';
+import {Backdrop, BigDate, BrandRow, ChartHead, LiveRail, Plot, SourceBlock, Standings, VW, revealIndex} from './clib';
 import {growthMultiple, standingsAt} from './cmath';
 import {formatDate, formatValue} from './spec';
 import type {Chart} from './registry';
@@ -95,6 +95,8 @@ export const C2_Race: React.FC = () => {
   const intro = lerp(frame, [0, 14], [0, 1]);
   return (
     <Void depth>
+      {/* under everything: the photograph, scrimmed to a texture */}
+      <Backdrop spec={spec} frames={beats.race} />
       <BrandRow />
       <ChartHead spec={spec} at={0} />
       <Plot spec={spec} data={data} idx={idx} intro={intro} />

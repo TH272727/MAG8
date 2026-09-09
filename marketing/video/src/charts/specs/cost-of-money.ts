@@ -45,6 +45,7 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'cost-of-money',
+  subject: 'US interest rates - what it costs to borrow money',
   title: 'What has it cost\nto borrow money?',
   subtitle: 'Six US interest rates, every quarter, as published.',
   hook: {question: 'What has it cost to borrow money?', kicker: 'Fifty years of American interest rates.'},
@@ -54,8 +55,8 @@ export const spec: ChartSpec = {
   dateFormat: 'month',
   series: [
     {key: 'PRIME', label: 'Prime rate', color: C.confluence, emphasis: true, medallion: {kind: 'mono', text: 'PR'}},
-    {key: 'BAA', label: 'Baa corporate', color: C.macro, medallion: {kind: 'mono', text: 'BAA'}},
-    {key: 'AAA', label: 'Aaa corporate', color: C.fundamentals, medallion: {kind: 'mono', text: 'AAA'}},
+    {key: 'BAA', label: 'Mid-rated firms', color: C.macro, medallion: {kind: 'mono', text: 'BAA'}},
+    {key: 'AAA', label: 'Top-rated firms', color: C.fundamentals, medallion: {kind: 'mono', text: 'AAA'}},
     {key: 'GS10', label: '10-yr Treasury', color: C.consensus, medallion: {kind: 'mono', text: '10Y'}},
     {key: 'GS2', label: '2-yr Treasury', color: '#6ea8ff', medallion: {kind: 'mono', text: '2Y'}},
     {key: 'FF', label: 'Fed funds', color: C.discovery, emphasis: true, medallion: {kind: 'mono', text: 'FF'}},

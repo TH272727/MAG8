@@ -17,7 +17,8 @@ import {mkdirSync, writeFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {CHART_JOBS} from '../src/charts/jobs.ts';
-import type {FetchJob, FredJob, YahooJob} from '../src/charts/job.ts';
+import {DIVIDEND_CLAUSE, FRED_SCALES} from '../src/charts/job.ts';
+import type {FetchJob, FredJob, MixedJob, YahooJob} from '../src/charts/job.ts';
 import type {ChartData} from '../src/charts/spec.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -68,10 +69,27 @@ async function yahooSeries(symbol: string, range: string, interval: string) {
   const raw: (number | null)[] | undefined = res.indicators?.quote?.[0]?.close;
   const values = adj ?? raw;
   if (!values || values.length !== stamps.length) throw new Error('price array did not line up with the date array');
+  /**
+   * A BAR IS DATED IN ITS OWN EXCHANGE'S TIME, NOT IN UTC.
+   *
+   * Yahoo stamps each bar at the start of its period in local market time, and
+   * `new Date(...).toISOString()` then reads it in UTC. For New York that
+   * changes nothing. For Tokyo it moves the stamp BACKWARDS across midnight:
+   * the Nikkei's October 1986 bar arrives as 1986-09-30, and month-bucketing
+   * files it under September — an entire foreign series shifted one month
+   * against its peers, for its whole history, with every value real and nothing
+   * anywhere saying so. It is the same family as the duplicate live month bar,
+   * and it is silent in exactly the same way.
+   *
+   * The response carries the offset it was written with, so use it. Every
+   * already-published film is US-listed, where the offset changes no date.
+   */
+  const gmtoffset = Number(res.meta?.gmtoffset ?? 0);
+  const localIso = (unixSeconds: number) => iso(unixSeconds + gmtoffset);
   const out = new Map<string, number>();
   for (let i = 0; i < stamps.length; i++) {
     const v = values[i];
-    if (typeof v === 'number' && Number.isFinite(v) && v > 0) out.set(iso(stamps[i]), v);
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) out.set(localIso(stamps[i]), v);
   }
   if (!out.size) throw new Error('no usable closes in the response');
   const points = interval === '1mo' ? oneRowPerMonth(out) : out;
@@ -168,6 +186,41 @@ async function fredSeries(id: string) {
   return out;
 }
 
+/**
+ * Bitcoin's daily market price, from blockchain.com — keyless, and the only
+ * free source that reaches back to the beginning.
+ *
+ * THE ZEROS ARE NOT PRICES. The series starts in January 2009 and reads 0.00
+ * every day until 2010-08-18, because until then bitcoin had no market and
+ * therefore no price. Read as numbers they are the blank-field trap in its
+ * purest form — a rebase against a zero base is an infinity, and a rebase to a
+ * zero LATER is minus one hundred percent. They are dropped here, which is also
+ * what makes the window honest: the run can only begin on the first day a price
+ * existed, and the film has to say so rather than implying a market that wasn't.
+ */
+async function bitcoinDaily(): Promise<Map<string, number>> {
+  const url = 'https://api.blockchain.info/charts/market-price?timespan=all&format=json&sampled=false';
+  const body = await getText(url, {
+    'User-Agent': 'Mag8/1.0 (research desk; +https://themag8.com)',
+    Accept: 'application/json',
+  });
+  const parsed = JSON.parse(body);
+  const rows: {x: number; y: number}[] = parsed?.values ?? [];
+  if (!rows.length) throw new Error('blockchain.com returned no price rows');
+  const out = new Map<string, number>();
+  let zeros = 0;
+  for (const r of rows) {
+    if (!Number.isFinite(r.y) || r.y <= 0) {
+      zeros++;
+      continue;
+    }
+    out.set(iso(r.x), r.y);
+  }
+  if (!out.size) throw new Error('every bitcoin row was zero or unusable');
+  console.log(`  bitcoin  ${out.size} days with a price, ${zeros} earlier day(s) with no market at all`);
+  return out;
+}
+
 /* -------------------------------- alignment ------------------------------- */
 
 /**
@@ -179,10 +232,13 @@ async function fredSeries(id: string) {
 function alignOnDate(
   cols: {key: string; points: Map<string, number>}[],
   from?: string,
+  to?: string,
 ): {dates: string[]; series: {key: string; values: (number | null)[]}[]} {
   const all = new Set<string>();
   for (const c of cols) for (const d of c.points.keys()) all.add(d);
-  const dates = [...all].sort().filter((d) => !from || d >= from);
+  const dates = [...all]
+    .sort()
+    .filter((d) => (!from || d >= from) && (!to || d <= to));
   return {
     dates,
     series: cols.map((c) => ({key: c.key, values: dates.map((d) => c.points.get(d) ?? null)})),
@@ -284,7 +340,7 @@ async function runYahoo(id: string, job: YahooJob): Promise<ChartData> {
     console.log(`  ${t.key.padEnd(8)} ${String(points.size).padStart(5)} bars${adjusted ? '' : '  (RAW closes)'}`);
     await sleep(350);
   }
-  let {dates, series} = alignOnDate(cols, job.from);
+  let {dates, series} = alignOnDate(cols, job.from, job.to);
   const notes: string[] = [];
   let method: string;
 
@@ -303,10 +359,11 @@ async function runYahoo(id: string, job: YahooJob): Promise<ChartData> {
     const r = rebase(dates, series, job.transform, principal);
     dates = r.dates;
     series = r.series;
+    const div = job.dividends ? DIVIDEND_CLAUSE[job.dividends] : '';
     method =
       job.transform === 'invested'
-        ? `Value of $${principal.toLocaleString('en-US')} invested on ${r.baseDate}, held, distributions reinvested.`
-        : `Cumulative % change from ${r.baseDate}, distributions reinvested.`;
+        ? `Value of $${principal.toLocaleString('en-US')} invested on ${r.baseDate}, held${div}.`
+        : `Cumulative % change from ${r.baseDate}${div}.`;
     notes.push(`Every line starts on the same date (${r.baseDate}) at the same value.`);
   }
 
@@ -316,7 +373,7 @@ async function runYahoo(id: string, job: YahooJob): Promise<ChartData> {
   return {
     id,
     fetchedAt: new Date().toISOString().slice(0, 10),
-    sourceLabel: 'Adjusted closes · Yahoo Finance',
+    sourceLabel: job.sourceLabel ?? 'Adjusted closes · Yahoo Finance',
     sourceUrl: 'https://finance.yahoo.com',
     method,
     dates,
@@ -327,17 +384,21 @@ async function runYahoo(id: string, job: YahooJob): Promise<ChartData> {
 
 async function runFred(id: string, job: FredJob): Promise<ChartData> {
   const cols: {key: string; points: Map<string, number>}[] = [];
+  const conv = job.scale ? FRED_SCALES[job.scale] : null;
   for (const s of job.series) {
-    const points = await fredSeries(s.id);
+    let points = await fredSeries(s.id);
+    if (conv) points = new Map([...points].map(([d, v]) => [d, v * conv.factor]));
     cols.push({key: s.key, points});
     console.log(`  ${s.key.padEnd(8)} ${String(points.size).padStart(5)} obs  (${s.id})`);
     await sleep(350);
   }
-  let aligned = alignOnDate(cols, job.from);
+  let aligned = alignOnDate(cols, job.from, job.to);
   if (job.sample) aligned = sampleDates(aligned.dates, aligned.series, job.sample);
   let {dates, series} = aligned;
   const notes: string[] = [];
-  let method = 'Series as published, no adjustment.';
+  let method = conv
+    ? `Series as published, converted from ${conv.from} to ${conv.to}.`
+    : 'Series as published, no adjustment.';
 
   const tail = trimToCommonEnd(dates, series);
   if (tail.dropped > 0) {
@@ -347,12 +408,23 @@ async function runFred(id: string, job: FredJob): Promise<ChartData> {
     notes.push(`The run ends at ${tail.lastCommon}, the last date every series reports.`);
   }
 
-  if (job.transform === 'pctChange') {
-    const r = rebase(dates, series, 'pctChange', 100);
+  if (job.transform !== 'raw') {
+    const principal = job.transform === 'invested' ? (job.principal ?? 10000) : 100;
+    const r = rebase(dates, series, job.transform, principal);
     dates = r.dates;
     series = r.series;
-    method = `Cumulative % change from ${r.baseDate}.`;
-    notes.push(`Every line starts on the same date (${r.baseDate}) at zero.`);
+    if (job.transform === 'invested') {
+      const money = `$${principal.toLocaleString('en-US')}`;
+      // Deliberately NOT "invested ... held": you do not hold an index, and a
+      // house is not a security. The sentence says what the arithmetic did —
+      // a sum tracked by a published index — and the spec's subtitle carries
+      // what the index leaves out.
+      method = `${money} tracked from ${r.baseDate} by the index as published.`;
+      notes.push(`Every line starts on the same date (${r.baseDate}) at ${money}.`);
+    } else {
+      method = `Cumulative % change from ${r.baseDate}.`;
+      notes.push(`Every line starts on the same date (${r.baseDate}) at zero.`);
+    }
   }
   return {
     id,
@@ -366,9 +438,80 @@ async function runFred(id: string, job: FredJob): Promise<ChartData> {
   };
 }
 
+async function runMixed(id: string, job: MixedJob): Promise<ChartData> {
+  const cols: {key: string; points: Map<string, number>}[] = [];
+  const constants: string[] = [];
+  let allAdjusted = true;
+
+  for (const leg of job.legs) {
+    if (leg.from === 'yahoo') {
+      const {points, adjusted} = await yahooSeries(leg.symbol, job.range, job.interval);
+      if (!adjusted) allAdjusted = false;
+      cols.push({key: leg.key, points});
+      console.log(`  ${leg.key.padEnd(8)} ${String(points.size).padStart(5)} bars  (${leg.symbol})`);
+      await sleep(350);
+    } else if (leg.from === 'bitcoin') {
+      const daily = await bitcoinDaily();
+      // Onto the same grid as the market legs BEFORE anything is compared: a
+      // monthly bar's value is its month's last close, so the daily series
+      // keeps its last reading of each month, stamped at the month start.
+      const points = job.interval === '1mo' ? oneRowPerMonth(daily) : daily;
+      cols.push({key: leg.key, points});
+      console.log(`  ${leg.key.padEnd(8)} ${String(points.size).padStart(5)} points (blockchain.com)`);
+    } else {
+      constants.push(leg.key);
+    }
+  }
+
+  let {dates, series} = alignOnDate(cols, job.from, job.to);
+  const notes: string[] = [];
+
+  // A constant is defined on every date there is, so it is filled after the
+  // real legs have decided what the dates are — it can never widen the window.
+  for (const key of constants) series.push({key, values: dates.map(() => 1)});
+
+  const tail = trimToCommonEnd(dates, series);
+  if (tail.dropped > 0) {
+    dates = tail.dates;
+    series = tail.series;
+    console.log(`  tail: dropped ${tail.dropped} date(s) past ${tail.lastCommon} — not every line reaches them`);
+    notes.push(`The run ends at ${tail.lastCommon}, the last date every line reports.`);
+  }
+
+  let method: string;
+  if (job.transform === 'raw') {
+    method = 'Closing prices, as published.';
+  } else {
+    const principal = job.principal ?? 10000;
+    const r = rebase(dates, series, job.transform, principal);
+    dates = r.dates;
+    series = r.series;
+    const div = job.dividends ? DIVIDEND_CLAUSE[job.dividends] : '';
+    method =
+      job.transform === 'invested'
+        ? `Value of $${principal.toLocaleString('en-US')} put in on ${r.baseDate}, held${div}.`
+        : `Cumulative % change from ${r.baseDate}${div}.`;
+    notes.push(`Every line starts on the same date (${r.baseDate}) at the same value.`);
+  }
+  if (!allAdjusted) notes.push('At least one series is UNADJUSTED — dividends are not reflected in it.');
+  if (job.interval === '1mo') notes.push('The final point is the current month in progress, for every line alike.');
+
+  return {
+    id,
+    fetchedAt: new Date().toISOString().slice(0, 10),
+    sourceLabel: job.sourceLabel,
+    sourceUrl: job.sourceUrl,
+    method,
+    dates,
+    series,
+    notes,
+  };
+}
+
 async function run(id: string, job: FetchJob): Promise<ChartData> {
   if (job.source === 'yahoo') return runYahoo(id, job);
   if (job.source === 'fred') return runFred(id, job);
+  if (job.source === 'mixed') return runMixed(id, job);
   return {
     id,
     fetchedAt: new Date().toISOString().slice(0, 10),

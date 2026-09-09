@@ -57,6 +57,7 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'grocery-run',
+  subject: 'US average grocery prices',
   title: 'What does a\ngrocery run cost?',
   subtitle: 'Average US city price — per pound, dozen or gallon.',
   hook: {question: 'What does a grocery run cost?', kicker: 'Eight staples at the shelf price.'},

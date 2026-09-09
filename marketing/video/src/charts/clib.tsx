@@ -59,6 +59,87 @@ export const revealIndex = (frame: number, raceFrames: number, n: number): numbe
 };
 
 /* -------------------------------------------------------------------------- */
+/*  The photograph under the chart                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A real picture of the thing the film is about, darkened almost to texture.
+ *
+ * THE BRIEF (owner, 2026-09-06): "a small thing like this will make the video
+ * seem less AI generated". Which is exactly right about why it works — every
+ * other pixel in this format is drawn, so one photographic surface is the
+ * cheapest evidence in the frame that a person picked the subject.
+ *
+ * THREE THINGS KEEP IT SUBTLE, and all three are here rather than in a spec so
+ * a film cannot quietly turn into a photo with a chart on it:
+ *
+ * - STRENGTH IS CLAMPED to 0.04–0.25. Past a quarter the photograph stops being
+ *   a floor and starts competing with the lines, which are the point.
+ * - A SCRIM runs top and bottom. The title and the receipts are the two places
+ *   text sits directly on the ground, and both need the flat dark back — the
+ *   house contrast floor (FORMULA §F) is not negotiable for a texture.
+ * - THE PLOT BAND IS DARKENED FURTHER, because a busy photograph behind eight
+ *   thin coloured lines is the one place this idea could actually cost
+ *   legibility.
+ *
+ * The slow push is 6% over the whole race — under a tenth of a percent per
+ * frame. It is not a visible zoom; it stops the picture reading as wallpaper.
+ */
+export const Backdrop: React.FC<{spec: ChartSpec; frames: number}> = ({spec, frames}) => {
+  const frame = useCurrentFrame();
+  const b = spec.backdrop;
+  if (!b) return null;
+  const strength = Math.min(0.25, Math.max(0.04, b.strength ?? 0.14));
+  const scale = lerp(frame, [0, frames], [1, 1.06]);
+  const op = lerp(frame, [0, 24], [0, 1]);
+  return (
+    <AbsoluteFill style={{overflow: 'hidden'}}>
+      <Img
+        src={staticFile(`backdrops/${b.file}`)}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: b.focus ?? 'center',
+          opacity: strength * op,
+          filter: 'grayscale(0.4) contrast(0.92) brightness(0.85)',
+          transform: `scale(${scale})`,
+        }}
+      />
+      {/*
+        Top and bottom scrim: the brand row, the rail and the receipts keep the
+        flat ground they were designed against. The window between them is
+        deliberately WIDE — it covers the plot and the big date, which is where
+        a viewer's eye rests — because the first cut stacked this gradient and
+        the plot wash below on top of each other and left the photograph at
+        about 0.06 effective, which does not read as a photograph. It reads as
+        noise, and noise is the thing this was supposed to be the opposite of.
+      */}
+      <AbsoluteFill
+        style={{
+          background:
+            `linear-gradient(to bottom, ${C.void} 0%, ${C.void}e6 13%, ${C.void}3d 28%, ` +
+            `${C.void}3d 70%, ${C.void}e0 84%, ${C.void} 100%)`,
+        }}
+      />
+      {/* and a lighter wash across the plot band, where the lines live */}
+      <div
+        style={{
+          position: 'absolute',
+          top: PLOT.y - 40,
+          left: 0,
+          right: 0,
+          height: PLOT.h + 80,
+          background: `${C.void}4d`,
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
 /*  Brand furniture — on every chart frame, per the owner's branding note      */
 /* -------------------------------------------------------------------------- */
 
@@ -335,12 +416,56 @@ export const BigDate: React.FC<{
  */
 const MAX_X_LABELS = 6;
 const YEAR_STEPS = [1, 2, 4, 5, 10, 20, 25, 50] as const;
+const MONTH_STEPS = [1, 2, 3, 4, 6, 12] as const;
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+/**
+ * A run shorter than three years gets MONTH labels instead of year labels.
+ *
+ * WHY THIS EXISTS. The ladder above only ever emits years, which is right for
+ * the long films this format was built on and useless the moment a film is
+ * about a single year: every point in it carries the same four digits, so the
+ * axis draws ONE label at the left edge and then says nothing for the rest of
+ * the run. The axis whose entire job is time stops describing time. That could
+ * not happen while the fetcher had no end cutoff — a film always ran to today,
+ * so it always spanned years — and it became reachable the moment one existed.
+ *
+ * January is labelled with its YEAR rather than "Jan", so a run that crosses a
+ * new year says so on the axis instead of printing the same month name twice.
+ *
+ * Films longer than 36 months take the identical code path they always did, so
+ * every published film re-renders byte-for-byte.
+ */
+const xAxisMonths = (dates: string[], lastIdx: number, span: number): {i: number; label: string}[] => {
+  const ym = (d: string) => ({y: Number(d.slice(0, 4)), m: Number(d.slice(5, 7)) - 1});
+  const a = ym(dates[0]);
+  const b = ym(dates[lastIdx]);
+  const months = (b.y - a.y) * 12 + (b.m - a.m);
+  let step: number = MONTH_STEPS[MONTH_STEPS.length - 1];
+  for (const s of MONTH_STEPS) {
+    if (Math.floor(months / s) + 1 <= MAX_X_LABELS) {
+      step = s;
+      break;
+    }
+  }
+  const out: {i: number; label: string}[] = [];
+  for (let k = 0; k <= months; k += step) {
+    const y = a.y + Math.floor((a.m + k) / 12);
+    const m = (a.m + k) % 12;
+    const stamp = `${y}-${String(m + 1).padStart(2, '0')}`;
+    const i = dates.findIndex((d) => d.slice(0, 7) === stamp);
+    if (i >= 0 && i <= span) out.push({i, label: m === 0 ? String(y) : MONTH_ABBR[m]});
+  }
+  return out;
+};
 
 const xAxisYears = (dates: string[], span: number): {i: number; label: string}[] => {
   const first = Number(dates[0]?.slice(0, 4) ?? 0);
   const lastIdx = Math.min(Math.ceil(span), dates.length - 1);
   const last = Number(dates[lastIdx]?.slice(0, 4) ?? first);
   const years = last - first;
+  // Short window: label months. Long films fall through to the ladder below.
+  if (years < 3 && dates.length > 1) return xAxisMonths(dates, lastIdx, span);
   let step = years <= 5 ? 1 : years <= 11 ? 2 : years <= 20 ? 4 : 5;
   for (const s of YEAR_STEPS) {
     if (s < step) continue;
@@ -383,11 +508,24 @@ export const Plot: React.FC<{
     const y = yOf(v);
     rawHeads.push({key: s.key, y, yLine: y, v});
   }
-  // A badge is 62 tall and centred on its y, so the clamp has to leave half of
-  // it inside the frame — clamping to the plot edge itself cropped the leading
-  // badge, which is the one the whole film is about.
+  /**
+   * A badge is 62 tall and centred on its y, so the clamp has to leave half of
+   * it inside the frame — clamping to the plot edge itself cropped the leading
+   * badge, which is the one the whole film is about.
+   *
+   * The FLOOR has a second job the ceiling does not: the year labels live at
+   * PLOT_B + 42 and a 25px label occupies from about PLOT_B + 23 downward. A
+   * badge centred at the old bound (PLOT_B + 4) puts the bottom of its value
+   * line at PLOT_B + 35 — inside that band — so a head resting on the floor
+   * printed its number straight through the axis year beneath it. Every chart
+   * whose slowest lines sit near the floor early in the run hits this; the
+   * population film opened with six of eight countries down there and drew
+   * "47.1M" across "1962". The floor therefore stops half a badge plus a few
+   * pixels short of the label row.
+   */
+  const BADGE_HALF = 31;
   const heads = new Map(
-    deOverlap(rawHeads, 84, PLOT.y + 34, PLOT_B + 4).map((h) => [h.key, h]),
+    deOverlap(rawHeads, 84, PLOT.y + 34, PLOT_B + 20 - BADGE_HALF).map((h) => [h.key, h]),
   );
   const headX = xOf(idx);
 
@@ -469,7 +607,27 @@ export const Plot: React.FC<{
           .filter((t) => xOf(t.i) < PLOT_R - 175)
           .map((t) => (
           <text
-            key={t.label}
+            /**
+             * KEYED BY THE DATUM INDEX, NEVER BY THE LABEL TEXT.
+             *
+             * Month labels are month NAMES, so any window wider than a year
+             * repeats them - "Mar" appears in 2006 and again in 2007 - and
+             * keying on the text hands React two children with the same key.
+             * It leaves one of them orphaned, and in the ENCODE PATH, where a
+             * single DOM is reused across sequential frames, that orphan never
+             * unmounts: the stale month prints through the year label
+             * underneath it for the rest of the film.
+             *
+             * Fresh-DOM stills CANNOT reproduce it - every still of the
+             * affected films came back clean - so it is only ever visible in
+             * an encode-path sweep or in the finished mp4.
+             *
+             * This reaches long films too, which is the unobvious part: the
+             * axis is chosen from the REVEALED span, so every film opens
+             * under three years and starts in month mode regardless of how
+             * many years it eventually covers.
+             */
+            key={t.i}
             x={xOf(t.i)}
             y={PLOT_B + 42}
             textAnchor="middle"
@@ -593,9 +751,14 @@ export const Plot: React.FC<{
  * and the chip sat over it announcing "CUMULATIVE %". A chip is a claim about
  * the arithmetic, so it comes from the line that records the arithmetic — the
  * one the fetcher writes and the source block prints underneath.
+ *
+ * The wording is the viewer's, not the statistician's (owner rule, 2026-09-07):
+ * the chip says what the axis is holding, and "TOTAL % CHANGE" says it to a
+ * stranger where "CUMULATIVE %" asks them to decode it first. Same claim, same
+ * 14 characters as the widest chip already on screen.
  */
 const axisChipText = (spec: ChartSpec, data: ChartData): string => {
-  if (/^Cumulative % change/.test(data.method)) return 'CUMULATIVE %';
+  if (/^Cumulative % change/.test(data.method)) return 'TOTAL % CHANGE';
   if (/^Value of \$/.test(data.method)) return 'PORTFOLIO VALUE';
   return 'AS PUBLISHED';
 };

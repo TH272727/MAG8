@@ -1,0 +1,68 @@
+{
+  "tracks": [
+    {
+      "id": "source-01",
+      "file": "source-01.m4a",
+      "source": "source-01.mp4",
+      "duration": 23.706,
+      "offset": 0,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-02",
+      "file": "source-02.m4a",
+      "source": "source-02.mp4",
+      "duration": 84.797,
+      "offset": 60,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-03",
+      "file": "source-03.m4a",
+      "source": "source-03.mp4",
+      "duration": 36.036,
+      "offset": 10,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-04",
+      "file": "source-04.m4a",
+      "source": "source-04.mp4",
+      "duration": 34.715,
+      "offset": 5,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-05",
+      "file": "source-05.m4a",
+      "source": "source-05.mp4",
+      "duration": 39.009,
+      "offset": 0,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-06",
+      "file": "source-06.m4a",
+      "source": "source-06.mp4",
+      "duration": 285.768,
+      "offset": 215,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-07",
+      "file": "source-07.m4a",
+      "source": "source-07.mp4",
+      "duration": 59.766,
+      "offset": 0,
+      "licence": "owner-supplied — licensed or royalty-free"
+    },
+    {
+      "id": "source-08",
+      "file": "source-08.m4a",
+      "source": "source-08.mp4",
+      "duration": 248.8,
+      "offset": 40,
+      "licence": "owner-supplied — licensed or royalty-free"
+    }
+  ]
+}

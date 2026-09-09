@@ -45,7 +45,28 @@ export type Unit =
 
 export type ChartSpec = {
   id: string;
-  /** Headline over the plot. Two lines max at 62px inside the portrait safe width. */
+  /**
+   * What this film is ABOUT, in plain words a stranger understands — the thing
+   * being measured, not the story about it. "Life expectancy at birth", not
+   * "the gap that closed".
+   *
+   * OWNER RULE (2026-09-07): the first text a viewer reads has to tell them what
+   * they are watching. `the-gap-that-closed` opened on the words "The gap that
+   * closed" and a viewer had to hunt down to the subtitle to learn the film was
+   * about life expectancy — by which point they have already scrolled. So the
+   * subject is declared here and `chart-verify` FAILS a spec whose TITLE does
+   * not carry a word of it. The field is not rendered; it exists to be checked
+   * against the title, which is what viewers actually read.
+   */
+  subject: string;
+  /**
+   * Headline over the plot, and the first thing read. Two lines max at 62px
+   * inside the portrait safe width — about 30 characters a line, measured off a
+   * real frame.
+   *
+   * LEAD WITH THE SUBJECT, then the story: "Life expectancy: / the gap that
+   * closed". The hook survives, it just stops going first.
+   */
   title: string;
   subtitle?: string;
   /** The 3-second opener (FORMULA §A: big → hold → shrink → chart). */
@@ -62,6 +83,49 @@ export type ChartSpec = {
   /** Log scale needs a positive floor; ignored when linear. */
   yFloor?: number;
   series: SeriesSpec[];
+  /**
+   * A photograph under the plot — a real picture of the thing the film is about,
+   * darkened almost to texture.
+   *
+   * WHY. A chart drawn entirely out of vector furniture on a flat dark ground
+   * reads as generated, because everything in the frame was generated. One
+   * photographic surface underneath it is the cheapest possible signal that a
+   * person chose the subject, and at these strengths it is felt rather than
+   * looked at — you notice the frame has a floor, not what is on it.
+   *
+   * The file is fetched and frozen by scripts/chart-backdrop.ts, which accepts
+   * PUBLIC DOMAIN and CC0 ONLY and records the licence in
+   * public/backdrops/CREDITS.json. That rule is not squeamishness: CC BY and
+   * CC BY-SA are equally free and both oblige an attribution ON THE FRAME, and
+   * a chart film has one line of receipts which belongs to the data.
+   * chart-verify refuses to render a backdrop whose licence is not on file.
+   */
+  backdrop?: {
+    /** Filename inside public/backdrops/. */
+    file: string;
+    /** How much of the photograph survives the scrim. Clamped to 0.04–0.25. */
+    strength?: number;
+    /** CSS object-position, e.g. 'center 35%'. */
+    focus?: string;
+  };
+  /**
+   * A one-day move so violent that the honesty gate cannot tell it from a
+   * parse artefact — DECLARED by the author, with the reason, so the gate can
+   * report it instead of blocking it.
+   *
+   * WHY THIS IS A DECLARATION AND NOT A THRESHOLD. The discontinuity check asks
+   * whether a spike lands somewhere the line ever otherwise goes, because a
+   * blank field read as zero does not and a bad month does. That question has
+   * one true exception: a price that goes NEGATIVE for a single session has, by
+   * definition, been nowhere near that level before or since. Loosening the
+   * threshold to let it through would also let through the blank-field collapse
+   * the check exists to catch. So the author names the series, the day and the
+   * reason instead, and anything undeclared still FAILS.
+   *
+   * Declaring an excursion is a claim that the source row was read and the
+   * event is real. It is not a way to quiet a gate that is complaining.
+   */
+  knownExcursions?: {key: string; date: string; why: string}[];
   /** The turn after the race: what the numbers meant. */
   payoff: {lead: string; lines: string[]};
   /** Small chip on the endcard naming the episode. */
@@ -165,11 +229,52 @@ const group = (n: number): string => {
  */
 const CENTS_BELOW = 100;
 
+/**
+ * Above these magnitudes a readout is COMPACTED rather than grouped.
+ *
+ * `group()` is right up to a few million — "$7,281,108" is a number a viewer
+ * reads. It stops being one at national scale: federal debt written out in
+ * full is "$34,472,927,000,000", eighteen characters in a 268px line-head
+ * column, and a population is "1,463,865,525". Neither is read; both are
+ * counted. So money compacts from a billion and a count from a million.
+ *
+ * Both thresholds sit ABOVE every value in every film published before them —
+ * the largest money figure ever drawn here is $7.28M and the largest count is
+ * 27,945 — so nothing already published moves. That is the same rule the cents
+ * threshold was chosen under.
+ *
+ * LOWERED $1B → $100M, 2026-09-07, under that same rule. A billion left a gap:
+ * a film whose lines START in the hundreds of millions and END in the trillions
+ * crosses the threshold mid-run, and below it the readout prints in full.
+ * Social Security in 1949 drew as "$690,680,167" — twelve characters through
+ * the badge and into the axis, on a chart whose other four heads read "$22.4B"
+ * and "$8.0B". Found by reading a still, which is the only thing that finds
+ * these.
+ *
+ * The new threshold was checked the same way the old one was, by scanning every
+ * frozen dataset rather than by recalling them: across all 26 charts in the tree
+ * the $100M–$1B band contains 15 values and every one of them belongs to the
+ * film that prompted this. The largest money value in any OTHER usd film is
+ * either $34.47T (already compacted, above the trillion tier) or $69.01M (below
+ * the new threshold, still grouped). Nothing published or in flight moves.
+ */
+const COMPACT_USD_ABOVE = 1e8;
+const COMPACT_INDEX_ABOVE = 1e6;
+
 /** Full precision — used for the readouts a viewer stares at. */
 export const formatValue = (v: number, unit: Unit): string => {
   if (unit === 'pct') return `${v >= 0 ? '' : '-'}${Math.abs(v).toFixed(1)}%`;
-  if (unit === 'index') return group(v);
-  if (Math.abs(v) < CENTS_BELOW) return `${v < 0 ? '-' : ''}$${Math.abs(v).toFixed(2)}`;
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (unit === 'index') {
+    if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(2)}T`;
+    if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`;
+    if (abs >= COMPACT_INDEX_ABOVE) return `${sign}${(abs / 1e6).toFixed(1)}M`;
+    return group(v);
+  }
+  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
+  if (abs >= COMPACT_USD_ABOVE) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
+  if (abs < CENTS_BELOW) return `${sign}$${abs.toFixed(2)}`;
   return `$${group(v)}`;
 };
 
@@ -179,6 +284,9 @@ export const formatTick = (v: number, unit: Unit): string => {
   const abs = Math.abs(v);
   const sign = v < 0 ? '-' : '';
   const money = unit === 'usd' ? '$' : '';
+  // A trillion tier, because a log axis over national accounts walks decades:
+  // without it $10T printed as "$10000B" and ate the axis gutter.
+  if (abs >= 1e12) return `${sign}${money}${(abs / 1e12).toFixed(abs >= 1e13 ? 0 : 1)}T`;
   if (abs >= 1e9) return `${sign}${money}${(abs / 1e9).toFixed(abs >= 1e10 ? 0 : 1)}B`;
   if (abs >= 1e6) return `${sign}${money}${(abs / 1e6).toFixed(abs >= 1e7 ? 0 : 1)}M`;
   if (abs >= 1e3) return `${sign}${money}${(abs / 1e3).toFixed(abs >= 1e4 ? 0 : 1)}K`;

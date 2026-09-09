@@ -53,7 +53,8 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'sector-race-10k',
-  title: 'Which sector won\nthis century?',
+  subject: '$10,000 invested in each US stock market sector',
+  title: 'Which part of the\nstock market won?',
   subtitle: '$10,000 into each on the same day. Never sold.',
   hook: {question: 'Which sector won this century?', kicker: 'Eight funds, one buy, no trading.'},
   unit: 'usd',

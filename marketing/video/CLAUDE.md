@@ -89,9 +89,20 @@ its changelog the day it lands. This file = the physics; FORMULA.md = the taste.
    `npm run stills -- <CompId> 30,300,800` (exact frames). Output: `out/stills/<CompId>/`.
 3. Encode-path check for DOM-reuse bugs: `npm run stills -- <CompId> seq 100-160`
    (sequential frames, one DOM, concurrency 1).
-4. Leak gate: `npm run check:leak` — zero hits required over `src/` before rendering or publishing.
+4. Leak gate: `npm run check:leak` — zero hits required before rendering or publishing. It walks `src/` AND `../manim/scenes`, and matches `.py` as well as the web extensions: a manim scene puts captions straight onto a frame, and the original walker saw neither that directory nor that extension. Proved by injection.
 5. Full render (`npm run render` / `render:shorts` / `render:fun` / `render:charts`). A 30s@30fps
    short is 900 screenshots — don't iterate at this stage.
+6. **Verify the ARTIFACT, not the still.** Extract frames from the finished mp4 and read them —
+   `ffmpeg -ss <t> -i <file.mp4> -frames:v 1 -vf "crop=1080:80:0:1125,scale=2160:160" out.png`
+   crops the axis strip at 2x. A fresh-DOM still is structurally incapable of reproducing the
+   DOM-reuse class, and an encode-path sweep only covers the frames you chose: a duplicate React
+   key minted at frame 20 and inherited for the rest of the run passed clean stills, a clean
+   encode-path window at frames 300-312, and `chart-verify`, and was caught only by pulling
+   frames out of a shipped mp4 (2026-09-07). Sample the OPENING as well as the end, and pull
+   frames by INDEX (`-vf "select=eq(n\,30)"`) rather than by timestamp when a claim rests on a
+   specific frame. Never predict what a frame contains from the revealed index alone: the axis
+   window leads the data (`xSpan` floors it at 8% of the dataset), and guessing from the reveal
+   produced a confident, wrong accusation about a peer's film this session.
 
 Chart films insert one gate BEFORE stills: `npm run chart:verify` (0 FAIL required). It blocks
 the window defect that gets charts in this genre fact-checked — a series that runs out of data
@@ -101,11 +112,54 @@ frames: chart films are the race alone (owner rule, 2026-09-05). And they are fi
 the hand-authored films, into `out/charts/batch-NN/`, 25 per folder — one YouTube drag each;
 `scripts/chart-out.ts` picks the folder, `npm run chart:made` prints the state.
 
+The same gate FAILS a chart whose TITLE does not name its own declared `subject` (owner rule,
+2026-09-07): the first text a viewer reads has to say what they are watching, so headlines lead
+with the subject and the story follows it — "Life expectancy: / the gap that closed", not "The
+gap that closed". Ids stay poetic; headlines say what the thing is. Changing a title or a
+subtitle means a re-render, because both are baked into every frame.
+
+Chart films also ship with PLATFORM metadata, because YouTube writes a title from the filename
+and a description from the channel default if you let it. `npm run chart:platform` regenerates
+`marketing/youtube-chart-upload-plan-2026-09-08.md` from the frozen datasets — every figure is
+interpolated, any other numeral must be declared in that film's `claims`, and the generator runs
+the leak pattern and the platform's own limits (title 100, description 5000, 15 hashtags, 500
+characters of tags) before it writes. A new chart film needs an entry there or the generator FAILS.
+
+Chart films are the one product line here that does NOT use the procedural score. They carry
+the owner's licensed music (2026-09-07), muxed on after the render by `scripts/chart-music.ts`
+at -14 LUFS with the video stream copied untouched; the chart `<Audio>` is unwired in
+`Root.tsx` so the composition is silent and there is exactly one source of sound.
+`render:charts` runs the scoring itself, so a new film cannot ship silent beside the rest —
+nothing in a stills sweep or a frame check can see a missing sound track. A track is assigned
+at random ONCE and recorded in `music/assignments.json`; a film that has one keeps it, because
+a posted film must keep sounding like itself. See CHARTS.md for the three measurement traps
+already paid for.
+
 `scripts/stills.ts` pins renderer port 3335: the programmatic API defaults to :3000, which is the
 app's own dev server, and the renderer then loads the WEBSITE and reports "not a valid Remotion
 project".
 
 Node prints a MODULE_TYPELESS_PACKAGE_JSON warning running `scripts/*.ts` — harmless, ignore.
+
+## Manim — mechanism animations as assets (`../manim`)
+
+ManimCE 0.19 in its own venv, NOT a second video pipeline. Scenes render to TRANSPARENT PNG frames
+that a Remotion composition composites; the header, brand row, score and cut stay in Remotion.
+Reach for it only when a beat works because a shape moves into another shape — the screen funnel,
+the three lenses as a real set intersection, a DCF stream, a game-theory tree. Text, chips and
+timing stay here.
+
+**The transparency trap, measured:** `manim -t --format=webm` writes `yuv420p` with corner alpha
+255 — no alpha, no warning, composites as a solid rectangle. `--format=mov` carries real alpha but
+in qtrle, which no browser decodes. Transcoding MOV to VP9 or VP8 WebM produces `yuv420p` too:
+both encoders LIST `yuva420p` and neither writes it, because WebM alpha needs a BlockAdditions
+track this ffmpeg build does not produce. `--format=png` gives `rgba` with real alpha, ~12 MB for
+233 frames at 1080x1920. `render.py` verifies the format, the corner alpha on three frames, and
+that something was actually drawn — an empty scene passes a transparency check trivially.
+
+Frames land in `public/manim/<Scene>/` with a `manifest.json` (frames, fps, duration) and are
+gitignored. Type floors, contrast rules and safe zones from FORMULA.md apply to a manim frame
+exactly as to a Remotion one. Full detail: `../manim/README.md`.
 
 ## Packages (all ^4.0.486) and when to reach for them
 

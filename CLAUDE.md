@@ -359,6 +359,65 @@ skills/agents/the AI provider; `/admin` is the ONE exception.
   `MAG8_TIDE_*` + `MAG8_TIDE=0`. **A series no gauge reads is never fetched and looks catalogued while
   being invisible** — pinned by test (caught `anfci`; `houst`/`drccl` became real gauges).
 
+- `lib/risk/` THE RISK DESK (`/risk`, 2026-09-07) — sixth product, the AutoHedge answer: the other
+  desks say what is interesting, this says how much it MOVES and how much of that is the SAME move.
+  Deterministic, $0, keyless, ZERO plan-window draw, user_version 9, one additive table, 0 FKs. See
+  HANDOFF-2026-09-07-risk-desk.md. **It reports and it flags** — nothing here proposes a trade,
+  suggests a weight, sizes against a balance or reaches a broker (same sentence bottleneck/exposure
+  opens with). Population = `readLedger()` crossings (13 live). `returns.ts` PURE — bars → SIMPLE
+  daily returns (a portfolio's simple return IS the weighted average of its members', log returns
+  compose into nothing), pairwise `overlap()` + `commonGrid()`; **BOTH closes checked, not just the
+  denominator** — a 0 close became a −100% return, the 4th blank-as-zero in this repo. `stats.ts`
+  PURE vol/downside/cov/corr/beta/drawdown, two-pass not running sums; **`maxDrawdown` builds the
+  wealth series ONCE with a leading element for the window's opening level** — the high-water mark is
+  often the level the window OPENED at, which no index into the RETURNS array can address, and
+  recomputing it by compounding returns[0..peakIdx] made the recovery target the TROUGH so a series
+  that never came back reported that it had (`peakAtWindowStart` so the prose says "from the level it
+  opened at"). `sleeve.ts` PURE equal-weight basket + **effectivePositions = (avg member vol /
+  basket vol)²** (Choueifaty-Coignard DR², named in code, NOT in the citations registry — the primary
+  source would not extract) + Euler risk decomposition summing to 100; **CAN exceed the member count**
+  when members move AGAINST each other — real, deliberately NOT clamped, raises a note. `score.ts`
+  per-name + the pair table on **each pair's OWN overlap** (a recent listing never shortens anyone
+  else's record); a mixed-basis pair is shown but BARRED from raising the one-position flag (an
+  unadjusted leg carries each ex-dividend fall as a real one-day loss). `report.ts` deterministic
+  markdown, **SIGN-AWARE** verification (a −40% fall written as +40% is the opposite claim, not a
+  rounding) with **dates and company names MASKED then dates checked separately** — a sign-aware
+  reader tokenises 2026-04-15 as 2026/−4/−15 and admitting those would admit a fabricated "−4%"
+  anywhere. `desk.ts` refreshRisk (network) / readRisk (**NEVER**, ~1.3s of which ~0.9s is readLedger
+  + 0.17s readTide). **NOTHING DERIVED IS STORED** — only closes — so a window change re-derives the
+  whole board incl. every unmeasured reason, free. **Reads the other three bar stores before
+  fetching** (7 of 14 live tickers already held by tide/rotation); ONE store per ticker, never a
+  merge. `lib/risk-settings.ts` 14 knobs `MAG8_RISK_*` + `MAG8_RISK=0`; benchmark SPY is env-only
+  (`MAG8_RISK_BENCHMARK`), deliberately not a settings-page dial. **The benchmark join is an OVERLAP
+  not all-or-nothing** — SPY's store was 2 sessions behind and the basket's beta + market comparison
+  both vanished silently while every per-name beta survived (those are pairwise). Live: basket vol
+  48.5% vs members' 71.2%, **2.2 effective positions of 13**, beta 2.47, worst −40.4% unrecovered;
+  tide band 50.4-60.4% → 24.4-29.3% portfolio vol; 3 pairs across 5 names read as one position.
+  +2 citations, BOTH arguing against the desk and built into the arithmetic (DeMiguel/Garlappi/Uppal
+  2009 = why equal weight and no optimisation; Longin & Solnik 2001 = why co-movement is a
+  calm-weather figure) → **homepage chip 75 → 77**.
+- `lib/number-verify.ts` ONE traceability rule, extracted 2026-09-07 from THREE divergent copies
+  (insider was sign-AWARE, rotation and tide sign-BLIND — a fourth copy would have meant picking a
+  variant silently). Half-a-unit-of-the-last-place-WRITTEN tolerance; `signed` is an explicit
+  parameter because the two demand different allowed lists and cannot be swapped. All three migrated,
+  their 55 existing tests unchanged.
+- `lib/bottleneck/usaspending.ts` + `procurement.ts` FEDERAL AWARD RECORDS (2026-09-07), keyless.
+  **BESIDE the gap, never INTO it** — an obligation is a DEMAND quantity, so a supply slot would
+  compare the government's spending against the suppliers' and print the difference as a physical
+  constraint: every figure real, the conclusion meaningless. Answers the one thing the desk could
+  not: whether `owners[].tickers` (the `curated` claim on /crossdesk) is RIGHT. **Linkage CURATED,
+  never guessed** — a normalised name match found 1 of 6, because the government contracts with
+  operating SUBSIDIARIES (Kratos Defense appears only as "KRATOS UNMANNED AERIAL SYSTEMS, INC", so a
+  parent match reports no awards for $164M of them). **A code's TITLE is not evidence**: 9 probed, 7
+  rejected on their recipient lists — PSC 4470 "Nuclear reactors" is NAVAL PROPULSION (Fluor Marine,
+  Electric Boat), PSC AN11/AN12 "R&D general science" is BIOMEDICAL (Leidos Biomedical, Sanofi
+  Vaccines). Only PSC 1550 survived → **drone theme only**, `procurement` optional on the playbook.
+  Obligations can be NEGATIVE (de-obligations). Fiscal years run Oct-Sep, named for the year they
+  END in; the current year is marked STILL RUNNING not dropped, and the trend compares the two most
+  recent COMPLETE years. Stored in ONE `app_settings` key per theme — no table, no migration. Live:
+  $1.94B FY2025 **−11.8%** while the theme's demand reads **+62.4%**; AVAV+KTOS hold **12.3%** of the
+  code's dollars, the rest going to primes and private companies.
+
 ## Invariants — do not break
 1. SSE plumbing: `next.config.ts` keeps `compress:false` (gzip would buffer SSE) + `serverExternalPackages`
    `['better-sqlite3','@anthropic-ai/claude-agent-sdk']`. Persist progress events (sync INSERT) BEFORE emit;
@@ -475,13 +534,17 @@ npm run insider -- --board [--risk conservative|balanced|aggressive] | --stock T
 npm run reach -- --probe                                # live source smoke; ALL PASS, exit 0
 npm run reach -- --refresh [TICKER,…] [--dry] [--force]  # no ticker = official-release feeds only
 npm run reach -- --board [--ticker T]                   # what is stored, no network
+npm run risk -- --probe                                 # live price-source smoke; ALL PASS, exit 0
+npm run risk -- --refresh [--dry] [--force] [--ticker T] # reuses closes another desk already holds
+npm run risk -- --board | --pairs | --stock T | --coverage | --report [--write]
+npm run check:voice [-- --strict] [-- --house]          # AI writing tells in hand-written copy
 ```
 Fixture regression (`npm run seed`): ASTS 90.3 pass+confluence, RKLB 73.9, TMDX 69.5, SYM 51.5, IONQ 47.9,
 CRSP 46.7, OKLO 42.7, ACHR 19.3 fail-gated #8; mock count ≥6 errors the CRSP×gt cell (CRSP → 46.4 + gap note);
 ASTS×forecast cache-hits after a prior seed/mock. Leak probe (gate for any public-surface change): render `/`,
 `/rankings`, `/methodology`, `/lab`, `/bottleneck` (+`?playbook=<id>`), `/bottleneck/clone?cik=<n>`,
 `/bottleneck/exposure`, `/rotation`, `/rotation/<id>`, `/insider` (+`?risk=<profile>`), `/insider/<ticker>`,
-`/crossdesk` (+`?risk=<profile>`), `/tide`, `/tide/<id>`, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
+`/crossdesk` (+`?risk=<profile>`), `/tide`, `/tide/<id>`, **`/risk`**, `/stocks/ASTS`, `/runs/<id>` + snapshot JSON + SSE, then
 `grep -rniE "stock-scanner|gt-predictor|institutional-forecast|new-gen-stock|claude|anthropic|SKILL\.md|Loading skill|\bskills?\b|\bagents?\b"`
 → ZERO hits (`/admin` exempt; ONE owner-approved `agents?` exception since 2026-07-09: the homepage
 "26 agents" / "26 AGENTS PER RUN" disclosure copy — everywhere else, incl. all run payloads, still zero).
@@ -1173,6 +1236,94 @@ whole units, so every grocery line printed as a flat integer; the threshold sits
 earlier film, so nothing published moves. Gates: tsc clean, chart:verify 0 FAIL across all 8 charts, stills
 read + encode-path seq on all three, check:leak 0 hits over 85 files, three renders exit 0, ffprobe exact
 (1080×1920, 690f, 23.06s).
+2026-09-06 (Code): CHART PROTOCOL RUN — THREE MORE FILMS, batch-01 now 11/25. Owner: "run the viral chart
+marketing protocol and make 3 original videos". Three unused SHAPES: `chart-what-america-owes` (the first LOG
+axis over PUBLISHED LEVELS — five borrowing sectors of the Fed's Z.1, 1952→2026 quarterly, $11.8B to $34.47T;
+the lead changes hands three times and the banks line peaks in Jul 2008, falls to $16.89T by 2013 and does not
+regain 2008 until late 2021 while federal borrowing multiplies ~5×), `chart-eight-billion` (the first ANNUAL
+grid + year-ticking date — eight populations 1960→2025, India passes China at the wire), `chart-below-zero`
+(eight OECD 10-yr government yields 1991-03→, a field that dives THROUGH the baseline: CHE 72 months negative,
+DEU 38, JPN 24, FRA 22, while US/UK/ITA/ESP never are). FIVE findings, each a silent wrong number or a broken
+frame: (1) **FRED series disagree on units** — the whole Z.1 is MILLIONS while FRED's own GDP is BILLIONS, so
+the obvious sixth line would have been wrong by 1000× with every value real; GDP cut, and conversions now
+travel as NAMES (`FRED_SCALES`, `scale: 'millionsToDollars'`) so the factor and the printed sentence come from
+one entry; (2) **a series can change its own publishing frequency mid-history** — Z.1 is ANNUAL before 1952 and
+quarterly after, one id, no field saying so, and since points are placed by INDEX the first six years animated
+at 4× the speed of the following seventy with year labels at quarterly spacing → `chart-verify` now measures the
+date grid, FAILS a RUN of ≥3 irregular steps (proved by re-injecting the 1945 start) and WARNS on an isolated
+publisher's hole, which is what three published films carry (BLS skipped Oct 2025); (3) the receipts line has a
+**62-character budget** and 67 dropped an orphan "09-06" under the credit — invisible at contact-sheet size, so
+it is arithmetic in the gate now, not an eye; (4) **the head badges had no clearance from the year labels** (the
+de-overlap floor was the badge CENTRE at PLOT_B+4, its value line landing at +35 inside the label band that
+starts at +23) — the population film drew "47.1M" through "1962"; hits any chart whose slow lines sit near the
+floor early; (5) **`yFloor: 0` cost the opening** on the film named after the zero line — it held an empty band
+on screen and pushed the whole 1991 field (5.7–13.8%) into the top half for a decade; left free the window opens
+tight and expands DOWNWARD, so the baseline arrives when it starts to matter. Also: two formatter tiers added
+(usd ≥$1T → "$34.47T", index ≥1M → "1.46B"), both thresholds ABOVE every value in every published film ($7.28M /
+27,945), verified by probe, so nothing already published moves. Gates: tsc clean, chart:verify 0 FAIL across all
+11 charts, stills read at every beat + encode-path seq on all three, check:leak 0 hits over 91 files, three
+renders exit 0, ffprobe exact (1080×1920, 690f, 23.06s). NOT COMMITTED — owner has not asked.
+2026-09-06 (Code, session 2): CHART STORY FILMS + THE BACKDROP LAYER — batch-01 now 14/25. Owner: "create
+three more viral chart marketing videos, focusing on an interesting story related to finance, like the buying
+pizza with bitcoin story and comparing how much the guy could've had if he kept his bitcoin. also try taking an
+image from the internet related to the story, darkening the image, and putting it subtlely into the background
+of the chart video. a small thing like this will make the video seem less AI generated." Three STORY films:
+`chart-pizza-day` (log/mixed-source — what $41 became from bitcoin's first priced month: BTC $46.76M vs Apple
+$1,804, S&P $398, gold $137, cash $41), `chart-nikkei-1989` (four markets from the Dec-1989 peak, price only,
+own currency — Japan spends 418 of 442 months BELOW its own starting line, min −80.6%, first monthly close back
+above in Feb 2024), `chart-covid-crash` (weekly, $10,000 at the exact pre-COVID top — bitcoin $80,431, Nasdaq
+$32,434, gold $26,294, S&P $25,337, small caps $19,186, long bonds $6,782 and still under water). NO PERSON IS
+NAMED in any of them — FORMULA §K makes a chart about a named individual an owner decision, and the pizza story
+lands without one. SIX findings/additions, each a silent wrong number or a broken claim: (1) **a bar is dated in
+its own exchange's time** — Yahoo stamps at local period start and toISOString reads UTC, so the Nikkei's
+October 1986 bar arrives as 1986-09-30 and month-bucketing files it under September: an entire foreign series
+shifted ONE MONTH against its peers for its whole history, every value real; fixed via `meta.gmtoffset`, and no
+published film is affected (all US-listed); (2) **"distributions reinvested" was a claim the fetcher had no
+right to make** — true of a fund's adjusted closes, FALSE of a price index, and in a MIXED basket it credits
+some lines with dividends and not others (it was live in the COVID film until its three index legs were swapped
+for the tracking funds); a source cannot answer it (Yahoo returns adjclose for an index too, it just equals the
+price) so the basket now DECLARES `dividends`, and `sourceLabel` became overridable because "ADJUSTED CLOSES"
+sat directly above "price only — no dividends"; (3) **the spike gate fired on a real crash for the second time**
+(Germany 2011, now the Nikkei −13% in Mar 2026 and back in Apr, corroborated inside the source bars' own
+high/low) — the discriminator that actually works is *is this a value the series visits at other times?* (a
+blank-as-zero lands where the line never otherwise goes), so in-range excursions now WARN and out-of-range still
+FAIL, re-proved by injection; (4) **bitcoin has no price on pizza day** — blockchain.com reads 0.00 every day
+until 2010-08-18 because there was nowhere to sell one, the purest form of the blank-as-zero trap, so the zeros
+are dropped, the run starts at the first priced month, and the film shows what $41 became rather than what the
+ten thousand coins became (a smaller number than the headlines, and the one it can stand behind); (5) **the
+backdrop needed a licence rule, not just a download** — `scripts/chart-backdrop.ts` fetches from Wikimedia
+Commons and accepts PUBLIC DOMAIN and CC0 ONLY, recording licence/author/source in
+`public/backdrops/CREDITS.json`, because CC BY and CC BY-SA are equally free and both oblige an attribution ON
+THE FRAME while a chart film's one line of receipts belongs to the data; `chart-verify` re-checks at render
+time and clamps strength to 0.04–0.25; (6) **two stacked scrims turn a photograph into noise** — the first cut
+left the image at ~0.06 effective, which reads as sensor noise (the opposite of the point) and looks fine at
+contact-sheet size: it has to be judged on a full-resolution crop. New engine surface: `MixedJob` (yahoo +
+blockchain.com + a `constant` leg for the flat cash line) so bitcoin's pre-2014 history can share an axis with
+tickers. Gates: tsc clean, chart:verify 0 FAIL across all 14 charts, stills read at every beat + encode-path seq
+on all three, check:leak 0 hits over 97 files, three renders exit 0, ffprobe exact (1080×1920, 690f, 23.06s).
+NOT COMMITTED — owner has not asked.
+2026-09-06 (Code, session 3): STORY-FIRST IS NOW THE RULE + BACKDROP TASTE. Owner, after reviewing the three
+story films: "add it into the protocol permanently that i want videos to always include some type of interesting
+story to captivate viewers attentions better rather than something only finance bros would care about. i also
+like the background images a lot, the pizza one i liked the least, i think it would have done better with a more
+general photo like a pizza delivery man, besides that i like how the other two backgrounds look, general enough,
+but relevant enough." TWO STANDING RULES, written into FORMULA §K (+ provenance tag `[09-06 story]`), the
+`viral-chart-protocol` skill's standing brief, CHARTS.md and the fetch script's own header — so they bind on
+every future invocation rather than living in one session's memory: (1) **a STORY is a REQUIREMENT of every
+chart film and the first test an idea has to pass** — a comparison is NOT a story, and an idea describable only
+as "X versus Y over time" is not ready to propose; the chart is the ANSWER to the story and the money
+counterfactual is usually the answer's shape; the person is never named, and the window discipline gets
+STRICTER on a story film because a good story is what creates pressure to reach for the headline number;
+(2) **the backdrop is a SCENE, not a product shot** — ask what the story's WORLD looks like (a street, a floor,
+a skyline, a queue), not what its noun looks like, because at ~15% opacity behind a scrim a place with people
+and depth still reads as a photograph while an object on a white sweep has nothing for the eye to resolve.
+`chart-pizza-day` re-shot accordingly: the studio slice replaced with a CC0 delivery rider in a busy street
+(brand signage illegible at these strengths — and prefer frames without it, since a logo behind a financial film
+implies an association nobody agreed to), then re-rendered INTO ITS OWN SLOT (9/25, folder still 14 films),
+which is the "a re-render is not a new film" rule working as designed. Search note: `filetype:bitmap` is
+required on Commons queries or "delivery man carrying boxes" returns twenty scanned 19th-century PDFs. Gates:
+tsc clean, chart:verify 0 FAIL across all 14, stills read, check:leak 0 hits over 97 files, re-render exit 0 +
+ffprobe exact. NOT COMMITTED — owner has not asked.
 2026-09-05 (Code): THE TIDE — a FIFTH product, the only one about the market rather than a company
 (HANDOFF-2026-09-05-tide.md). Owner: "exhaustively research all the indicators for when the markets are
 over-extended… and all the indicators for when the markets are undervalued, being panic sold… create an
@@ -1232,4 +1383,335 @@ saturates** (5 of 6 slow gauges read 95–100 because those series have TRENDED 
 oscillating — real, not a bug, but the slow composite will sit near 90 for years: owner call whether a
 detrended variant belongs beside it); never seen at 375px (headless returns an empty DOM here — checked
 structurally instead); orphan `anfci` rows left stored deliberately.
+2026-09-07 (Code): FIVE OPEN-SOURCE REPOS REVIEWED → FOUR BUILDS (HANDOFF-2026-09-07-risk-desk.md;
+plan `~/.claude/plans/i-have-5-open-serialized-wadler.md`). Owner brought autohedge / public-apis /
+marketingskills / manim / humanizer in their own priority order and asked: verify each, verify it is
+free and open source, verify it can and SHOULD be integrated, then use them to maximum. All five real,
+all MIT, all maintained — and only one is usable as CODE. **(1) AutoHedge REJECTED, its shape taken:**
+`workers.py`/`prompts.py` contain NO deterministic math at all — `volatility`, `probability_score`,
+VaR, support/resistance and "recommended position size" are all asked of an LLM, which is the exact
+pattern every desk here exists to avoid; plus OPENAI_API_KEY (owner: zero API spend), a Solana wallet
+private key (never broker-wired), Python-on-`swarms`, and "swarm intelligence and AI agents" matching
+the banned leak pattern. But the gap was real — `grep correlat|covarianc` over lib/ returned only
+citation text — so THE RISK DESK was built instead (see Map). **(2) public-apis = a directory, not a
+dependency:** its own Finance section holds 6 keyless entries and Mag8 already used the best (EDGAR);
+Econdb, the strongest-looking addition, returns a **Cloudflare 403 from this network** (the Jina
+Reader pattern again) and PatentsView is now key-gated. Owner picked ONE of four probed candidates:
+USAspending → the bottleneck desk (see Map). Also probed and reachable but NOT wired, on the owner's
+call: Federal Register / openFDA / ClinicalTrials.gov / World Bank / IMF / OECD SDMX / Treasury
+FiscalData, all 200 keyless. defense.gov 403s an honest UA (the asafm.army.mil class).
+**(3) marketingskills ADOPTED as a subset** — 12 of 50 SKILL.md files + their 31 `references/` copied
+into `.claude/skills/` and hashed into `skills-lock.json`; the upstream **`AGENTS.md` deliberately NOT
+installed** (it instructs a session to fetch VERSIONS.md from GitHub once per session, and its tools
+registry points at GA4/Stripe/Mailchimp/Composio). Skipped everything assuming a live SaaS funnel —
+the waitlist stores and NOTHING SENDS. **(4) manim ADOPTED as ManimCE 0.19, NOT 3b1b/manim** (owner
+call after being shown the tradeoff: ManimGL's own README warns older code may not re-render, and "a
+re-render is not a new film" is already a rule here) in `marketing/manim/`, its own venv, **asset
+generator only** — transparent frames Remotion composites, never a second pipeline. Python 3.13.15 and
+ffmpeg were already on the box; LaTeX is NOT needed (Text() renders through Pango). **THE
+TRANSPARENCY TRAP, measured:** `manim -t --format=webm` writes `yuv420p` with corner alpha 255 — no
+alpha, no warning, composites as a SOLID RECTANGLE; `--format=mov` carries real alpha in qtrle, which
+no browser decodes; transcoding to VP9 or VP8 WebM ALSO yields `yuv420p` because both encoders LIST
+`yuva420p` and neither writes the BlockAdditions track. `--format=png` gives real `rgba`. `render.py`
+verifies the format, the corner alpha on THREE frames, and that something was actually DRAWN — an
+empty scene passes a transparency check trivially. **`check-leak.ts` extended to walk `../manim/scenes`
+and match `.py`** — a scene puts captions straight on a frame and the gate could not see them; proved
+by injection. **(5) humanizer ADOPTED as a skill AND turned into a gate:** `npm run check:voice`
+(`scripts/check-voice.ts`) applies the mechanically checkable half of its 25 patterns to hand-written
+copy in app/components/lib/marketing/video/src — reports, never rewrites, and stays OUT of the runtime
+path (the deterministic writers verify numerals, and a rewrite that changes what a sentence claims
+while keeping its digits would pass that check and still be false). House voice behind `--house`: the
+em dash alone is **801 hits** in authored copy, so on by default the gate would have been useless on
+day one. Its curly-quote rule was REMOVED after producing nothing but false positives (correct
+typography in film captions; a curly quote in real code is a tsc error). Authored copy: **0 hits over
+271 files**. Proved by injection both ways. Precedence written into FORMULA.md **§L**: this file
+outranks every imported skill, everything they produce is public copy that must clear the leak gate,
+and nothing auto-updates. Gates across all four phases: tsc clean · **1009 vitest** (was 908) · seed
+EXACT · gen:bib no-op · build clean w/ `/risk` registered · **leak probe 0 architecture hits across 16
+surfaces on BOTH the dev server and a production build**, every response >20KB · curtain 404s `/risk`
+WITH a valid admin cookie and the launch homepage carries no link · admin gating verified locked and
+unlocked with a real ADMIN_TOKEN on a prod build · flagship bottleneck reading held byte-identical
+($573.72B, +85.7%, MW +81.9pp, memory +68.7pp) · video leak gate clean at 98 files. NOT PUSHED.
+OPEN: `readRisk` ~1.3s (mostly readLedger, not this desk's code); the risk population is the ledger's
+13 crossings and `includeSingleDesk` widens it; only the drone theme has procurement codes and finding
+one whose recipients ARE the civil-nuclear or quantum market is research; the 4 bar tables could be
+consolidated behind one shared `price_bars` (deferred as a pure cleanup); never seen at 375px.
+
+2026-09-07 (Code, FIVE PARALLEL SESSIONS): VIRAL CHART PROTOCOL x5 — the owner ran the protocol in five
+Claude Code sessions at once on this one repo, each told to claim three original films and to de-conflict
+with the others FIRST in a chat room called "Marketing Meeting". There is no chat-room tool, so the room
+became `MARKETING-MEETING.md` at the repo root (untracked, append-only) plus cross-session SendMessage.
+TWELVE FILMS SHIPPED — batch-01 went 14 -> FULL at 25 (one YouTube drag) and batch-02 opened.
+mag8-57: `the-wage-that-stopped` (the first STAIRCASE — the federal minimum wage pinned at $7.25 since 2009
+against six states, published dollars, so the lines step rather than curve) · `nobody-wanted-oil` (the first
+DAILY film — the day US crude settled at MINUS $36.98, the only negative reading in 10,236 observations since
+1986) · `nowhere-to-hide` (the first race that goes DOWN — $10,000 into seven funds on the first trading day
+of 2022, five finishing below the stake, long Treasuries below the S&P).
+mag8-10: `same-house-eight-cities` (money at house scale — eight buyers, same $200,000, different city; Miami
+$896,486 against Detroit $402,383, and Phoenix and Las Vegas each more than doubled, gave ALL of it back below
+the start, and did it again) · `money-left-at-home` (LOG money in a fan that FALLS, a shape nothing in the
+folder had used — $1,000 of cash in eight currencies, all eight ending below where they started, yen $763 down
+to the peso at $2.04) · `who-stopped-working` (percent levels that CONVERGE and SWAP — men 86.7 to 66.8
+against women 32.0 to 56.4, never crossing, while teenagers and the over-55s start ten points apart in one
+order and end in the other).
+mag8-4f: `the-jobs-that-vanished` (the first CONTRACTING field — seven trades walking down into the floor,
+apparel 938,600 workers to 72,000; all 14 earlier films rise, fan or oscillate) · `who-owns-the-country` (the
+first COMPOSITION chart — four shares of one pie that must total 100, so a rise anywhere is a fall somewhere
+else) · `the-gap-that-closed` (the first CONVERGENCE — eight countries' life expectancy starting 37 years
+apart and finishing 6; the format run backwards).
+mag8-49: `the-interest-bill` (linear published dollar LEVELS with lead changes, five federal spending lines,
+1947-2026 — the interest a country pays on what it borrowed has just passed what it spends on its whole
+military; and the line does NOT climb steadily into the lead, it tops the field for a single quarter in 1998,
+falls for five years while every rival rises, and only passes defense for good in 2024-Q1, found by walking
+the ranking quarter by quarter rather than inferring from the endpoints) · `america-stopped-building` (linear
+raw COUNTS that boom and bust — housing starts by census region, 1959-2026, four regions summing exactly to
+the national line; America started more homes in 1972 than in any year since and runs at about half that now
+with roughly 120 million more people) · `black-monday` (the first DAILY-cadence film and the one that opened
+batch-02 — $10,000 into six national indices, Aug 1987 to Dec 1988, where the reveal is the RECOVERY rather
+than the crash: Japan is back above its August 1987 level by February 1988 and finishes at $12,318 while the
+other five are still under water — the same market whose 1989 peak opens the earlier `nikkei-1989`).
+A fourth idea, `things-you-can-hold`, was DROPPED and fully un-wired (see finding 11).
+FINDINGS, each of which produced or would have produced a confident wrong result:
+(1) **A spec registered in `jobs.ts` without its dataset is a HARD STOP FOR EVERY SESSION, not a staged edit**
+— `registry.ts` maps `chartOf` over every id EAGERLY at module load, so one unfetched id throws for everybody
+and NO chart in the project renders, including the 14 already shipped. Register and fetch IN THE SAME BREATH.
+It blocked all five of us twice in ten minutes.
+(2) **A FRED series can be ALIVE and DISCONTINUED** — `USNUM` (US commercial banks, 14,400 -> 4,375) stops
+2020-07, `CES4245210001` 2017-12, `CES3231600001` 2016-11. The fetcher trims to the last date EVERY leg
+reports, so one stale leg silently ends a whole film years early with every value correct and no error
+anywhere: the exact window defect the honesty gate exists for, entering through the END instead of the start.
+Killed a bank film. Check the LAST date of every leg, not just the first.
+(3) **The gate reads NUMERALS, so a SENTENCE is unguarded** — `chart-verify` checks digits in copy against the
+data and has no opinion on a quantity spelled as a word or on a claim about method. Four payoff lines shipped
+false through every gate before being checked: "more than a decade below where it started" (the real figure was
+85 months), "nothing here is adjusted" over six seasonally-adjusted series, "the four shares sum to one hundred
+at every point" (off by 0.2 — the Fed files them to one decimal), and "two of these lines cross, once, and
+never cross back", which was INFERRED FROM THE ENDPOINTS while the series actually crosses SEVEN times. The
+last is the hardest class: every plotted value correct, the SHAPE wrong in the middle, and no gate can catch it.
+(4) **A duplicate React key ghosts a label for the rest of a film, and STILLS CANNOT SEE IT** — x-axis month
+labels were keyed on the label TEXT, and month labels are month NAMES, so a month-mode window wider than twelve
+months prints "Mar" twice; two children with one key orphans one, and the encode path reuses a single DOM so
+the orphan never unmounts. Fixed (`key={t.i}`). THE REACH: the axis mode is chosen from the REVEALED span, not
+the dataset span, so "my film spans fifty years so this cannot touch it" is false. AT RISK is only a film whose
+revealed window passes through 13-35 months WITH points in the repeated months; a single-CALENDAR-YEAR film
+cannot mint it (twelve months, twelve distinct names) and annual data is safe, because a non-January stamp
+finds no index. **THE EXPOSED SET IS DECIDED BY THE FILM'S TOTAL SPAN, NOT BY THE REVEALED WINDOW** — and
+getting that wrong cost three rounds of correction between two sessions, each of us confidently wrong in turn.
+The axis never opens narrower than 8% of the whole run (`xSpan = Math.max(idx, (n-1) * 0.08)` in `cmath.ts`,
+so the first three points do not stretch across the plot), which means the opening window of a LONG film is
+already wide: a 1990-2026 quarterly film opens at index 12 = 1993-01, `years` is 3, and month mode never
+triggers at any point in the film. So **a film spanning more than about 37 years can never enter month mode**,
+and the exposed set is films spanning roughly 13-37 years, whose opening window lands at 13-35 months: a
+2005-2026 monthly film opens `[Jan, May, Sep, Jan, May]` and a 2000-2026 one opens `[Jan, Jul, Jan, Jul,
+Jan]` — exactly the two that ghosted, with exactly the repeated names they showed. A step of 12 cannot
+duplicate, because every stamp is a January and January prints as its year, which is why a long film in month
+mode can still LOOK like a year axis. Predicting the axis from the revealed index is the trap; it ignores the
+floor and gives the wrong answer every time. Two shipped films carried it. Every fresh-DOM still was clean, as was `chart-verify` and an
+encode-path window at frames 300-312 — it was caught only by extracting frames from a SHIPPED mp4, so
+`marketing/video/CLAUDE.md` gained workflow gate 6: **verify the ARTIFACT, not the still** — and pull frames
+BY INDEX (`-vf "select=eq(n\,30)"`) rather than by timestamp whenever a claim rests on one frame, since a
+timestamp seek lands on a neighbouring frame and two sessions comparing "the same moment" are then comparing
+different ones. Sample the
+OPENING as well as the end. NB a doubled digit on the big date ticker early in a film is the date ROLL
+mid-transition, not a ghost — it is absent from the final frame; do not re-render over an animation.
+(5) **CES payroll series are SEASONALLY ADJUSTED while the shared on-screen method line says "Series as
+published, no adjustment"** — FRED will not tell you (title, units line and meta description are all silent);
+it is settled by fetching the `CES` and `CEU` twins and DIFFING them (apparel, Jan 2025: 81.8 against 80.8).
+True of what the fetcher did, false about what the data is. **OWNER CALL, deliberately NOT reworded** — shared
+engine copy sitting under eleven published films with four sessions mid-render. mag8-57 checked its own FRED
+films and the sentence is true there (statutory rates, daily spot prices), so this is the payroll family only.
+(6) **There are TWO renderer ports and holding "the port" holds one of them** — renders take 3333 (CLI, from
+`remotion.config.ts`), stills take 3335 (the programmatic API, which does not read that config). A stills sweep
+and a render CAN run together; two renders cannot. Announce a render WINDOW, not a port. `scripts/stills.ts`
+now honours `MAG8_STILLS_PORT` (**default unchanged at 3335**) because a hard-coded port makes the port itself
+the queue when sessions share a machine.
+(7) **A licence check is not a judgement check, and a file TITLE is not evidence of what a photograph shows** —
+`--find` returned, all correctly public domain or CC0: twenty architectural plates with no people in them (the
+"product shot not a scene" the owner rejected), wartime and Japanese-American internment-camp hospitals for a
+life-expectancy film, a crowd of identifiable men in business dress which under the title "Who owns the
+country?" reads as a claim about THOSE men, a CC0 file called "Suburban neighborhood" that is an Eastern
+European street with Cyrillic shopfronts and a legible bank sign, and a money-changer's storefront carrying a
+real named business, two manufacturer logos and a burnt-in phone watermark. Also **archival scans include the
+film itself** — a negative's sprocket holes, a slide mount — and a landscape source fills a portrait frame by
+HEIGHT, so those borders land on the frame as black bands; `ffmpeg -vf crop` changes nothing about provenance
+and CREDITS.json still records the original.
+(8) **An idempotence check keyed on the IMPORT ALIAS cannot see a peer's identical wiring under a different
+alias** — two sessions correctly wiring the same film as `metalsData` and `thingsData` produced a duplicate key
+(tsc TS1117). Key such checks on the file path or the map key.
+(9) Coordination: **a whole-file read-modify-write clobbers a concurrent edit** — the room's own claims table
+lost a row that way within seconds, so the log is append-only (`cat >>`) and the tables at its head are a
+convenience only; and TWO SESSIONS BOTH BELIEVED THEY WERE AGENT ONE, so agents were addressed by session id
+thereafter.
+(10) Two smaller ones: **`yFloor` on a LOG axis is the below-zero defect in another hat** (a floor of 1 under a
+film whose lowest value is $2.04 holds an empty decade open from frame one — and the gate REFUSES a log axis
+with no floor, so the fix is a TIGHT floor, not none); and **`check:leak` bans the bare English word "agent"
+inside CODE COMMENTS too**, not only on-screen copy ("no property tax, no upkeep, no agent" failed the whole
+project). `sourceLabel` has a 42-character budget and over it is a FAIL.
+(11) **Yahoo's MONTHLY series for a futures symbol silently omits whole months, and the rule is the calendar**
+— `GC=F` returns 267 monthly bars against `^GSPC`'s 313, the missing timestamps simply absent from the
+response and the SAME months missing from every metal. Every dropped month is one whose 1st falls on a
+WEEKEND, about 1.7 a year forever. The daily bars for those months are complete, so it is the aggregation and
+not the market — and because it correlates across lines it looks exactly like a market event. A `YahooJob`
+cannot fetch daily and reduce, so there is no fix inside a spec; it cost a whole film, which is why
+`things-you-can-hold` was dropped and un-wired rather than shipped.
+(12) **The receipts line says "Series as published" even when the job SAMPLED** — `sample: 'quarterly'` drops
+two of every three months and the method line does not mention it, so `cost-of-money` reads "no adjustment"
+while dropping two thirds of its observations, and seven other films are in the same position. NOT fixed, for
+the same reason as the adjustment line: it rewrites the method string of every FRED film on its next
+re-fetch. Another owner decision; the affected film disclosed its cadence in its own subtitle instead.
+(13) `COMPACT_USD_ABOVE` in `src/charts/spec.ts` lowered $1B -> $100M — Social Security in 1949 drew as
+"$690,680,167", twelve characters through the badge and into the axis. Proved inert by scanning all 26 frozen
+datasets: the $100M-$1B band holds 15 values and every one belongs to the film that needed the change.
+ENGINE (all additive, all default-preserving, every existing job on the byte-identical path): `to` (an
+inclusive end cutoff, with `chart-verify` FAILING a spec whose `to` names a period the film's own copy does not
+mention — an honour-system comment turned into a check) · `knownExcursions` (a price that settles negative for
+one session can never pass "does the series visit this level elsewhere", and loosening the threshold would
+re-admit the blank-field collapse the check exists for, so the author declares day and reason and undeclared
+spikes still FAIL) · `transform: 'invested'` + `principal` on `FredJob` (it was raw|pctChange only, so "what
+$200,000 became" was impossible from a federal index for no reason but the type; the method line reads
+"tracked ... by the index as published" rather than "invested ... held", because you do not hold an index and a
+house is not a security) · month labels on the x axis for runs under three years · the stills-port override.
+Gates: 0 FAIL / 0 WARN on every chart, `check:leak` clean, tsc clean, all twelve renders ffprobe-exact
+(1080x1920 / 690f / 30fps / 23.061s). `CHARTS.md` and `FORMULA.md` appended by each session.
+A CONSEQUENCE WORTH ITS OWN LINE: `clib.tsx` changed under already-shipped films during the run, so **for the
+two films that carried the ghost a re-render is no longer byte-identical to the file it replaces** — it would
+be corrected, which is the point, but it is still a different artifact from the one on disk. The repo rule
+that a re-render returns to its own folder holds; the assumption underneath it, that re-rendering an old film
+reproduces it, does not while the engine is moving. Re-render deliberately, and verify the artifact after.
+Verified for the three films of this session: frame 30 pulled BY INDEX out of the shipped mp4 is identical to
+the same frame rendered fresh under current code, so those three would re-render unchanged.
+OPEN: batch-01 is FULL at 25 and ready to drag into YouTube, batch-02 holds one film;
+the "no adjustment" method line is the owner's decision and is still on screen under eleven films; a
+house-against-wage film was DROPPED after checking the arithmetic (nominal house prices and wages have both
+grown five to sevenfold since 1979 and run nearly parallel, so the honest chart undersells its own story — the
+affordability story lives in rates and a ratio, and the engine cannot divide).
+
+2026-09-07 (Code): CHART FILMS GET THE OWNER'S MUSIC. Owner dropped eight mp4s into the repo root:
+"extract just the background music of each video and randomly assign music to the viral chart marketing
+videos. this is the only sound/music i want in the videos, cut all sound that is currently in these videos
+that isnt these songs." Owner confirmed the tracks are licensed or royalty-free (asked before muxing — the
+films go to four platforms that all run Content ID, and an unlicensed track fails there, days later, as a
+claim, not at any gate here). MY FIRST STATEMENT WAS WRONG and I corrected it mid-task: I grepped
+`src/charts/` for an Audio component, found none and told the owner the chart films were silent — they were
+not. The `<Audio>` lives in `src/Root.tsx` and every chart film carried the procedural score from
+`gen-score-chart.ts`; ffprobe on the actual mp4 showed the audio stream. That score is exactly the sound the
+owner asked to cut, so the chart `<Audio>` is now UNWIRED in Root.tsx (the generator is kept for the other
+product lines) and the composition is silent — one source of sound, not two. Shipped
+`marketing/video/scripts/chart-music.ts` + `npm run chart:music`: `--extract` pulls the audio out of
+`music/sources/` (stream-copied, so the only generation loss in the chain is the single encode the mux
+does) and finds each track's LOUDEST 23s window (a track's opening is usually its quietest part, and a 23s
+film starting there spends a third of its runtime on the least interesting bar); the default run assigns a
+track at RANDOM ONCE, records it in the committed `music/assignments.json`, and muxes at -14 LUFS two-pass.
+**The assignment is fixed forever after the first run** — a posted film must keep sounding like itself, and
+new films take the least-used track so 26 over 8 sits at 3-4 each; `--reroll <id>` is the deliberate
+override. **The picture is never re-encoded** (`-c:v copy`, map `0:v`+`1:a`) — verified by comparing the
+video stream's MD5 before and after, not assumed; mapping only those two streams is also what discards the
+old score, which makes the operation safe to repeat. Wired into `render-charts.ts` because a film that
+skipped scoring would ship silent beside 26 that are not, and NOTHING in a stills sweep or a frame check can
+see a missing sound track. THREE FINDINGS, each of which produced a confident wrong result: (1)
+**`execFileSync` returns stdout ALONE and ffmpeg writes every measurement to stderr** — the window picker
+read an empty string every time and all eight tracks reported their loudest passage at exactly 0s; eight
+identical answers is what a broken measurement looks like, not a coincidence (spawnSync now); (2) **`-of
+csv=p=0` emits a trailing field separator** so a 23-second film probes as `"23.000000,"`, `Number()` of that
+is NaN, and the NaN travelled into ffmpeg as `-t NaN` and surfaced three steps away as loudnorm "reporting
+nothing measurable for source-06" — numbers are parsed out of the reading now, never cast from its shape;
+(3) **a container's duration is the LONGER of picture and sound** (23.000s video under 23.061s audio), so
+measuring the film that way put the fade-out past the last frame, still fading when the picture stopped.
+All 26 films scored in 33s; sweep confirms every film has exactly ONE audio stream whose duration equals its
+video's, films sharing a track have byte-identical audio and films on different tracks do not.
+`music/sources/` + `*.m4a` gitignored (large, licensed); `library.json` + `assignments.json` committed —
+they are what make the scoring reproducible. Docs: FORMULA §K Music + changelog row (the compounding owner
+rulebook), CHARTS.md (usage + the three traps), marketing/video/CLAUDE.md, and the protocol skill's step 5
+now says DO NOT run `gen:score:chart`. Gates: tsc clean (video), check:leak 0 hits over 122 files,
+chart:verify 0 FAIL across all 26. NOT COMMITTED — owner has not asked.
+
+
+2026-09-08 (Code): SAY WHAT IT IS — the chart headline rule, finished and made permanent. Owner:
+"i had a claude session running last night that was fixing the complicated language in all the chart
+videos… resume its work, if not review all videos one more time and ensure that there is no big
+complicated language when trying to communicate the subject of the video." FOUND IT — session
+20579157-…, killed by the 5-hour window at 22:50 mid-edit; its brief was "make sure the subject of
+every chart video is crystal clear… the first piece of text they read is 'the gap that closed' which
+can be confusing… i need the viewer to know right away what theyre watching, dont make anything more
+complex than it has to be… and permanently make this a big rule for the whole protocol." WHAT IT HAD
+FINISHED: a required `subject` on `ChartSpec` (what the film MEASURES, in plain words — "life
+expectancy at birth", not "the gap that closed"), a `chart-verify` FAIL when the TITLE shares no word
+with it (proved by re-injecting the owner's own example), a per-character WIDTH estimate for the 62px
+band calibrated against two real frames (a character COUNT is not the test — "Eight different
+cities." is 23 chars and 612px, "$200,000 in 2000." is 17 chars and 534px), 26 titles rewritten, 11
+films re-rendered. **WHAT THE LIMIT LEFT BROKEN, and this is the finding: it edited four subtitles
+AFTER re-rendering those four films.** `nikkei-1989`, `nowhere-to-hide`, `the-wage-that-stopped` and
+`the-gap-that-closed` sat on disk with the OLD subtitle baked in and the new one only in source —
+renders 22:41–22:48, edits 22:50, and the mtimes are the whole story. **Copy is baked into every
+frame, so a spec edit is invisible until the film is re-rendered, and NOTHING here detects the
+disagreement**: `chart-verify` reads specs, a stills sweep reads a fresh render, and only the mp4 is
+wrong. An mtime comparison is a heuristic and OVER-reports (the dead session's own script added the
+non-rendered `subject` field to all 26 specs, so eight untouched films look stale) — the check that
+actually works is the house rule, reading the title band back out of the finished mp4 by frame INDEX.
+THIS SESSION, on top: one more title (`sector-race-10k` "Which sector won this century?" → "Which
+part of the / stock market won?" — "sector" is the trade's word and never said a sector OF WHAT);
+seven subtitles de-jargoned ("cumulative change" → "how much each has risen"; "seasonally adjusted
+annual rate" → "at a yearly pace, seasonally adjusted"; "total return… from one shared month" →
+"dividends included… from the same starting month"; "priced against one January"; "price only");
+labels where the word was undecodable rather than merely technical — Moody's `Aaa`/`Baa` → "Top-rated
+firms"/"Mid-rated firms" (a rating code cannot be decoded at all, and both land at 15 chars so the
+live rail keeps 3 columns: 78 + 16·w ≤ 320), and the clipped agency names `Educ. & health`/`Leisure &
+hosp` → "Health, schools"/"Leisure, hotels" ("hosp" beside a health category reads as *hospital*);
+and the y-axis chip "CUMULATIVE %" → "TOTAL % CHANGE" (5 films). DELIBERATELY NOT CHANGED, and said
+rather than silently kept: `Prof./business`, where every plain alternative loses real meaning, and
+the disclosures that are load-bearing — the fix for a jargon term that carries a claim is to keep it
+and cut the words around it, not to drop it. Twelve films re-rendered into their own slots — seventeen render passes, five of them twice
+because the axis-chip change landed after their first pass — each re-scored with its own assigned
+track (picture stream copied, per the 09-07 music rule); all 26 films verified 1080x1920 / 690f /
+30fps with exactly ONE audio stream at 23.000s. The rule is
+now in the four places that bind, which is the half the dead session never reached: FORMULA §K "Say
+what it is" + changelog row, CHARTS.md's honesty-gate section ("The headline"), marketing/video/
+CLAUDE.md's gate paragraph, and the protocol skill's step-2 copy rules + step-4 gate list. Gates: tsc
+clean, chart:verify 0 FAIL across 26 (29 WARN, all pre-existing data notes — holes, declared
+excursions, deliberate cuts), check:leak 0 hits over 122 files, check:voice 0 hits over 283, title
+bands read BY FRAME INDEX out of the finished mp4s. NOT COMMITTED — owner has not asked. OPEN: there
+is still no record of what copy an mp4 was rendered with, so the stale-artifact class this session
+fixed by hand can recur — a manifest written by `render-charts.ts` would close it, deferred as
+unasked scope; and dragging a folder into YouTube pre-fills each title from the FILENAME, so
+`chart-the-gap-that-closed.mp4` arrives as exactly the riddle the owner objected to (ids are
+deliberately stable — music assignments and the re-render-to-its-own-folder rule both key on them —
+so titles must be set at upload).
+
+
+2026-09-08 (Code, same day): PLATFORM METADATA FOR THE CHART FILMS. Owner: "youtube prefills each
+title from the filename, it also prefills the descriptions of these videos too, ive seen it
+automatically advertise mag8, i want you to optimize the title and description of all video, research
+effective tags for the title and description and add them, even add emojis if possible, and keeping
+the language simple and easy to understand, i want a captivating title and description directly
+related to the subject of the video." The flagged-but-unbuilt item from the morning, now built.
+`scripts/chart-platform.ts` + `npm run chart:platform` → `marketing/youtube-chart-upload-plan-
+2026-09-08.md`: 26 titles, descriptions, hashtags and tags. **GENERATED, NOT WRITTEN** — a
+description is mostly figures and a retyped figure is the defect this repo keeps catching, so every
+number is interpolated from the SAME frozen dataset the film renders from (`f.usd('NVDA')` cannot
+disagree with the chart) and anything not in the data — a date, a historical fact, a span in years —
+must be declared in that film's `claims` with its source, exactly like `knownExcursions` in a spec.
+The generator REFUSES any other loose numeral; proved by injecting a false "$8,400,000" into the
+Magnificent 7 entry and watching it FAIL. It also enforces the platform's limits (title 100,
+description 5000, >15 hashtags makes YouTube ignore ALL of them, 500 characters of tags at 30 each)
+and runs the leak pattern over every title, description and tag before writing. RESEARCH decided the
+shape, not taste: a Shorts title is judged on its first ~40 characters and does better DECLARATIVE
+than interrogative — so the on-screen headline stays a question ("What has it cost to borrow
+money?") while the platform title states the payoff ("US Interest Rates Since 1976: Prime Hit 20.4%
+💵"); the first ~100 characters of the description sit above the fold; hashtags go in the
+DESCRIPTION (4 each), never the title; the tag box is worth about five minutes. THREE COPY BUGS THE
+GENERATOR SURFACED, none of which a proofread would have caught: stripping a trailing zero made ONE
+sentence carry two precisions — "$1.25 trillion against $1.2 trillion" — which reads as sloppiness
+and understates a $49B gap; `num()` rounding to whole years turned Japan 84.04 and Italy 83.95 into
+"84" and "84", a tie that does not exist in the one film whose whole subject is the ordering; and a
+signed formatter printed participation RATES as "+56.4%", which reads as a rise rather than a share.
+The traceability gate ALSO caught its own blind spot — it failed on "S&P 500", "Nasdaq 100" and
+"10-yr Treasury", because a series LABEL is dataset copy too and several carry digits. Rule written
+into FORMULA §J + changelog, marketing/video/CLAUDE.md, and the protocol skill as step 6b (a new film
+with no entry FAILS the generator, deliberately). Gates: tsc clean, chart:platform 0 FAIL / 0 WARN
+across 26, ZERO leak hits in the pack, longest title 58 chars. NOT COMMITTED — owner has not asked.
+OPEN: the pack is written for YouTube; TikTok/IG/FB captions can be derived from the same generator
+but were not asked for. The 16 older films keep their own pack
+(`marketing/youtube-upload-plan-2026-07-10.md`) and are already live — untouched.
+
+
 Memory twin (update BOTH): `~/.claude/projects/C--Users-nocap-Mag8/memory/mag8-project-state.md`.

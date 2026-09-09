@@ -19,7 +19,9 @@
     "chart:verify": "node scripts/chart-verify.ts",
     "chart:made": "node scripts/chart-out.ts",
     "gen:score:chart": "node scripts/gen-score-chart.ts",
-    "render:charts": "node scripts/render-charts.ts"
+    "render:charts": "node scripts/render-charts.ts",
+    "chart:music": "node scripts/chart-music.ts",
+    "chart:platform": "node scripts/chart-platform.ts"
   },
   "dependencies": {
     "@remotion/animation-utils": "^4.0.486",

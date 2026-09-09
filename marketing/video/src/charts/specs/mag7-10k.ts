@@ -36,6 +36,7 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'mag7-10k',
+  subject: '$10,000 invested in the Magnificent 7',
   title: '$10,000 in the\nMagnificent 7',
   subtitle: 'One buy. Never sold. Every dividend back in.',
   hook: {question: 'What did $10,000 become?', kicker: 'Seven giants and the index that held them.'},

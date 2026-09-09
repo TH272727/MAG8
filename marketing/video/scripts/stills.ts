@@ -31,7 +31,13 @@ const BROWSER = {
   // renderer loads the WEBSITE, finds no compositions, and reports "not a valid
   // Remotion project". Pin the port beside the other settings this path cannot
   // inherit.
-  port: 3335,
+  //
+  // Overridable because a fixed port serialises every session on one machine: two
+  // stills passes at once collide, so with several people working the port itself
+  // becomes the queue. `MAG8_STILLS_PORT=3336 npm run stills -- <CompId>` takes a
+  // different one. The DEFAULT IS UNCHANGED — anything that does not set the
+  // variable behaves exactly as before, and 3000 is still the trap to avoid.
+  port: Number(process.env.MAG8_STILLS_PORT ?? 3335),
 } as const;
 
 const [compId, mode, range] = process.argv.slice(2);

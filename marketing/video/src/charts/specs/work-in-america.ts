@@ -41,6 +41,7 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'work-in-america',
+  subject: 'what America does for a living - payroll jobs by industry',
   title: 'What does America\ndo for a living?',
   subtitle: 'Workers on US payrolls, in thousands.',
   hook: {question: 'What does America do for a living?', kicker: 'Eight industries, fifty-six years.'},
@@ -49,10 +50,10 @@ export const spec: ChartSpec = {
   yFloor: 0,
   dateFormat: 'month',
   series: [
-    {key: 'EDHE', label: 'Educ. & health', color: C.confluence, emphasis: true, medallion: {kind: 'mono', text: 'EDH'}},
+    {key: 'EDHE', label: 'Health, schools', color: C.confluence, emphasis: true, medallion: {kind: 'mono', text: 'EDH'}},
     {key: 'GOVT', label: 'Government', color: '#6ea8ff', medallion: {kind: 'mono', text: 'GOV'}},
     {key: 'PROF', label: 'Prof./business', color: C.discovery, medallion: {kind: 'mono', text: 'PRO'}},
-    {key: 'LEIS', label: 'Leisure & hosp', color: '#e5749b', medallion: {kind: 'mono', text: 'LEI'}},
+    {key: 'LEIS', label: 'Leisure, hotels', color: '#e5749b', medallion: {kind: 'mono', text: 'LEI'}},
     {key: 'RETL', label: 'Retail trade', color: C.fundamentals, medallion: {kind: 'mono', text: 'RTL'}},
     {key: 'MANU', label: 'Manufacturing', color: C.macro, emphasis: true, medallion: {kind: 'mono', text: 'MFG'}},
     {key: 'CONS', label: 'Construction', color: '#b7c34a', medallion: {kind: 'mono', text: 'CON'}},

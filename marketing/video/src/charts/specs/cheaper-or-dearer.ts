@@ -46,8 +46,9 @@ export const job: FetchJob = {
 
 export const spec: ChartSpec = {
   id: 'cheaper-or-dearer',
-  title: 'What got cheaper?\nWhat got dearer?',
-  subtitle: 'Eight things Americans buy, priced against one January.',
+  subject: 'US consumer prices by category',
+  title: 'US prices since 1990:\nwhat got cheaper?',
+  subtitle: 'Eight things Americans buy, all measured from the same starting month.',
   hook: {question: 'What actually got cheaper?', kicker: 'Eight categories, one base month.'},
   unit: 'pct',
   scale: 'linear',

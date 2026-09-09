@@ -25,6 +25,21 @@ not a blank one**. Do this before anything else, without being asked:
    because a series that does not exist costs a whole build to discover.
    Vary the *shape*, not just the subject: the two shipped films are "$10k invested, log,
    money" and "since 2000, linear, percent". A third of the same shape is a re-tread.
+
+   **EVERY FILM NEEDS A STORY, and this is the first test an idea has to pass** (owner,
+   2026-09-06). Not a comparison a finance person would find worthy — a story a stranger
+   would stay for: someone bought two pizzas for ten thousand bitcoin; a country's stock
+   market took thirty-four years to get back to where it started; what if you had bought at
+   the exact worst moment in living memory. The chart is the *answer* to the story, and the
+   money counterfactual is usually the answer's shape ("what would that be worth now?").
+   An idea that can only be described as "X versus Y over time" has not found its story yet
+   and is not ready to propose. Two rules protect this:
+   - **Nobody is named.** The story runs on "someone", "a buyer", "a country". A chart about
+     a named individual's money or conduct is an owner decision, never a default (§K).
+   - **The story never bends the data.** Bitcoin had no market price on pizza day, so that
+     film starts months later and claims the smaller, checkable number instead of the
+     headline one. A story creates pressure to overclaim; the window discipline gets
+     *stricter* on a story film, not looser.
 3. **Put the three to the owner and build the one they pick** (AskUserQuestion — one tap, and
    they can name their own instead). Then run the procedure below.
 
@@ -96,7 +111,24 @@ percent) — between them they cover most of the space.
 Register it in `src/charts/jobs.ts` (two lines) and `src/charts/registry.ts` (two lines).
 
 Copy rules, all binding:
-- Title ≤ 2 lines at 62px; use `\n` to break it yourself rather than letting it wrap.
+- **Declare a `subject` and make the TITLE say it.** This is the owner's biggest copy rule
+  (2026-09-07) and `chart-verify` enforces it. `subject` is what the film MEASURES, in plain
+  words a stranger understands — "life expectancy at birth", not "the gap that closed". The
+  gate FAILS a title that shares no word with it. **The first text a viewer reads has to tell
+  them what they are watching**: `the-gap-that-closed` opened on the words "The gap that
+  closed" and left "life expectancy" to the 31px subtitle, which is one font size too late —
+  a scroller has gone. Lead with the subject, then the story: "Life expectancy: / the gap that
+  closed". The id stays poetic; the headline says what the thing is.
+- **Say the plain thing everywhere else too** — *"don't make anything more complex than it has
+  to be"*. The trade's vocabulary is not a stranger's: rating codes (`Aaa`, `Baa`), "cumulative
+  change", "seasonally adjusted annual rate", "total return" and clipped agency category names
+  all have to be decoded before the film can be watched. Prefer the plain wording wherever it
+  is equally true ("top-rated firms", "how much each has risen"). Where plain language would
+  cost accuracy, keep the accurate words and cut the words around them — a disclosure is not
+  clutter.
+- Title ≤ 2 lines at 62px; use `\n` to break it yourself rather than letting it wrap. About 30
+  characters a line, and the gate estimates real WIDTH — digits and capitals run half again as
+  wide as an `i`, so a character count is not the test.
 - Labels ride the line head in a 268px column. **Keep them under ~16 characters.**
 - Real companies appear in safe framings only — famous winners referenced neutrally or
   flatteringly. A real company is never scored, vetoed or attached to a negative claim
@@ -135,6 +167,9 @@ A FAIL blocks the render. What it checks and why:
   Nothing was mis-rendered. The window was wrong.
 - **A one-point spike that returns.** Parse artefacts look exactly like this. A blank field
   in a federal CSV was read as a zero here and drew consumer prices collapsing 100%.
+- **A title that does not name its own declared `subject`** (owner rule, 2026-09-07), or a
+  title too wide for the 62px band. A machine cannot judge whether a phrase is clear; it can
+  check that the headline and the subject are talking about the same thing.
 - **A log axis without the LOG SCALE chip on screen.**
 - **A linear axis with a >30× spread** (warn — the slow lines will lie flat; consider log).
 - **Any number typed into copy that is not a final value, a growth multiple, a year or the
@@ -144,13 +179,18 @@ A FAIL blocks the render. What it checks and why:
 - **Pacing** against FORMULA §C — frames per point across the race beat.
 - **An unbranded cut**: no endcard AND no address in the header.
 
-### 5. Score, stills, read them
+### 5. Stills, and read them
 
 ```bash
-npm run gen:score:chart -- <id>      # procedural, deterministic, no samples, no spend
 npm run stills -- Chart-<Id>         # 12 evenly spaced
 npm run stills -- Chart-<Id> seq 300-340   # encode path, catches DOM-reuse bugs
 ```
+
+**Do NOT run `gen:score:chart`.** Chart films no longer use the procedural score — the owner
+supplied licensed music (2026-09-07) and asked for it to be the only sound in these films, so
+the chart `<Audio>` is unwired in `Root.tsx` and the composition is silent. The music is muxed
+on after the render, and `render:charts` does it for you (step 6). The generator still exists
+for the other product lines.
 
 **Open the PNGs and look at them.** Every fit bug this engine has had was found by reading a
 still, never by a test: badges printing through each other, a label silently clipped from
@@ -166,6 +206,78 @@ npm run render:charts -- <id>        # re-runs the honesty gate first, then rend
 
 Output: `marketing/video/out/charts/batch-NN/chart-<id>.mp4` — the driver picks the folder and
 prints it, and says when a folder has filled and is ready to drag into YouTube.
+
+`render:charts` also scores the film: it calls `scripts/chart-music.ts <id>`, which assigns one
+of the owner's licensed tracks at random ONCE, records it in `music/assignments.json` and muxes
+it on at -14 LUFS with the video stream copied untouched. A film that already has a track keeps
+it, so a re-render never changes how a posted film sounds. Nothing you can see in a still or a
+frame check would reveal a missing sound track, which is why the render driver does it rather
+than leaving it to you. To hear the spread or change one:
+
+```bash
+npm run chart:music -- --list        # who got what
+npm run chart:music -- --reroll <id> # deliberately change one film's track
+```
+
+### 6b. Write the platform metadata
+
+```bash
+npm run chart:platform
+```
+
+Add the film to `COPY` in `scripts/chart-platform.ts` FIRST — the generator FAILS on a film with
+no entry, deliberately, because YouTube will otherwise title it from the filename and describe it
+from the channel default. Interpolate every figure from the dataset (`f.usd('NVDA')`,
+`f.pct('TOYS')`); a date or a historical fact that is not in the data goes in `claims` with its
+source, and any other loose numeral is refused. Title: declarative, subject first, one emoji,
+under ~60 characters. Description: payoff in the first line, three bullets, then the receipts, the
+site line, and 3-5 hashtags at the END of the description — never in the title, and never more
+than 15 or YouTube ignores all of them.
+
+### 7. Read frames back out of the finished mp4
+
+```bash
+ffmpeg -ss 2 -i out/charts/batch-NN/chart-<id>.mp4 -frames:v 1   -vf "crop=1080:80:0:1125,scale=2160:160" /tmp/axis-2s.png     # the axis strip at 2x
+```
+
+**The render is not the last step; reading it is.** Sample the opening, the middle and the end,
+and pull frames by INDEX (`-vf "select=eq(n\,30)"`) rather than by timestamp whenever a claim
+rests on one particular frame.
+
+A still cannot reproduce a DOM-reuse bug by construction — the encode path reuses one DOM across
+sequential frames and a fresh-DOM still does not — and an encode-path sweep only covers the frames
+you happened to choose. A duplicate React key on the x-axis labels, minted in the opening seconds
+and inherited for the rest of the run, printed one label through another in two shipped films after
+passing clean stills, a clean seq window at frames 300-312, and the honesty gate (2026-09-07). The
+only check that saw it was pulling frames back out of the mp4.
+
+## The photograph under the chart
+
+Every film gets one (owner, 2026-09-06 — "i also like the background images a lot"). A real
+photograph, darkened almost to texture, is the cheapest evidence in the frame that a person chose
+the subject, in a format where every other pixel is drawn.
+
+```bash
+node scripts/chart-backdrop.ts --find "tokyo skyline night filetype:bitmap"
+node scripts/chart-backdrop.ts --get <chart-id> "File:<exact name>.jpg"
+```
+
+Then `backdrop: {file: '<chart-id>.jpg', strength: 0.16–0.22, focus: 'center 45%'}` in the spec.
+
+- **PICK A SCENE, NOT A PRODUCT SHOT.** This is the owner's own verdict on the first three: the
+  Tokyo skyline and the trading floor were "general enough, but relevant enough"; a studio close-up
+  of a pizza slice was the weakest, and what it wanted was "a more general photo like a pizza
+  delivery man". A place with people and depth in it reads as a photograph at 15% opacity. An
+  object on a white sweep reads as a smudge. Ask what the story's *world* looks like — a street, a
+  floor, a skyline, a queue — rather than what the story's noun looks like.
+- **Public domain or CC0 only**, and the script refuses anything else: CC BY and CC BY-SA are
+  equally free and both oblige an attribution ON the frame, which a chart film has no room for.
+  `filetype:bitmap` in the query keeps scanned books out of the results.
+- **Avoid legible third-party branding** where you can — a logo behind a financial film implies an
+  association nobody agreed to. At these strengths most signage goes illegible anyway; prefer the
+  frame where it already is.
+- **Judge it on a full-resolution crop**, never a contact sheet: at thumbnail size every strength
+  looks fine, and a backdrop that is too faint reads as sensor noise rather than as a photograph.
 
 ## Faces on the line heads
 

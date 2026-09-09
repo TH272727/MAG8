@@ -17,6 +17,24 @@ import {DATA as sectorsData} from './data/sector-race-10k.data.ts';
 import {DATA as workData} from './data/work-in-america.data.ts';
 import {DATA as groceryData} from './data/grocery-run.data.ts';
 import {DATA as worldData} from './data/world-markets.data.ts';
+import {DATA as owesData} from './data/what-america-owes.data.ts';
+import {DATA as peopleData} from './data/eight-billion.data.ts';
+import {DATA as belowZeroData} from './data/below-zero.data.ts';
+import {DATA as pizzaData} from './data/pizza-day.data.ts';
+import {DATA as nikkeiData} from './data/nikkei-1989.data.ts';
+import {DATA as covidData} from './data/covid-crash.data.ts';
+import {DATA as housesData} from './data/same-house-eight-cities.data.ts';
+import {DATA as athomeData} from './data/money-left-at-home.data.ts';
+import {DATA as workingData} from './data/who-stopped-working.data.ts';
+import {DATA as interestBillData} from './data/the-interest-bill.data.ts';
+import {DATA as buildingData} from './data/america-stopped-building.data.ts';
+import {DATA as blackMondayData} from './data/black-monday.data.ts';
+import {DATA as wageStoppedData} from './data/the-wage-that-stopped.data.ts';
+import {DATA as oil2020Data} from './data/nobody-wanted-oil.data.ts';
+import {DATA as nowhereData} from './data/nowhere-to-hide.data.ts';
+import {DATA as vanishedData} from './data/the-jobs-that-vanished.data.ts';
+import {DATA as ownsCountryData} from './data/who-owns-the-country.data.ts';
+import {DATA as gapClosedData} from './data/the-gap-that-closed.data.ts';
 
 const CHART_DATA: Record<string, ChartData> = {
   'mag7-10k': mag7Data,
@@ -27,6 +45,24 @@ const CHART_DATA: Record<string, ChartData> = {
   'work-in-america': workData,
   'grocery-run': groceryData,
   'world-markets': worldData,
+  'what-america-owes': owesData,
+  'eight-billion': peopleData,
+  'below-zero': belowZeroData,
+  'pizza-day': pizzaData,
+  'nikkei-1989': nikkeiData,
+  'covid-crash': covidData,
+  'same-house-eight-cities': housesData,
+  'money-left-at-home': athomeData,
+  'who-stopped-working': workingData,
+  'the-interest-bill': interestBillData,
+  'america-stopped-building': buildingData,
+  'black-monday': blackMondayData,
+  'the-wage-that-stopped': wageStoppedData,
+  'nobody-wanted-oil': oil2020Data,
+  'nowhere-to-hide': nowhereData,
+  'the-jobs-that-vanished': vanishedData,
+  'who-owns-the-country': ownsCountryData,
+  'the-gap-that-closed': gapClosedData,
 };
 
 export type Chart = {id: string; spec: ChartSpec; data: ChartData; beats: Beats; frames: number};

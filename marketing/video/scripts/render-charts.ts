@@ -59,4 +59,17 @@ for (const id of ids) {
     `  filed in ${dest.batch.name} (${dest.slot}/${CHART_BATCH_SIZE})` +
       (full ? ' — FULL, ready to drag into YouTube; the next chart opens a new folder' : ''),
   );
+
+  // Music goes on here rather than being left to the operator. The composition
+  // is silent (see Root.tsx), so a film that skipped this step would be posted
+  // in silence next to twenty-six that are not — and the failure is invisible
+  // in every still and every frame check this project runs.
+  const music = spawnSync(process.execPath, [join(ROOT, 'scripts', 'chart-music.ts'), id], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
+  if (music.status !== 0) {
+    console.error(`\n${comp} rendered but could not be scored (status ${music.status})`);
+    process.exit(music.status ?? 1);
+  }
 }
